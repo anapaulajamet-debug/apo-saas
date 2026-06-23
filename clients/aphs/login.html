@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APHS — Connexion</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #1A6B80;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 44px 44px 36px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-wrap img {
+      max-width: 240px;
+      width: 100%;
+      height: auto;
+    }
+
+    /* Fallback si l'image n'est pas encore déposée */
+    .logo-fallback {
+      display: none;
+    }
+
+    .logo-wrap img[src="assets/logo.png"]:not([complete]) + .logo-fallback,
+    .logo-wrap img.broken + .logo-fallback {
+      display: block;
+    }
+
+    .logo-separateur {
+      width: 48px;
+      height: 3px;
+      background: #2A8FA8;
+      margin: 14px auto 0;
+      border-radius: 2px;
+    }
+
+    .form-title {
+      font-size: 14px;
+      color: #5a6a72;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #1A6B80;
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 7px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      color: #1a1a1a;
+      background: #F8FAFC;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: #2A8FA8;
+      box-shadow: 0 0 0 3px rgba(42, 143, 168, 0.15);
+      background: #ffffff;
+    }
+
+    .forgot {
+      text-align: right;
+      margin-top: -10px;
+      margin-bottom: 22px;
+    }
+
+    .forgot a {
+      font-size: 12px;
+      color: #2A8FA8;
+      text-decoration: none;
+    }
+
+    .forgot a:hover { text-decoration: underline; }
+
+    .btn-connect {
+      width: 100%;
+      padding: 13px;
+      background: #2A8FA8;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-connect:hover  { background: #1A6B80; }
+    .btn-connect:active { transform: scale(0.98); }
+
+    .btn-connect:disabled {
+      background: #9ecdd8;
+      cursor: not-allowed;
+    }
+
+    .msg-erreur {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #B91C1C;
+      text-align: center;
+    }
+
+    .card-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #94A3B8;
+    }
+
+    .page-footer {
+      margin-top: 20px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+
+    <div class="logo-wrap">
+      <img
+        src="assets/logo.png"
+        alt="APHS — Azur Propreté Hygiène & Services"
+        onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';"
+      />
+      <!-- Affiché uniquement si logo.png absent -->
+      <div id="logoFallback" style="display:none;">
+        <div style="font-size:46px; font-weight:900; letter-spacing:6px; color:#2A8FA8; font-family:Arial,sans-serif;">APHS</div>
+        <div style="font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#1A6B80; margin-top:4px;">Azur Propreté Hygiène &amp; Services</div>
+      </div>
+      <div class="logo-separateur"></div>
+    </div>
+
+    <p class="form-title">Accédez à votre espace de gestion</p>
+
+    <form id="loginForm" novalidate>
+
+      <div class="field">
+        <label for="email">Adresse e-mail</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="prenom.nom@aphs.fr"
+          autocomplete="email"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="password">Mot de passe</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+
+      <div class="forgot">
+        <a href="#">Mot de passe oublié ?</a>
+      </div>
+
+      <button type="submit" class="btn-connect" id="btnConnect">Se connecter</button>
+
+      <div class="msg-erreur" id="msgErreur">
+        Email ou mot de passe incorrect. Veuillez réessayer.
+      </div>
+
+    </form>
+
+    <div class="card-footer">
+      Accès réservé au personnel autorisé APHS
+    </div>
+
+  </div>
+
+  <p class="page-footer">Propulsé par APO Solutions — Votre secteur, notre expertise.</p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_ZgDCe1RfP4IUQCmo4lYvTA_-qeAQRUX';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const msgEl    = document.getElementById('msgErreur');
+      const btn      = document.getElementById('btnConnect');
+
+      msgEl.style.display = 'none';
+      btn.textContent = 'Connexion…';
+      btn.disabled = true;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        msgEl.style.display = 'block';
+        btn.textContent = 'Se connecter';
+        btn.disabled = false;
+        return;
+      }
+
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+
+</body>
+</html>

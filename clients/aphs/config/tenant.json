@@ -1,0 +1,20 @@
+{
+  "tenant_id": "aphs",
+  "nom": "Azur Propreté Hygiène et Services",
+  "sigle": "APHS",
+  "ville": "Fos-sur-Mer",
+  "couleurs": {
+    "primaire": "#0A2342",
+    "secondaire": "#1565C0",
+    "accent": "#D4A017",
+    "texte": "#FFFFFF",
+    "fond": "#F4F6F9"
+  },
+  "police": "Arial, sans-serif",
+  "modules_actifs": [
+    "contrats", "sites", "agents", "planning",
+    "pointage", "qualite", "facturation", "paie", "documents"
+  ],
+  "ccn": "Propreté Colonne A",
+  "alerte_marge_pct": 30
+}

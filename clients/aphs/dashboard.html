@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APHS — Tableau de bord</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:       #2A8FA8;
+      --teal-dark:  #1A6B80;
+      --teal-light: #E6F4F7;
+      --or:         #D4A017;
+      --rouge:      #C0392B;
+      --vert:       #1E8449;
+      --gris-texte: #374151;
+      --gris-doux:  #6B7280;
+      --gris-fond:  #F3F6F8;
+      --blanc:      #FFFFFF;
+      --bordure:    #DDE3E8;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--gris-fond);
+      color: var(--gris-texte);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ══════════════════════════════════
+       SIDEBAR
+    ══════════════════════════════════ */
+    .sidebar {
+      width: 230px;
+      min-height: 100vh;
+      background: var(--teal-dark);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+    }
+
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .sidebar-logo img {
+      max-width: 130px;
+      width: 100%;
+      height: auto;
+    }
+
+    .sidebar-logo-fallback {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #fff;
+    }
+
+    .sidebar-logo-sub {
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-top: 3px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+
+    .nav-section {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      padding: 14px 20px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      cursor: pointer;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+    }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border-left-color: var(--or);
+      font-weight: 700;
+    }
+
+    .nav-icon {
+      font-size: 16px;
+      width: 18px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .sidebar-footer strong {
+      display: block;
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+    }
+
+    .btn-deconnexion {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: background 0.15s;
+    }
+
+    .btn-deconnexion:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    /* ══════════════════════════════════
+       CONTENU PRINCIPAL
+    ══════════════════════════════════ */
+    .main {
+      margin-left: 230px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Topbar */
+    .topbar {
+      background: var(--blanc);
+      border-bottom: 1px solid var(--bordure);
+      padding: 0 28px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar-titre {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--gris-texte);
+    }
+
+    .topbar-date {
+      font-size: 13px;
+      color: var(--gris-doux);
+    }
+
+    /* Zone de contenu */
+    .content {
+      padding: 28px;
+      flex: 1;
+    }
+
+    /* ══════════════════════════════════
+       CARTES KPI
+    ══════════════════════════════════ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-card {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      padding: 20px 20px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--teal);
+    }
+
+    .kpi-card.alerte::before  { background: var(--rouge); }
+    .kpi-card.warning::before { background: var(--or); }
+    .kpi-card.ok::before      { background: var(--vert); }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gris-doux);
+      margin-bottom: 8px;
+    }
+
+    .kpi-valeur {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--gris-texte);
+      line-height: 1;
+    }
+
+    .kpi-valeur.rouge  { color: var(--rouge); }
+    .kpi-valeur.orange { color: #C07A00; }
+    .kpi-valeur.vert   { color: var(--vert); }
+
+    .kpi-sous {
+      font-size: 12px;
+      color: var(--gris-doux);
+      margin-top: 5px;
+    }
+
+    .kpi-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-rouge  { background: #FDECEA; color: var(--rouge); }
+    .badge-orange { background: #FEF3CD; color: #92600A; }
+    .badge-vert   { background: #E8F5E9; color: var(--vert); }
+    .badge-teal   { background: var(--teal-light); color: var(--teal-dark); }
+
+    /* ══════════════════════════════════
+       DEUX COLONNES BASSES
+    ══════════════════════════════════ */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--bordure);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-titre {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gris-texte);
+    }
+
+    .panel-lien {
+      font-size: 12px;
+      color: var(--teal);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .panel-lien:hover { text-decoration: underline; }
+
+    /* Tableau sites */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gris-doux);
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--bordure);
+      background: #FAFBFC;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--bordure);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--gris-fond); }
+
+    tbody td {
+      padding: 11px 20px;
+      color: var(--gris-texte);
+    }
+
+    .marge-ok    { color: var(--vert); font-weight: 700; }
+    .marge-alerte { color: var(--rouge); font-weight: 700; }
+    .marge-warning { color: #C07A00; font-weight: 700; }
+
+    /* Alertes */
+    .alerte-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 20px;
+      border-bottom: 1px solid var(--bordure);
+    }
+
+    .alerte-item:last-child { border-bottom: none; }
+
+    .alerte-puce {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .puce-rouge  { background: var(--rouge); }
+    .puce-orange { background: var(--or); }
+    .puce-vert   { background: var(--vert); }
+
+    .alerte-texte {
+      font-size: 13px;
+      color: var(--gris-texte);
+      line-height: 1.4;
+    }
+
+    .alerte-meta {
+      font-size: 11px;
+      color: var(--gris-doux);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-logo">
+      <img
+        src="assets/logo.png"
+        alt="APHS"
+        onerror="this.style.display='none'; document.getElementById('logoSideFallback').style.display='block';"
+      />
+      <div id="logoSideFallback" style="display:none;">
+        <div class="sidebar-logo-fallback">APHS</div>
+        <div class="sidebar-logo-sub">Azur Propreté Hygiène &amp; Services</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <div class="nav-section">Principal</div>
+      <a class="nav-item active" href="dashboard.html">
+        <span class="nav-icon">⊞</span> Tableau de bord
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📋</span> Contrats
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📍</span> Sites
+      </a>
+
+      <div class="nav-section">Ressources humaines</div>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">👷</span> Agents
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📅</span> Planning
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">🕐</span> Pointage
+      </a>
+
+      <div class="nav-section">Exploitation</div>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">✅</span> Qualité / Audits
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📄</span> Documents
+      </a>
+
+      <div class="nav-section">Finance</div>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">🧾</span> Facturation
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">💶</span> Paie (Silae)
+      </a>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <strong id="userNom">—</strong>
+      <span id="userEmail">—</span>
+      <button class="btn-deconnexion" id="btnDeconnexion">Se déconnecter</button>
+    </div>
+
+  </aside>
+
+  <!-- ══ CONTENU ══ -->
+  <div class="main">
+
+    <header class="topbar">
+      <div class="topbar-titre">Tableau de bord</div>
+      <div class="topbar-date" id="dateJour"></div>
+    </header>
+
+    <div class="content">
+
+      <!-- KPI -->
+      <div class="kpi-grid">
+
+        <div class="kpi-card ok">
+          <div class="kpi-label">Sites actifs</div>
+          <div class="kpi-valeur">12</div>
+          <div class="kpi-sous">sur 14 contrats</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Agents</div>
+          <div class="kpi-valeur">38</div>
+          <div class="kpi-sous">planifiés ce mois</div>
+        </div>
+
+        <div class="kpi-card alerte">
+          <div class="kpi-label">Alertes marge</div>
+          <div class="kpi-valeur rouge">3</div>
+          <div class="kpi-badge badge-rouge">Marge &lt; 30 %</div>
+        </div>
+
+        <div class="kpi-card warning">
+          <div class="kpi-label">Audits à faire</div>
+          <div class="kpi-valeur orange">5</div>
+          <div class="kpi-badge badge-orange">Ce mois</div>
+        </div>
+
+        <div class="kpi-card ok">
+          <div class="kpi-label">CA mensuel</div>
+          <div class="kpi-valeur">48 200 €</div>
+          <div class="kpi-badge badge-vert">+4 % vs N-1</div>
+        </div>
+
+      </div>
+
+      <!-- Grille basse -->
+      <div class="bottom-grid">
+
+        <!-- Tableau des sites avec marge -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-titre">Sites — Suivi des marges</span>
+            <a class="panel-lien" href="#">Voir tous →</a>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Site</th>
+                <th>Client</th>
+                <th>Marge</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Port de Fos</td>
+                <td>Grand Port Maritime</td>
+                <td class="marge-ok">38 %</td>
+                <td><span class="kpi-badge badge-vert">OK</span></td>
+              </tr>
+              <tr>
+                <td>Zone Industrielle Est</td>
+                <td>TOTAL Raffinerie</td>
+                <td class="marge-alerte">24 %</td>
+                <td><span class="kpi-badge badge-rouge">Alerte</span></td>
+              </tr>
+              <tr>
+                <td>Résidence Les Pins</td>
+                <td>Bailleur Social OPH</td>
+                <td class="marge-warning">29 %</td>
+                <td><span class="kpi-badge badge-orange">Limite</span></td>
+              </tr>
+              <tr>
+                <td>Entrepôts Logistique</td>
+                <td>FM Logistic</td>
+                <td class="marge-alerte">21 %</td>
+                <td><span class="kpi-badge badge-rouge">Alerte</span></td>
+              </tr>
+              <tr>
+                <td>Centre Commercial</td>
+                <td>Klepierre</td>
+                <td class="marge-ok">42 %</td>
+                <td><span class="kpi-badge badge-vert">OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Alertes & notifications -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-titre">Alertes &amp; notifications</span>
+            <a class="panel-lien" href="#">Tout voir →</a>
+          </div>
+
+          <div class="alerte-item">
+            <div class="alerte-puce puce-rouge"></div>
+            <div>
+              <div class="alerte-texte">Marge critique — Entrepôts Logistique (21 %)</div>
+              <div class="alerte-meta">Action requise · Aujourd'hui</div>
+            </div>
+          </div>
+
+          <div class="alerte-item">
+            <div class="alerte-puce puce-rouge"></div>
+            <div>
+              <div class="alerte-texte">Marge critique — Zone Industrielle Est (24 %)</div>
+              <div class="alerte-meta">Action requise · Aujourd'hui</div>
+            </div>
+          </div>
+
+          <div class="alerte-item">
+            <div class="alerte-puce puce-orange"></div>
+            <div>
+              <div class="alerte-texte">Audit qualité à planifier — Port de Fos</div>
+              <div class="alerte-meta">Échéance dans 5 jours</div>
+            </div>
+          </div>
+
+          <div class="alerte-item">
+            <div class="alerte-puce puce-orange"></div>
+            <div>
+              <div class="alerte-texte">Contrat à renouveler — Résidence Les Pins</div>
+              <div class="alerte-meta">Expiration le 31/07/2026</div>
+            </div>
+          </div>
+
+          <div class="alerte-item">
+            <div class="alerte-puce puce-vert"></div>
+            <div>
+              <div class="alerte-texte">Facturation juin envoyée — Grand Port Maritime</div>
+              <div class="alerte-meta">Signé via YouSign · 20/06/2026</div>
+            </div>
+          </div>
+
+          <div class="alerte-item">
+            <div class="alerte-puce puce-orange"></div>
+            <div>
+              <div class="alerte-texte">3 agents sans pointage hier soir</div>
+              <div class="alerte-meta">À vérifier · Planning du 22/06</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_ZgDCe1RfP4IUQCmo4lYvTA_-qeAQRUX';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Date du jour
+    const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+    document.getElementById('dateJour').textContent =
+      new Date().toLocaleDateString('fr-FR', opts);
+
+    // Vérification session
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const user = session.user;
+      document.getElementById('userNom').textContent =
+        user.user_metadata?.full_name || user.email;
+      document.getElementById('userEmail').textContent = user.email;
+    })();
+
+    // Déconnexion
+    document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  </script>
+
+</body>
+</html>
