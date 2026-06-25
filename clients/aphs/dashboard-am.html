@@ -603,10 +603,25 @@
       margin-bottom: 2px;
     }
 
-    .sem-event.teal   { background: var(--teal-light);   color: var(--teal-dark); }
-    .sem-event.rouge  { background: #FDECEA;              color: var(--rouge); }
-    .sem-event.orange { background: #FFF3E0;              color: #C05700; }
-    .sem-event.vert   { background: #E8F5E9;              color: var(--vert); }
+    .sem-event.teal        { background: var(--teal-light);   color: var(--teal-dark); }
+    .sem-event.rouge       { background: #FDECEA;              color: var(--rouge); }
+    .sem-event.orange      { background: #FFF3E0;              color: #C05700; }
+    .sem-event.vert        { background: #E8F5E9;              color: var(--vert); }
+    .sem-event.anniversaire{ background: #FCE4EC;              color: #AD1457; }
+
+    .banniere-anniversaire {
+      background: linear-gradient(90deg, #FCE4EC, #FFF9C4);
+      border: 1.5px solid #F48FB1;
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #880E4F;
+      font-weight: 600;
+    }
 
     /* ══ MODALE PLAN D'ACTION ══ */
     .modal-overlay {
@@ -1011,6 +1026,7 @@
 
       <!-- Vue Jour -->
       <div id="vuePlannningJour">
+      <div class="banniere-anniversaire" id="banniereAnniversaire" style="display:none;"></div>
       <div class="planning-list">
         <div class="planning-item">
           <div class="planning-heure">07h30</div>
@@ -1209,7 +1225,7 @@
 
       const { data: agents } = await supabaseClient
         .from('agents')
-        .select('id, nom, prenom, telephone, site_principal_id, sites(nom, adresse)')
+        .select('id, nom, prenom, telephone, site_principal_id, date_naissance, sites(nom, adresse)')
         .eq('agent_maitrise_id', amId);
 
       if (!agents || agents.length === 0) {
@@ -1397,6 +1413,9 @@
       if (!nonPointes.length && !enRetard.length && !horsSite.length && !departManquant.length) {
         document.getElementById('blocAucunAgent').style.display = 'block';
       }
+
+      // Injecter les anniversaires dans le planning
+      if (window.injecterAnniversaires) window.injecterAnniversaires(agents);
     }
 
     // Vérification session + profil
@@ -1489,6 +1508,9 @@
         { jour:4, heure:14, duree:1, texte:'Contrôle Shopi Marignane', type:'teal'   },
       ];
 
+      // anniversairesParJour[0..4] = liste de prénoms+noms
+      let anniversairesParJour = [[],[],[],[],[]];
+
       function genererGrilleSemaine() {
         const aujourdhuiIdx = jourSem <= 5 ? jourSem - 1 : -1;
         let html = '<div class="sem-header"><div class="sem-header-cell"></div>';
@@ -1500,9 +1522,24 @@
         }
         html += '</div>';
 
+        // Ligne anniversaires (si au moins un cette semaine)
+        const hasAnni = anniversairesParJour.some(a => a.length > 0);
+        if (hasAnni) {
+          html += '<div class="sem-row" style="background:#FFF9FB;">';
+          html += '<div class="sem-heure" style="font-size:14px;">🎂</div>';
+          for (let j = 0; j < 5; j++) {
+            const isAuj = j === (jourSem <= 5 ? jourSem - 1 : -1);
+            html += `<div class="sem-cell${isAuj ? ' aujourdhui' : ''}">`;
+            anniversairesParJour[j].forEach(nom => {
+              html += `<div class="sem-event anniversaire">🎂 ${nom}</div>`;
+            });
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+
         for (let h = heureDebut; h < heureFin; h++) {
           const label = h.toString().padStart(2,'0') + 'h';
-          const isHalf = false;
           html += '<div class="sem-row">';
           html += `<div class="sem-heure">${label}</div>`;
           for (let j = 0; j < 5; j++) {
@@ -1517,6 +1554,30 @@
 
         document.getElementById('planningGrilleSemaine').innerHTML = html;
       }
+
+      // Appelée depuis chargerPointages() après chargement des agents
+      window.injecterAnniversaires = function(agents) {
+        anniversairesParJour = [[],[],[],[],[]];
+        agents.forEach(agent => {
+          if (!agent.date_naissance) return;
+          const dn = new Date(agent.date_naissance);
+          for (let j = 0; j < 5; j++) {
+            const d = new Date(lundi); d.setDate(lundi.getDate() + j);
+            if (dn.getDate() === d.getDate() && dn.getMonth() === d.getMonth()) {
+              anniversairesParJour[j].push(agent.prenom + ' ' + agent.nom);
+            }
+          }
+        });
+        genererGrilleSemaine();
+
+        // Bannière vue jour si anniversaire aujourd'hui
+        const todayAnni = jourSem >= 1 && jourSem <= 5 ? anniversairesParJour[jourSem - 1] : [];
+        const banniereEl = document.getElementById('banniereAnniversaire');
+        if (todayAnni.length > 0 && banniereEl) {
+          banniereEl.innerHTML = `🎂 Anniversaire aujourd'hui : ${todayAnni.join(', ')} — N'oubliez pas de leur souhaiter !`;
+          banniereEl.style.display = 'flex';
+        }
+      };
 
       genererGrilleSemaine();
     })();

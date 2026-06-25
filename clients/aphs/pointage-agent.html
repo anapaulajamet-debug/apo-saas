@@ -484,6 +484,16 @@
 
   </div>
 
+  <!-- MODALE ANNIVERSAIRE -->
+  <div class="confirm-overlay" id="anniversaireOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:24px; padding:36px 28px; max-width:340px; width:92%; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+      <div style="font-size:56px; margin-bottom:12px;">🎂</div>
+      <div style="font-size:20px; font-weight:800; color:#AD1457; margin-bottom:8px;" id="anniversaireTitre">Joyeux anniversaire !</div>
+      <div style="font-size:14px; color:#6B7280; line-height:1.6; margin-bottom:24px;" id="anniversaireTexte">Toute l'équipe APHS vous souhaite un très beau jour !</div>
+      <button onclick="document.getElementById('anniversaireOverlay').style.display='none'" style="width:100%; padding:14px; background:linear-gradient(135deg,#E91E63,#FF5722); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer;">Merci ! 🎉</button>
+    </div>
+  </div>
+
   <!-- MODALE CONFIRMATION -->
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-sheet">
@@ -548,7 +558,7 @@
 
       const { data: profil } = await supabaseClient
         .from('agents')
-        .select('nom, prenom, photo_url, site_principal_id')
+        .select('nom, prenom, photo_url, site_principal_id, date_naissance')
         .eq('user_id', session.user.id)
         .single();
 
@@ -563,6 +573,19 @@
           avatarEl.textContent = initiales;
         }
         siteId = profil.site_principal_id;
+
+        // Vérifier si c'est son anniversaire aujourd'hui
+        if (profil.date_naissance) {
+          const auj = new Date();
+          const dn  = new Date(profil.date_naissance);
+          if (dn.getDate() === auj.getDate() && dn.getMonth() === auj.getMonth()) {
+            const age = auj.getFullYear() - dn.getFullYear();
+            document.getElementById('anniversaireTitre').textContent = `Joyeux anniversaire, ${profil.prenom} ! 🎂`;
+            document.getElementById('anniversaireTexte').textContent =
+              `Vous fêtez vos ${age} ans aujourd'hui. Toute l'équipe APHS vous souhaite une excellente journée !`;
+            document.getElementById('anniversaireOverlay').style.display = 'flex';
+          }
+        }
       }
 
       await chargerMission();
