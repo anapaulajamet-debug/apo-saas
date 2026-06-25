@@ -113,17 +113,37 @@
       text-align: center;
     }
 
+    .sidebar-profil {
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .profil-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      border: 3px solid rgba(255,255,255,0.25);
+      overflow: hidden;
+    }
+
+    .profil-nom  { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+
     .sidebar-footer {
       padding: 16px 20px;
       border-top: 1px solid rgba(255,255,255,0.12);
-      font-size: 12px;
-      color: rgba(255,255,255,0.5);
-    }
-
-    .sidebar-footer strong {
-      display: block;
-      color: rgba(255,255,255,0.85);
-      font-size: 13px;
     }
 
     .btn-deconnexion {
@@ -428,9 +448,15 @@
 
     </nav>
 
+    <div class="sidebar-profil">
+      <div class="profil-avatar" id="profilAvatar">—</div>
+      <div>
+        <div class="profil-nom" id="userNom">—</div>
+        <div class="profil-role">Directeur</div>
+      </div>
+    </div>
+
     <div class="sidebar-footer">
-      <strong id="userNom">—</strong>
-      <span id="userEmail">—</span>
       <button class="btn-deconnexion" id="btnDeconnexion">Se déconnecter</button>
     </div>
 
@@ -599,7 +625,7 @@
   <script>
     const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Date du jour
     const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
@@ -608,21 +634,39 @@
 
     // Vérification session
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) {
-        window.location.href = 'login.html';
+        window.location.href = '/';
         return;
       }
-      const user = session.user;
-      document.getElementById('userNom').textContent =
-        user.user_metadata?.full_name || user.email;
-      document.getElementById('userEmail').textContent = user.email;
+
+      const { data: profil } = await supabaseClient
+        .from('users')
+        .select('prenom, nom, photo_url')
+        .eq('id', session.user.id)
+        .single();
+
+      const prenom = profil?.prenom || '';
+      const nom    = profil?.nom    || '';
+      const initiales = ((prenom[0] || '') + (nom[0] || '')).toUpperCase() || 'D';
+
+      const avatarEl = document.getElementById('profilAvatar');
+      if (profil?.photo_url) {
+        avatarEl.innerHTML = `<img src="${profil.photo_url}" alt="${prenom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+      } else {
+        avatarEl.textContent = initiales;
+      }
+
+      document.getElementById('userNom').textContent = prenom + (nom ? ' ' + nom : '');
+      if (document.getElementById('userEmail')) {
+        document.getElementById('userEmail').textContent = session.user.email;
+      }
     })();
 
     // Déconnexion
     document.getElementById('btnDeconnexion').addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = 'login.html';
+      await supabaseClient.auth.signOut();
+      window.location.href = '/';
     });
   </script>
 
