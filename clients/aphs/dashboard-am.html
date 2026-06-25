@@ -58,29 +58,33 @@
     .logo-sub { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-top: 3px; }
 
     .sidebar-profil {
-      padding: 14px 16px;
+      padding: 18px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.12);
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 10px;
+      text-align: center;
     }
 
     .profil-avatar {
-      width: 36px;
-      height: 36px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       background: var(--teal);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 22px;
       font-weight: 700;
       color: #fff;
       flex-shrink: 0;
+      border: 3px solid rgba(255,255,255,0.25);
+      overflow: hidden;
     }
 
-    .profil-nom { font-size: 12px; font-weight: 700; color: #fff; }
-    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); }
+    .profil-nom { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px; }
 
     .sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
     .nav-section { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.35); padding: 12px 16px 4px; }
@@ -272,6 +276,10 @@
       font-weight: 700;
       cursor: pointer;
       font-family: Arial, sans-serif;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
     }
 
     .btn-appel:hover { background: var(--teal); color: #fff; }
@@ -498,8 +506,8 @@
         <div class="compteur-card">
           <div class="compteur-icone icone-vert">✅</div>
           <div>
-            <div class="compteur-val vert" id="nbPresents">—</div>
-            <div class="compteur-label">Agents présents</div>
+            <div class="compteur-val vert" id="nbPresents">— <span style="font-size:16px;font-weight:400;color:#6B7280;">/ <span id="nbAttendus">—</span></span></div>
+            <div class="compteur-label">Agents présents / attendus</div>
           </div>
         </div>
         <div class="compteur-card">
@@ -532,7 +540,7 @@
           </div>
           <div class="agent-heure">Retard : 22 min</div>
           <span class="statut-pill pill-rouge">Non pointé</span>
-          <button class="btn-appel">📞 Appeler</button>
+          <a class="btn-appel" href="tel:0612345678">📞 06 12 34 56 78</a>
         </div>
         <div class="agent-row">
           <div class="agent-avatar">SB</div>
@@ -542,7 +550,7 @@
           </div>
           <div class="agent-heure">Retard : 8 min</div>
           <span class="statut-pill pill-orange">En retard</span>
-          <button class="btn-appel">📞 Appeler</button>
+          <a class="btn-appel" href="tel:0698765432">📞 06 98 76 54 32</a>
         </div>
       </div>
 
@@ -731,24 +739,30 @@
 
       // Chargement pointages du jour
       const aujourd_hui = new Date().toISOString().split('T')[0];
-      const { data: pointages } = await supabaseClient
-        .from('pointage')
-        .select('*')
-        .eq('date', aujourd_hui);
+      const heureNow = new Date().getHours() * 60 + new Date().getMinutes();
 
-      if (pointages) {
-        const presents = pointages.filter(p => p.statut === 'present').length;
-        const absents  = pointages.filter(p => p.statut === 'absent').length;
-        const retards  = pointages.filter(p => p.statut === 'retard').length;
+      const [{ data: pointages }, { data: planning }] = await Promise.all([
+        supabaseClient.from('pointage').select('*').eq('date', aujourd_hui),
+        supabaseClient.from('planning').select('heure_debut').lte('heure_debut', new Date().toTimeString().slice(0,5))
+      ]);
+
+      if (pointages && pointages.length > 0) {
+        const presents  = pointages.filter(p => p.statut === 'present').length;
+        const absents   = pointages.filter(p => p.statut === 'absent').length;
+        const retards   = pointages.filter(p => p.statut === 'retard').length;
+        const attendus  = planning ? planning.length : (presents + absents + retards);
         document.getElementById('nbPresents').textContent = presents;
-        document.getElementById('nbAbsents').textContent  = absents;
-        document.getElementById('nbRetards').textContent  = retards;
+        document.getElementById('nbAttendus').textContent  = attendus;
+        document.getElementById('nbAbsents').textContent   = absents;
+        document.getElementById('nbRetards').textContent   = retards;
         document.getElementById('badgePointage').textContent = absents + retards;
       } else {
         // Données démo si pas encore de pointages réels
         document.getElementById('nbPresents').textContent = '6';
-        document.getElementById('nbAbsents').textContent  = '2';
-        document.getElementById('nbRetards').textContent  = '1';
+        document.getElementById('nbAttendus').textContent  = '9';
+        document.getElementById('nbAbsents').textContent   = '2';
+        document.getElementById('nbRetards').textContent   = '1';
+        document.getElementById('badgePointage').textContent = '3';
       }
     })();
 
