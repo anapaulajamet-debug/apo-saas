@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#1A6B80" />
+  <title>APHS — Pointage</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:      #2A8FA8;
+      --teal-dark: #1A6B80;
+      --vert:      #1E8449;
+      --rouge:     #C0392B;
+      --orange:    #E67E22;
+      --gris-fond: #F3F6F8;
+      --blanc:     #FFFFFF;
+      --gris-texte:#1F2937;
+      --gris-doux: #6B7280;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--teal-dark);
+      font-family: Arial, sans-serif;
+      color: var(--gris-texte);
+      overscroll-behavior: none;
+    }
+
+    /* ── HEADER ── */
+    .app-header {
+      background: var(--teal-dark);
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .app-header-logo {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #fff;
+    }
+
+    .app-header-heure {
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── PROFIL AGENT ── */
+    .agent-card {
+      background: rgba(255,255,255,0.12);
+      margin: 0 16px 0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .agent-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.3);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .agent-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    .agent-info-nom   { font-size: 15px; font-weight: 700; color: #fff; }
+    .agent-info-poste { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 1px; }
+
+    .btn-deco {
+      margin-left: auto;
+      background: rgba(255,255,255,0.12);
+      border: none;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    /* ── CONTENU PRINCIPAL ── */
+    .app-body {
+      background: var(--gris-fond);
+      border-radius: 20px 20px 0 0;
+      margin-top: 14px;
+      min-height: calc(100vh - 140px);
+      padding: 20px 16px 100px;
+    }
+
+    /* ── MISSION DU JOUR ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gris-doux);
+      margin-bottom: 10px;
+    }
+
+    .mission-card {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mission-icone {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--teal-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .mission-nom   { font-size: 14px; font-weight: 700; color: var(--gris-texte); }
+    .mission-adresse { font-size: 11px; color: var(--gris-doux); margin-top: 2px; line-height: 1.4; }
+    .mission-horaire {
+      margin-top: 6px;
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+    }
+    .horaire-chip {
+      background: var(--gris-fond);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-weight: 700;
+      color: var(--gris-texte);
+    }
+    .horaire-chip span { font-weight: 400; color: var(--gris-doux); margin-right: 3px; }
+
+    /* ── STATUT GEO ── */
+    .geo-statut {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .geo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .geo-dot.ok      { background: var(--vert); box-shadow: 0 0 0 3px rgba(30,132,73,0.2); }
+    .geo-dot.attente { background: var(--orange); box-shadow: 0 0 0 3px rgba(230,126,34,0.2); animation: pulse 1.5s infinite; }
+    .geo-dot.erreur  { background: var(--rouge); box-shadow: 0 0 0 3px rgba(192,57,43,0.2); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .geo-texte { font-size: 12px; color: var(--gris-doux); flex: 1; }
+    .geo-texte strong { color: var(--gris-texte); display: block; font-size: 13px; }
+
+    .geo-distance {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .geo-distance.ok     { background: #E8F5E9; color: var(--vert); }
+    .geo-distance.loin   { background: #FDECEA; color: var(--rouge); }
+    .geo-distance.inconnu { background: var(--gris-fond); color: var(--gris-doux); }
+
+    /* ── BOUTONS POINTAGE ── */
+    .pointage-section { margin-bottom: 16px; }
+
+    .btn-pointer {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.1s, opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-pointer:active { transform: scale(0.97); }
+    .btn-pointer:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-arrivee {
+      background: var(--vert);
+      color: #fff;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 16px rgba(30,132,73,0.35);
+    }
+
+    .btn-depart {
+      background: var(--rouge);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(192,57,43,0.35);
+    }
+
+    .btn-pointer .btn-icone { font-size: 22px; }
+
+    .btn-pointer .btn-sous-texte {
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.85;
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* ── HISTORIQUE DU JOUR ── */
+    .historique-list {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      overflow: hidden;
+    }
+
+    .historique-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+
+    .historique-item:last-child { border-bottom: none; }
+
+    .histo-icone {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .histo-icone.vert   { background: #E8F5E9; }
+    .histo-icone.rouge  { background: #FDECEA; }
+    .histo-icone.orange { background: #FFF3E0; }
+
+    .histo-info { flex: 1; }
+    .histo-action { font-size: 13px; font-weight: 700; color: var(--gris-texte); }
+    .histo-detail { font-size: 11px; color: var(--gris-doux); margin-top: 1px; }
+
+    .histo-heure {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gris-texte);
+      font-family: 'Courier New', monospace;
+    }
+
+    .histo-geo {
+      font-size: 10px;
+      margin-top: 1px;
+      text-align: right;
+    }
+
+    /* ── MODALE CONFIRMATION ── */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .confirm-overlay.open { display: flex; }
+
+    .confirm-sheet {
+      background: var(--blanc);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 480px;
+      padding: 24px 24px 40px;
+    }
+
+    .confirm-titre {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gris-texte);
+      margin-bottom: 6px;
+    }
+
+    .confirm-sous {
+      font-size: 13px;
+      color: var(--gris-doux);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .confirm-info-bloc {
+      background: var(--gris-fond);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .confirm-ligne {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .confirm-ligne:last-child { margin-bottom: 0; }
+    .confirm-ligne span:first-child { color: var(--gris-doux); }
+    .confirm-ligne span:last-child  { font-weight: 700; color: var(--gris-texte); }
+
+    .confirm-geo-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .confirm-geo-badge.ok    { background: #E8F5E9; color: var(--vert); }
+    .confirm-geo-badge.alert { background: #FDECEA; color: var(--rouge); }
+
+    .btn-confirm {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .btn-confirm.vert  { background: var(--vert);  color: #fff; }
+    .btn-confirm.rouge { background: var(--rouge);  color: #fff; }
+
+    .btn-annuler {
+      width: 100%;
+      padding: 14px;
+      background: none;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gris-doux);
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      display: none;
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gris-texte);
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 200;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .toast.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="app-header-logo">APHS</div>
+    <div class="app-header-heure" id="horlogeLive">—</div>
+  </div>
+
+  <!-- PROFIL AGENT -->
+  <div class="agent-card">
+    <div class="agent-avatar" id="agentAvatar">AP</div>
+    <div>
+      <div class="agent-info-nom" id="agentNom">—</div>
+      <div class="agent-info-poste">Agent de propreté</div>
+    </div>
+    <button class="btn-deco" id="btnDeconnexion">Quitter</button>
+  </div>
+
+  <!-- CORPS -->
+  <div class="app-body">
+
+    <!-- Mission du jour -->
+    <div class="section-label">Ma mission du jour</div>
+    <div class="mission-card" id="missionCard">
+      <div class="mission-icone">🏢</div>
+      <div>
+        <div class="mission-nom" id="missionNom">Chargement…</div>
+        <div class="mission-adresse" id="missionAdresse">—</div>
+        <div class="mission-horaire">
+          <div class="horaire-chip"><span>Arrivée</span><span id="missionArrivee">—</span></div>
+          <div class="horaire-chip"><span>Départ</span><span id="missionDepart">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Géolocalisation -->
+    <div class="section-label">Localisation</div>
+    <div class="geo-statut" id="geoStatut">
+      <div class="geo-dot attente" id="geoDot"></div>
+      <div class="geo-texte">
+        <strong id="geoTitre">Localisation en cours…</strong>
+        <span id="geoDetail">Veuillez autoriser l'accès à votre position</span>
+      </div>
+      <div class="geo-distance inconnu" id="geoBadge">—</div>
+    </div>
+
+    <!-- Boutons pointage -->
+    <div class="section-label">Pointer</div>
+    <div class="pointage-section">
+      <button class="btn-pointer btn-arrivee" id="btnArrivee" onclick="ouvrirConfirmation('arrivee')">
+        <span class="btn-icone">✅</span>
+        <div>
+          Pointer mon arrivée
+          <span class="btn-sous-texte" id="btnArriveeHeure">Prévu 06h00</span>
+        </div>
+      </button>
+      <button class="btn-pointer btn-depart" id="btnDepart" onclick="ouvrirConfirmation('depart')" disabled>
+        <span class="btn-icone">🏁</span>
+        <div>
+          Pointer mon départ
+          <span class="btn-sous-texte" id="btnDepartHeure">Prévu 07h30</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Historique du jour -->
+    <div class="section-label">Historique du jour</div>
+    <div class="historique-list" id="historiqueList">
+      <div class="historique-item" style="justify-content:center; color:var(--gris-doux); font-size:13px; padding:20px;">
+        Aucun pointage enregistré aujourd'hui
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODALE CONFIRMATION -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-sheet">
+      <div class="confirm-titre" id="confirmTitre">Pointer mon arrivée</div>
+      <div class="confirm-sous" id="confirmSous">Confirmez votre présence sur site</div>
+
+      <div class="confirm-info-bloc">
+        <div class="confirm-ligne">
+          <span>Site</span>
+          <span id="confirmSite">—</span>
+        </div>
+        <div class="confirm-ligne">
+          <span>Heure</span>
+          <span id="confirmHeure">—</span>
+        </div>
+        <div class="confirm-ligne">
+          <span>Horaire prévu</span>
+          <span id="confirmPrévu">—</span>
+        </div>
+      </div>
+
+      <div class="confirm-geo-badge ok" id="confirmGeoBadge">
+        📍 Position vérifiée — vous êtes sur site
+      </div>
+
+      <button class="btn-confirm vert" id="btnConfirmValider" onclick="validerPointage()">
+        Confirmer le pointage
+      </button>
+      <button class="btn-annuler" onclick="fermerConfirmation()">Annuler</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let positionActuelle = null;
+    let siteCoords       = null;
+    let distanceSite     = null;
+    let typePointage     = null;
+    let arriveePointe    = false;
+    let sessionAgent     = null;
+    let siteId           = null;
+
+    // ── HORLOGE ──
+    function majHorloge() {
+      document.getElementById('horlogeLive').textContent =
+        new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+    majHorloge();
+    setInterval(majHorloge, 1000);
+
+    // ── SESSION ──
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+      sessionAgent = session;
+
+      const { data: profil } = await supabaseClient
+        .from('agents')
+        .select('nom, prenom, photo_url, site_principal_id')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (profil) {
+        const nom = profil.prenom + ' ' + profil.nom;
+        const initiales = ((profil.prenom[0] || '') + (profil.nom[0] || '')).toUpperCase();
+        document.getElementById('agentNom').textContent = nom;
+        const avatarEl = document.getElementById('agentAvatar');
+        if (profil.photo_url) {
+          avatarEl.innerHTML = `<img src="${profil.photo_url}" alt="${nom}" />`;
+        } else {
+          avatarEl.textContent = initiales;
+        }
+        siteId = profil.site_principal_id;
+      }
+
+      await chargerMission();
+      demarrerGeo();
+      await chargerHistorique();
+    })();
+
+    // ── MISSION DU JOUR ──
+    async function chargerMission() {
+      const aujourd_hui = new Date().toISOString().split('T')[0];
+
+      if (siteId) {
+        const [{ data: site }, { data: planning }] = await Promise.all([
+          supabaseClient.from('sites').select('nom, adresse, latitude, longitude').eq('id', siteId).single(),
+          supabaseClient.from('planning').select('heure_debut, heure_fin')
+            .eq('site_id', siteId).eq('date', aujourd_hui).limit(1).single()
+        ]);
+
+        if (site) {
+          document.getElementById('missionNom').textContent    = site.nom;
+          document.getElementById('missionAdresse').textContent = site.adresse || '—';
+          siteCoords = { lat: site.latitude, lon: site.longitude };
+        }
+        if (planning) {
+          document.getElementById('missionArrivee').textContent = planning.heure_debut?.slice(0,5) || '—';
+          document.getElementById('missionDepart').textContent  = planning.heure_fin?.slice(0,5)   || '—';
+          document.getElementById('btnArriveeHeure').textContent = 'Prévu ' + (planning.heure_debut?.slice(0,5) || '—');
+          document.getElementById('btnDepartHeure').textContent  = 'Prévu ' + (planning.heure_fin?.slice(0,5)   || '—');
+          document.getElementById('confirmPrévu').textContent    = (planning.heure_debut?.slice(0,5) || '—') + ' → ' + (planning.heure_fin?.slice(0,5) || '—');
+        }
+      } else {
+        // Données démo
+        document.getElementById('missionNom').textContent     = 'Real Photo';
+        document.getElementById('missionAdresse').textContent = '95 Route de la Diote, 13850 Gréasque';
+        document.getElementById('missionArrivee').textContent = '06h00';
+        document.getElementById('missionDepart').textContent  = '07h30';
+        document.getElementById('btnArriveeHeure').textContent = 'Prévu 06h00';
+        document.getElementById('btnDepartHeure').textContent  = 'Prévu 07h30';
+        document.getElementById('confirmPrévu').textContent    = '06h00 → 07h30';
+        siteCoords = { lat: 43.4521, lon: 5.5634 };
+      }
+    }
+
+    // ── GÉOLOCALISATION ──
+    function demarrerGeo() {
+      if (!navigator.geolocation) {
+        majGeoUI('erreur', 'GPS non disponible', 'Votre appareil ne supporte pas la géolocalisation');
+        return;
+      }
+
+      navigator.geolocation.watchPosition(
+        (pos) => {
+          positionActuelle = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          if (siteCoords?.lat && siteCoords?.lon) {
+            distanceSite = calculerDistance(positionActuelle, siteCoords);
+            const surSite = distanceSite <= 150;
+            majGeoUI(
+              surSite ? 'ok' : 'loin',
+              surSite ? 'Vous êtes sur site' : 'Vous êtes hors site',
+              surSite
+                ? `À ${distanceSite}m du site · Position vérifiée`
+                : `À ${distanceSite}m du site · Rapprochez-vous`,
+              distanceSite
+            );
+          } else {
+            majGeoUI('ok', 'Position détectée', `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
+          }
+        },
+        () => majGeoUI('erreur', 'Accès refusé', 'Autorisez la localisation dans vos réglages'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function majGeoUI(statut, titre, detail, distance) {
+      const dot   = document.getElementById('geoDot');
+      const badge = document.getElementById('geoBadge');
+      dot.className   = 'geo-dot ' + statut;
+      badge.className = 'geo-distance ' + (statut === 'ok' ? 'ok' : statut === 'loin' ? 'loin' : 'inconnu');
+      document.getElementById('geoTitre').textContent  = titre;
+      document.getElementById('geoDetail').textContent = detail;
+      badge.textContent = distance != null ? distance + 'm' : '—';
+    }
+
+    // Distance Haversine en mètres
+    function calculerDistance(a, b) {
+      const R = 6371000;
+      const dLat = (b.lat - a.lat) * Math.PI / 180;
+      const dLon = (b.lon - a.lon) * Math.PI / 180;
+      const x = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(a.lat * Math.PI/180) * Math.cos(b.lat * Math.PI/180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)));
+    }
+
+    // ── CONFIRMATION POINTAGE ──
+    function ouvrirConfirmation(type) {
+      typePointage = type;
+      const heure = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+      const surSite = distanceSite != null && distanceSite <= 150;
+
+      document.getElementById('confirmTitre').textContent = type === 'arrivee' ? 'Pointer mon arrivée' : 'Pointer mon départ';
+      document.getElementById('confirmSous').textContent  = type === 'arrivee' ? 'Confirmez votre présence sur site' : 'Confirmez la fin de votre prestation';
+      document.getElementById('confirmHeure').textContent = heure;
+      document.getElementById('confirmSite').textContent  = document.getElementById('missionNom').textContent;
+
+      const geoBadge = document.getElementById('confirmGeoBadge');
+      const btnValider = document.getElementById('btnConfirmValider');
+      if (positionActuelle && surSite) {
+        geoBadge.className   = 'confirm-geo-badge ok';
+        geoBadge.textContent = `📍 Position vérifiée — à ${distanceSite}m du site`;
+        btnValider.className = 'btn-confirm ' + (type === 'arrivee' ? 'vert' : 'rouge');
+      } else if (positionActuelle && !surSite) {
+        geoBadge.className   = 'confirm-geo-badge alert';
+        geoBadge.textContent = `⚠️ Hors site — vous êtes à ${distanceSite}m (max 150m)`;
+        btnValider.className = 'btn-confirm ' + (type === 'arrivee' ? 'vert' : 'rouge');
+      } else {
+        geoBadge.className   = 'confirm-geo-badge alert';
+        geoBadge.textContent = '⚠️ Position non détectée — pointage sans géolocalisation';
+        btnValider.className = 'btn-confirm ' + (type === 'arrivee' ? 'vert' : 'rouge');
+      }
+
+      document.getElementById('confirmOverlay').classList.add('open');
+    }
+
+    function fermerConfirmation() {
+      document.getElementById('confirmOverlay').classList.remove('open');
+    }
+
+    async function validerPointage() {
+      fermerConfirmation();
+      const maintenant = new Date();
+      const surSite    = distanceSite != null && distanceSite <= 150;
+      const heure      = maintenant.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+      if (typePointage === 'arrivee') {
+        // Enregistrer en base
+        if (siteId && sessionAgent) {
+          await supabaseClient.from('pointage').insert({
+            tenant_id:      'aaaaaaaa-0000-0000-0000-000000000001',
+            agent_id:       sessionAgent.user.id,
+            site_id:        siteId,
+            date:           maintenant.toISOString().split('T')[0],
+            heure_entree:   maintenant.toISOString(),
+            statut:         'present',
+            lat_entree:     positionActuelle?.lat,
+            lon_entree:     positionActuelle?.lon,
+            geo_entree_ok:  surSite,
+            distance_entree_m: distanceSite
+          });
+        }
+
+        arriveePointe = true;
+        document.getElementById('btnArrivee').disabled = true;
+        document.getElementById('btnDepart').disabled  = false;
+        ajouterHistorique('arrivee', heure, surSite);
+        afficherToast('✅ Arrivée enregistrée à ' + heure + (surSite ? ' · ✓ Géolocalisé' : ' · ⚠️ Hors site'));
+
+      } else {
+        // Mise à jour heure_sortie
+        if (siteId && sessionAgent) {
+          const aujourd_hui = maintenant.toISOString().split('T')[0];
+          const { data: pt } = await supabaseClient.from('pointage')
+            .select('id').eq('site_id', siteId)
+            .eq('date', aujourd_hui).order('created_at', { ascending: false }).limit(1).single();
+          if (pt) {
+            await supabaseClient.from('pointage').update({
+              heure_sortie:     maintenant.toISOString(),
+              lat_sortie:       positionActuelle?.lat,
+              lon_sortie:       positionActuelle?.lon,
+              geo_sortie_ok:    surSite,
+              distance_sortie_m: distanceSite
+            }).eq('id', pt.id);
+          }
+        }
+
+        document.getElementById('btnDepart').disabled = true;
+        ajouterHistorique('depart', heure, surSite);
+        afficherToast('🏁 Départ enregistré à ' + heure + (surSite ? ' · ✓ Géolocalisé' : ' · ⚠️ Hors site'));
+      }
+    }
+
+    function ajouterHistorique(type, heure, surSite) {
+      const liste = document.getElementById('historiqueList');
+      if (liste.children.length === 1 && liste.firstElementChild.style.justifyContent === 'center') {
+        liste.innerHTML = '';
+      }
+      const item = document.createElement('div');
+      item.className = 'historique-item';
+      const couleur = type === 'arrivee' ? 'vert' : 'rouge';
+      const icone   = type === 'arrivee' ? '✅' : '🏁';
+      const label   = type === 'arrivee' ? 'Arrivée enregistrée' : 'Départ enregistré';
+      item.innerHTML = `
+        <div class="histo-icone ${couleur}">${icone}</div>
+        <div class="histo-info">
+          <div class="histo-action">${label}</div>
+          <div class="histo-detail">${document.getElementById('missionNom').textContent}</div>
+        </div>
+        <div>
+          <div class="histo-heure">${heure}</div>
+          <div class="histo-geo" style="color:${surSite ? 'var(--vert)' : 'var(--orange)'}">
+            ${surSite ? '📍 Sur site' : '⚠️ Hors site'}
+          </div>
+        </div>
+      `;
+      liste.appendChild(item);
+    }
+
+    async function chargerHistorique() {
+      const aujourd_hui = new Date().toISOString().split('T')[0];
+      if (!siteId || !sessionAgent) return;
+      const { data: pts } = await supabaseClient.from('pointage')
+        .select('heure_entree, heure_sortie, geo_entree_ok, geo_sortie_ok')
+        .eq('date', aujourd_hui).order('created_at');
+
+      if (!pts || pts.length === 0) return;
+      const liste = document.getElementById('historiqueList');
+      liste.innerHTML = '';
+      pts.forEach(p => {
+        if (p.heure_entree) {
+          const h = new Date(p.heure_entree).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+          ajouterHistoriqueRaw('arrivee', h, p.geo_entree_ok);
+          arriveePointe = true;
+          document.getElementById('btnArrivee').disabled = true;
+          document.getElementById('btnDepart').disabled  = false;
+        }
+        if (p.heure_sortie) {
+          const h = new Date(p.heure_sortie).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+          ajouterHistoriqueRaw('depart', h, p.geo_sortie_ok);
+          document.getElementById('btnDepart').disabled = true;
+        }
+      });
+    }
+
+    function ajouterHistoriqueRaw(type, heure, surSite) {
+      const liste = document.getElementById('historiqueList');
+      const item  = document.createElement('div');
+      item.className = 'historique-item';
+      const couleur = type === 'arrivee' ? 'vert' : 'rouge';
+      const icone   = type === 'arrivee' ? '✅' : '🏁';
+      const label   = type === 'arrivee' ? 'Arrivée enregistrée' : 'Départ enregistré';
+      item.innerHTML = `
+        <div class="histo-icone ${couleur}">${icone}</div>
+        <div class="histo-info">
+          <div class="histo-action">${label}</div>
+          <div class="histo-detail">${document.getElementById('missionNom').textContent}</div>
+        </div>
+        <div>
+          <div class="histo-heure">${heure}</div>
+          <div class="histo-geo" style="color:${surSite ? 'var(--vert)' : 'var(--orange)'}">
+            ${surSite === true ? '📍 Sur site' : surSite === false ? '⚠️ Hors site' : '—'}
+          </div>
+        </div>
+      `;
+      liste.appendChild(item);
+    }
+
+    function afficherToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 4000);
+    }
+
+    document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@
     { "source": "/dashboard", "destination": "/clients/aphs/dashboard.html" },
     { "source": "/dashboard.html", "destination": "/clients/aphs/dashboard.html" },
     { "source": "/dashboard-am", "destination": "/clients/aphs/dashboard-am.html" },
-    { "source": "/creer-profil", "destination": "/clients/aphs/creer-profil.html" }
+    { "source": "/creer-profil", "destination": "/clients/aphs/creer-profil.html" },
+    { "source": "/pointage", "destination": "/clients/aphs/pointage-agent.html" }
   ]
 }

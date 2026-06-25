@@ -363,6 +363,22 @@
       font-family: Arial, sans-serif;
     }
 
+    .geo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      white-space: nowrap;
+    }
+
+    .geo-badge.ok    { background: #E8F5E9; color: var(--vert); }
+    .geo-badge.ko    { background: #FDECEA; color: var(--rouge); }
+    .geo-badge.vide  { background: var(--gris-fond); color: var(--gris-doux); }
+
     .statut-pill {
       font-size: 10px;
       font-weight: 700;
@@ -941,6 +957,7 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
                 <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+                <span class="geo-badge vide">📍 Non pointé</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
@@ -964,6 +981,7 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
                 <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+                <span class="geo-badge vide">📍 Non pointé</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
@@ -995,6 +1013,7 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h30</strong></div>
                 <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h38</strong> <span class="retard-ecart">+8 min</span></div>
+                <span class="geo-badge ok">📍 Sur site · 42m</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
@@ -1018,6 +1037,7 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
                 <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h14</strong> <span class="retard-ecart">+14 min</span></div>
+                <span class="geo-badge ko">📍 Hors site · 320m</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
@@ -1049,11 +1069,13 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
                 <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>06h02</strong> <span class="avance-ecart">+2 min</span></div>
+                <span class="geo-badge ok">📍 Sur site · 18m</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h30</strong></div>
                 <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
+                <span class="geo-badge vide">📍 En attente</span>
               </div>
             </div>
           </div>
@@ -1072,11 +1094,13 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
                 <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>05h58</strong> <span class="avance-ecart">À l'heure</span></div>
+                <span class="geo-badge ok">📍 Sur site · 67m</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
                 <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
+                <span class="geo-badge vide">📍 En attente</span>
               </div>
             </div>
           </div>
