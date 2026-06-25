@@ -751,6 +751,25 @@
       gap: 10px;
     }
 
+    .ev-type-btn {
+      padding: 10px 8px;
+      border: 1.5px solid var(--bordure);
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--texte);
+      transition: all .15s;
+      text-align: center;
+    }
+    .ev-type-btn.actif {
+      border-color: var(--teal);
+      background: #E6F4F1;
+      color: var(--teal);
+      font-weight: 700;
+    }
+
     .btn-modal-annuler {
       padding: 9px 18px;
       background: none;
@@ -983,9 +1002,10 @@
           <div class="section-titre" style="margin-top:0; margin-bottom:2px;">Mon planning</div>
           <div style="font-size:12px; color:var(--gris-doux);" id="planningDateLabel"></div>
         </div>
-        <div style="display:flex; gap:6px;">
+        <div style="display:flex; gap:6px; align-items:center;">
           <button class="btn-vue-planning actif" id="btnVueJour" onclick="switchVuePlanning('jour')">Aujourd'hui</button>
           <button class="btn-vue-planning" id="btnVueSemaine" onclick="switchVuePlanning('semaine')">Cette semaine</button>
+          <button onclick="ouvrirAjoutEvenement()" style="padding:6px 14px; background:var(--teal); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; margin-left:6px;">+ Événement</button>
         </div>
       </div>
 
@@ -1674,6 +1694,70 @@
     </div>
   </div>
 
+  <!-- ══ MODALE AJOUT ÉVÉNEMENT PLANNING ══ -->
+  <div id="modalEvenement" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; padding:28px; width:420px; max-width:92vw; max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+      <div style="font-size:16px; font-weight:700; color:var(--texte); margin-bottom:20px;">📅 Ajouter un événement</div>
+
+      <!-- Date et heures -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
+        <div style="grid-column:1/-1;">
+          <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Date</label>
+          <input type="date" id="evDate" style="width:100%; padding:9px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Début</label>
+          <input type="time" id="evDebut" style="width:100%; padding:9px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Fin</label>
+          <input type="time" id="evFin" style="width:100%; padding:9px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+        </div>
+      </div>
+
+      <!-- Type d'événement -->
+      <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:8px;">Type d'événement</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+        <button class="ev-type-btn" data-type="qualite" onclick="selectionnerTypeEv(this)">🔍 Contrôle qualité</button>
+        <button class="ev-type-btn" data-type="visite" onclick="selectionnerTypeEv(this)">🏢 Visite sur site</button>
+        <button class="ev-type-btn" data-type="reunion_client" onclick="selectionnerTypeEv(this)">🤝 Réunion client</button>
+        <button class="ev-type-btn" data-type="reunion_agence" onclick="selectionnerTypeEv(this)">🏠 Réunion agence</button>
+        <button class="ev-type-btn" data-type="formation_agent" onclick="selectionnerTypeEv(this)">📚 Formation agent</button>
+        <button class="ev-type-btn" data-type="formation_am" onclick="selectionnerTypeEv(this)">🎓 Formation AM</button>
+        <button class="ev-type-btn" data-type="autre" onclick="selectionnerTypeEv(this)" style="grid-column:1/-1;">📌 Autre</button>
+      </div>
+
+      <!-- Sous-type qualité (affiché uniquement si Contrôle qualité) -->
+      <div id="blocSousTypeQualite" style="display:none; margin-bottom:16px;">
+        <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:8px;">Type de contrôle</label>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;"><input type="radio" name="sousTypeQualite" value="hygiene_locaux"> Hygiène des locaux</label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;"><input type="radio" name="sousTypeQualite" value="chariot_nettoyage"> Chariot de nettoyage</label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;"><input type="radio" name="sousTypeQualite" value="technicite_agent"> Technicité / savoir-faire agent</label>
+        </div>
+      </div>
+
+      <!-- Site concerné -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Site concerné <span style="font-weight:400; color:var(--gris-doux);">(facultatif)</span></label>
+        <select id="evSite" style="width:100%; padding:9px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; background:#fff;">
+          <option value="">— Sélectionner un site —</option>
+        </select>
+      </div>
+
+      <!-- Note -->
+      <div style="margin-bottom:20px;">
+        <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Note <span style="font-weight:400; color:var(--gris-doux);">(facultatif)</span></label>
+        <textarea id="evNote" rows="2" placeholder="Détails, contexte..." style="width:100%; padding:9px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:none;"></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button onclick="document.getElementById('modalEvenement').style.display='none'" style="flex:1; padding:10px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; cursor:pointer; font-size:13px;">Annuler</button>
+        <button id="btnSauvegarderEv" style="flex:2; padding:10px; background:var(--teal); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">✅ Ajouter au planning</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ MODALE POINTAGE MANUEL ══ -->
   <div class="modal-overlay" id="modalPointageManuel" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
     <div style="background:#fff; border-radius:16px; padding:28px; width:360px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
@@ -1701,6 +1785,84 @@
   </div>
 
   <script>
+    // ══ ÉVÉNEMENT PLANNING ══
+    let _evType = null;
+    let _sitesAM = [];
+
+    async function ouvrirAjoutEvenement() {
+      // Date par défaut = aujourd'hui
+      document.getElementById('evDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('evDebut').value = '';
+      document.getElementById('evFin').value = '';
+      document.getElementById('evNote').value = '';
+      document.querySelectorAll('.ev-type-btn').forEach(b => b.classList.remove('actif'));
+      document.getElementById('blocSousTypeQualite').style.display = 'none';
+      document.querySelectorAll('input[name="sousTypeQualite"]').forEach(r => r.checked = false);
+      _evType = null;
+
+      // Charger les sites de l'AM si pas déjà fait
+      if (_sitesAM.length === 0) {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const { data: sites } = await supabaseClient.from('sites').select('id, nom').eq('agent_maitrise_id', session.user.id);
+        _sitesAM = sites || [];
+        const sel = document.getElementById('evSite');
+        sel.innerHTML = '<option value="">— Sélectionner un site —</option>';
+        _sitesAM.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.nom; sel.appendChild(o); });
+      }
+
+      document.getElementById('modalEvenement').style.display = 'flex';
+    }
+
+    function selectionnerTypeEv(btn) {
+      document.querySelectorAll('.ev-type-btn').forEach(b => b.classList.remove('actif'));
+      btn.classList.add('actif');
+      _evType = btn.dataset.type;
+      document.getElementById('blocSousTypeQualite').style.display = _evType === 'qualite' ? 'block' : 'none';
+    }
+
+    const typeLabels = {
+      qualite: 'Contrôle qualité', visite: 'Visite sur site',
+      reunion_client: 'Réunion client', reunion_agence: 'Réunion agence',
+      formation_agent: 'Formation agent', formation_am: 'Formation AM', autre: 'Autre'
+    };
+    const sousTypeLabels = {
+      hygiene_locaux: 'Hygiène des locaux',
+      chariot_nettoyage: 'Chariot de nettoyage',
+      technicite_agent: 'Technicité / savoir-faire agent'
+    };
+
+    document.getElementById('btnSauvegarderEv').addEventListener('click', async () => {
+      const date   = document.getElementById('evDate').value;
+      const debut  = document.getElementById('evDebut').value;
+      const fin    = document.getElementById('evFin').value;
+      const note   = document.getElementById('evNote').value.trim();
+      const siteId = document.getElementById('evSite').value || null;
+
+      if (!date || !debut || !_evType) { alert('Veuillez renseigner la date, l\'heure de début et le type d\'événement.'); return; }
+      if (_evType === 'qualite' && !document.querySelector('input[name="sousTypeQualite"]:checked')) { alert('Veuillez choisir le type de contrôle qualité.'); return; }
+
+      const sousType = _evType === 'qualite' ? document.querySelector('input[name="sousTypeQualite"]:checked')?.value : null;
+      const titre = _evType === 'qualite' ? `Contrôle qualité — ${sousTypeLabels[sousType]}` : typeLabels[_evType];
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+
+      const { error } = await supabaseClient.from('planning').insert({
+        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+        agent_id: null,
+        site_id: siteId,
+        date: date,
+        heure_debut: debut,
+        heure_fin: fin || debut,
+        note: `[${titre}]${note ? ' — ' + note : ''}`,
+        created_by: session.user.id
+      });
+
+      if (error) { alert('Erreur : ' + error.message); return; }
+
+      document.getElementById('modalEvenement').style.display = 'none';
+      alert('✅ Événement ajouté au planning !');
+    });
+
     // Pointage manuel
     let _pmData = null;
 
