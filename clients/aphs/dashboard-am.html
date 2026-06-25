@@ -296,20 +296,50 @@
     .agent-heure-detail {
       display: flex;
       flex-direction: column;
-      gap: 3px;
-      min-width: 148px;
+      gap: 2px;
       flex-shrink: 0;
+    }
+
+    .heure-bloc {
+      display: flex;
+      gap: 16px;
+    }
+
+    .heure-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 110px;
+    }
+
+    .heure-col-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gris-doux);
     }
 
     .heure-ligne {
       font-size: 11px;
-      color: var(--gris-doux);
+      color: var(--gris-texte);
       font-family: 'Courier New', monospace;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .heure-ligne .heure-label {
+      font-size: 10px;
+      color: var(--gris-doux);
+      font-family: Arial, sans-serif;
+      min-width: 52px;
     }
 
     .heure-ligne strong { font-weight: 700; }
     .heure-ligne.rouge  strong { color: var(--rouge); }
     .heure-ligne.orange strong { color: var(--orange); }
+    .heure-ligne.vert   strong { color: var(--vert); }
 
     .retard-ecart {
       display: inline-block;
@@ -319,7 +349,17 @@
       font-weight: 700;
       padding: 1px 5px;
       border-radius: 4px;
-      margin-left: 4px;
+      font-family: Arial, sans-serif;
+    }
+
+    .avance-ecart {
+      display: inline-block;
+      background: #E8F5E9;
+      color: var(--vert);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
       font-family: Arial, sans-serif;
     }
 
@@ -896,8 +936,18 @@
             <div class="agent-site">Real Photo · Gréasque</div>
           </div>
           <div class="agent-heure-detail">
-            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>06h00</strong></div>
-            <div class="heure-ligne reel rouge">Pointage : <strong>—</strong></div>
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
+                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
+                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+            </div>
           </div>
           <span class="statut-pill pill-rouge">Non pointé</span>
           <a class="btn-appel" href="tel:0612345678">📞 06 12 34 56 78</a>
@@ -909,18 +959,28 @@
             <div class="agent-site">St Macla Lambesc · Lambesc</div>
           </div>
           <div class="agent-heure-detail">
-            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>07h00</strong></div>
-            <div class="heure-ligne reel rouge">Pointage : <strong>—</strong></div>
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
+                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>10h00</strong></div>
+                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+            </div>
           </div>
           <span class="statut-pill pill-rouge">Non pointé</span>
           <a class="btn-appel" href="tel:0611223344">📞 06 11 22 33 44</a>
         </div>
       </div>
 
-      <!-- Agents en retard -->
+      <!-- Agents en retard à l'arrivée -->
       <div class="agents-alerte" style="margin-top:10px; border-color: var(--orange);">
         <div class="agents-alerte-header" style="background: #FFF3E0;">
-          <span class="agents-alerte-titre" style="color:var(--orange);">⚠️ En retard — pointage reçu hors délai</span>
+          <span class="agents-alerte-titre" style="color:var(--orange);">⚠️ En retard — arrivée hors horaire contrat</span>
           <span style="font-size:11px; color:#C05700;">Pointage tardif</span>
         </div>
         <div class="agent-row">
@@ -930,8 +990,18 @@
             <div class="agent-site">Magasin Shopi Marignane · Marignane</div>
           </div>
           <div class="agent-heure-detail">
-            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>06h30</strong></div>
-            <div class="heure-ligne reel orange">Pointage : <strong>06h38</strong> <span class="retard-ecart">+8 min</span></div>
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h30</strong></div>
+                <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h38</strong> <span class="retard-ecart">+8 min</span></div>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
+                <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+            </div>
           </div>
           <span class="statut-pill pill-orange">En retard</span>
           <a class="btn-appel" href="tel:0698765432">📞 06 98 76 54 32</a>
@@ -943,11 +1013,75 @@
             <div class="agent-site">Cabinet dentaire pierre · Marseille</div>
           </div>
           <div class="agent-heure-detail">
-            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>06h00</strong></div>
-            <div class="heure-ligne reel orange">Pointage : <strong>06h14</strong> <span class="retard-ecart">+14 min</span></div>
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
+                <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h14</strong> <span class="retard-ecart">+14 min</span></div>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
+                <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+            </div>
           </div>
           <span class="statut-pill pill-orange">En retard</span>
           <a class="btn-appel" href="tel:0655443322">📞 06 55 44 33 22</a>
+        </div>
+      </div>
+
+      <!-- Fins de prestation à vérifier -->
+      <div class="agents-alerte" style="margin-top:10px; border-color: #7C3AED;">
+        <div class="agents-alerte-header" style="background: #F5F3FF;">
+          <span class="agents-alerte-titre" style="color:#5B21B6;">🔔 Fin de prestation — départ non enregistré</span>
+          <span style="font-size:11px; color:#7C3AED;">Heure de départ dépassée</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-avatar" style="background:#7C3AED;">JC</div>
+          <div class="agent-info">
+            <div class="agent-nom">Jouque Claire</div>
+            <div class="agent-site">Real Photo · Gréasque</div>
+          </div>
+          <div class="agent-heure-detail">
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
+                <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>06h02</strong> <span class="avance-ecart">+2 min</span></div>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h30</strong></div>
+                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
+              </div>
+            </div>
+          </div>
+          <span class="statut-pill" style="background:#EDE9FE; color:#5B21B6;">Départ manquant</span>
+          <a class="btn-appel" href="tel:0677889900">📞 06 77 88 99 00</a>
+        </div>
+        <div class="agent-row">
+          <div class="agent-avatar" style="background:#7C3AED;">NO</div>
+          <div class="agent-info">
+            <div class="agent-nom">Nobi Olivier</div>
+            <div class="agent-site">Magasin Brickbrock · Châteauneuf</div>
+          </div>
+          <div class="agent-heure-detail">
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
+                <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>05h58</strong> <span class="avance-ecart">À l'heure</span></div>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
+                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
+              </div>
+            </div>
+          </div>
+          <span class="statut-pill" style="background:#EDE9FE; color:#5B21B6;">Départ manquant</span>
+          <a class="btn-appel" href="tel:0644556677">📞 06 44 55 66 77</a>
         </div>
       </div>
 
