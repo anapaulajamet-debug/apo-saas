@@ -568,7 +568,7 @@
       display: grid;
       grid-template-columns: 52px repeat(5, 1fr);
       border-bottom: 1px solid var(--bordure);
-      min-height: 38px;
+      min-height: 44px;
     }
 
     .sem-row:last-child { border-bottom: none; }
@@ -1466,48 +1466,54 @@
       document.getElementById('planningDateLabel').textContent =
         auj.toLocaleDateString('fr-FR', optDate);
 
-      // Données démo semaine (lundi → vendredi)
       const joursNoms = ['Lun','Mar','Mer','Jeu','Ven'];
-      const creneaux = ['07h00','09h00','11h00','14h00','16h30'];
+      const heureDebut = 5, heureFin = 21; // amplitude 05h → 21h
 
       // Calcul des dates lun-ven de la semaine courante
       const lundi = new Date(auj);
       const jourSem = auj.getDay() || 7;
       lundi.setDate(auj.getDate() - jourSem + 1);
 
-      const evenementsSemaine = {
-        0: { 1: { texte:'Visite Real Photo', type:'rouge' }, 3: { texte:'Audit St Macla Lambesc', type:'teal' } },
-        1: { 3: { texte:'Livraison Pro Hygiène', type:'orange' } },
-        2: { 0: { texte:'Réunion direction', type:'vert' }, 4: { texte:'Saisie paie clôture', type:'teal' } },
-        3: { 1: { texte:'Visite Brickbrock', type:'teal' }, 4: { texte:'Contrôle Shopi Marignane', type:'teal' } },
-        4: { 2: { texte:'Audit Cabinet dentaire', type:'teal' }, 3: { texte:'Retour qualité Real Photo', type:'vert' } }
-      };
+      // Événements démo avec heure réelle (heure en nombre)
+      const evenementsSemaine = [
+        { jour:1, heure:7,  duree:1, texte:'Visite Real Photo',        type:'rouge'  },
+        { jour:1, heure:14, duree:1, texte:'Visite Brickbrock',        type:'teal'   },
+        { jour:2, heure:9,  duree:1, texte:'Livraison Pro Hygiène',    type:'orange' },
+        { jour:2, heure:16, duree:1, texte:'Audit Cabinet dentaire',   type:'teal'   },
+        { jour:0, heure:11, duree:1, texte:'Réunion direction',        type:'vert'   },
+        { jour:0, heure:16, duree:1, texte:'Saisie paie clôture',      type:'teal'   },
+        { jour:3, heure:7,  duree:1, texte:'Audit St Macla Lambesc',   type:'teal'   },
+        { jour:3, heure:9,  duree:1, texte:'Livraison Pro Hygiène',    type:'orange' },
+        { jour:3, heure:16, duree:1, texte:'Retour qualité Real Photo',type:'vert'   },
+        { jour:4, heure:11, duree:1, texte:'Saisie paie clôture',      type:'teal'   },
+        { jour:4, heure:14, duree:1, texte:'Contrôle Shopi Marignane', type:'teal'   },
+      ];
 
       function genererGrilleSemaine() {
         const aujourdhuiIdx = jourSem <= 5 ? jourSem - 1 : -1;
         let html = '<div class="sem-header"><div class="sem-header-cell"></div>';
         for (let j = 0; j < 5; j++) {
-          const d = new Date(lundi);
-          d.setDate(lundi.getDate() + j);
-          const isAuj = j === aujourdhuiIdx;
-          html += `<div class="sem-header-cell${isAuj ? ' aujourdhui' : ''}">
+          const d = new Date(lundi); d.setDate(lundi.getDate() + j);
+          html += `<div class="sem-header-cell${j === aujourdhuiIdx ? ' aujourdhui' : ''}">
             ${joursNoms[j]}<br><span style="font-size:12px;font-weight:900;">${d.getDate()}</span>
           </div>`;
         }
         html += '</div>';
 
-        creneaux.forEach((heure, hi) => {
+        for (let h = heureDebut; h < heureFin; h++) {
+          const label = h.toString().padStart(2,'0') + 'h';
+          const isHalf = false;
           html += '<div class="sem-row">';
-          html += `<div class="sem-heure">${heure}</div>`;
+          html += `<div class="sem-heure">${label}</div>`;
           for (let j = 0; j < 5; j++) {
             const isAuj = j === aujourdhuiIdx;
-            const evt = evenementsSemaine[hi] && evenementsSemaine[hi][j];
+            const evts = evenementsSemaine.filter(e => e.jour === j && e.heure === h);
             html += `<div class="sem-cell${isAuj ? ' aujourdhui' : ''}">`;
-            if (evt) html += `<div class="sem-event ${evt.type}">${evt.texte}</div>`;
+            evts.forEach(e => { html += `<div class="sem-event ${e.type}">${e.texte}</div>`; });
             html += '</div>';
           }
           html += '</div>';
-        });
+        }
 
         document.getElementById('planningGrilleSemaine').innerHTML = html;
       }
