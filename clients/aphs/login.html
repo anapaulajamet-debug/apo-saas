@@ -254,7 +254,23 @@
         return;
       }
 
-      window.location.href = '/dashboard';
+      // Récupération du rôle pour redirection
+      const { data: profil } = await supabaseClient
+        .from('users')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      const role = profil?.role;
+      if (role === 'agent_maitrise') {
+        window.location.href = '/dashboard-am';
+      } else if (role === 'chef_equipe') {
+        window.location.href = '/dashboard-ce';
+      } else if (role === 'agent_proprete') {
+        window.location.href = '/coffre-fort';
+      } else {
+        window.location.href = '/dashboard';
+      }
     });
   </script>
 
