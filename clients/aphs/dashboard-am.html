@@ -1286,7 +1286,9 @@
               <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
             </div>
           </div></div>
-          <span class="statut-pill pill-rouge">Non pointé</span>${btnTel(tel)}</div>`;
+          <span class="statut-pill pill-rouge">Non pointé</span>
+          <button onclick="ouvrirPointageManuel('${agent.id}','${plan.site_id}','${agent.prenom} ${agent.nom}')" style="padding:6px 10px; background:#F0FDF4; color:var(--vert); border:1.5px solid var(--vert); border-radius:8px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;">✍️ Pointer</button>
+          ${btnTel(tel)}</div>`;
       }
 
       function rowRetard({agent, plan, ptg, initiales, siteNom, ville, tel}) {
@@ -1654,6 +1656,80 @@
 
     </div>
   </div>
+
+  <!-- ══ MODALE POINTAGE MANUEL ══ -->
+  <div class="modal-overlay" id="modalPointageManuel" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; padding:28px; width:360px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+      <div style="font-size:16px; font-weight:700; color:var(--texte); margin-bottom:4px;">✍️ Pointage manuel</div>
+      <div id="pmAgentNom" style="font-size:13px; color:var(--gris-doux); margin-bottom:20px;"></div>
+
+      <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Heure d'arrivée</label>
+      <input type="time" id="pmHeureArrivee" style="width:100%; padding:10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:15px; margin-bottom:14px;">
+
+      <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Heure de départ <span style="font-weight:400; color:var(--gris-doux);">(facultatif)</span></label>
+      <input type="time" id="pmHeureDepart" style="width:100%; padding:10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:15px; margin-bottom:14px;">
+
+      <label style="font-size:12px; font-weight:600; color:var(--texte); display:block; margin-bottom:4px;">Motif</label>
+      <input type="text" id="pmMotif" placeholder="Ex : oubli de pointage, problème téléphone..." style="width:100%; padding:10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; margin-bottom:20px;">
+
+      <div style="background:#FFF3E0; border-radius:8px; padding:10px 12px; font-size:11px; color:#C05700; margin-bottom:20px;">
+        ⚠️ Ce pointage sera enregistré comme <strong>manuel par l'AM</strong> et visible dans l'historique.
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button onclick="document.getElementById('modalPointageManuel').style.display='none'" style="flex:1; padding:10px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; cursor:pointer; font-size:13px;">Annuler</button>
+        <button id="btnConfirmerPointage" style="flex:2; padding:10px; background:var(--teal); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">✅ Confirmer le pointage</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Pointage manuel
+    let _pmData = null;
+
+    function ouvrirPointageManuel(agentId, siteId, agentNom, planningId) {
+      _pmData = { agentId, siteId, planningId };
+      document.getElementById('pmAgentNom').textContent = agentNom;
+      document.getElementById('pmHeureArrivee').value = '';
+      document.getElementById('pmHeureDepart').value = '';
+      document.getElementById('pmMotif').value = '';
+      const modal = document.getElementById('modalPointageManuel');
+      modal.style.display = 'flex';
+    }
+
+    document.getElementById('btnConfirmerPointage').addEventListener('click', async () => {
+      const heureArrivee = document.getElementById('pmHeureArrivee').value;
+      if (!heureArrivee) { alert('Veuillez saisir une heure d\'arrivée.'); return; }
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const aujourd_hui = new Date().toISOString().split('T')[0];
+      const [hA, mA] = heureArrivee.split(':');
+      const tsArrivee = new Date(`${aujourd_hui}T${heureArrivee}:00`).toISOString();
+
+      const heureDepart = document.getElementById('pmHeureDepart').value;
+      const tsDepart = heureDepart ? new Date(`${aujourd_hui}T${heureDepart}:00`).toISOString() : null;
+
+      const { error } = await supabaseClient.from('pointage').insert({
+        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+        agent_id: _pmData.agentId,
+        site_id: _pmData.siteId,
+        date: aujourd_hui,
+        heure_entree: tsArrivee,
+        heure_sortie: tsDepart,
+        geo_entree_ok: true,
+        pointe_manuellement: true,
+        pointe_par: session.user.id
+      });
+
+      if (error) {
+        alert('Erreur : ' + error.message);
+      } else {
+        document.getElementById('modalPointageManuel').style.display = 'none';
+        // Recharger les pointages
+        await chargerPointages(session.user.id);
+      }
+    });
+  </script>
 
 </body>
 </html>
