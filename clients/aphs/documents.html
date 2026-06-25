@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APHS — Documents</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:       #2A8FA8;
+      --teal-dark:  #1A6B80;
+      --teal-light: #E6F4F7;
+      --rouge:      #C0392B;
+      --orange:     #E67E22;
+      --vert:       #1E8449;
+      --gris-texte: #374151;
+      --gris-doux:  #6B7280;
+      --gris-fond:  #F3F6F8;
+      --blanc:      #FFFFFF;
+      --bordure:    #DDE3E8;
+      --texte:      #1F2937;
+      --or:         #D4A017;
+    }
+
+    body { font-family: Arial, sans-serif; background: var(--gris-fond); color: var(--texte); min-height: 100vh; display: flex; }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar { width: 220px; min-height: 100vh; background: var(--teal-dark); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; }
+    .sidebar-logo { padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .logo-fallback { font-size: 22px; font-weight: 900; letter-spacing: 4px; color: #fff; }
+    .logo-sub { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-top: 3px; }
+    .sidebar-profil { padding: 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+    .profil-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff; border: 3px solid rgba(255,255,255,0.25); overflow: hidden; }
+    .profil-nom { font-size: 13px; font-weight: 700; color: #fff; }
+    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); }
+    .sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+    .nav-section { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.35); padding: 12px 16px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 8px; padding: 9px 16px; font-size: 12px; color: rgba(255,255,255,0.72); cursor: pointer; text-decoration: none; border-left: 3px solid transparent; transition: all .15s; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: var(--or); font-weight: 700; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.12); }
+    .btn-deconnexion { width: 100%; padding: 9px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; color: rgba(255,255,255,0.72); font-size: 12px; cursor: pointer; }
+
+    /* ══ CONTENU ══ */
+    .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    header.topbar { background: var(--blanc); border-bottom: 1px solid var(--bordure); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .topbar-titre { font-size: 16px; font-weight: 700; color: var(--texte); }
+    .content { padding: 24px; flex: 1; }
+    .section-titre { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gris-doux); margin: 24px 0 12px; }
+    .section-titre:first-child { margin-top: 0; }
+
+    /* ══ FILTRES ══ */
+    .filtres-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .filtre-btn { padding: 7px 14px; border: 1.5px solid var(--bordure); background: #fff; border-radius: 20px; font-size: 12px; cursor: pointer; color: var(--gris-doux); transition: all .15s; }
+    .filtre-btn.actif { border-color: var(--teal); background: var(--teal-light); color: var(--teal); font-weight: 700; }
+    .search-input { flex: 1; max-width: 280px; padding: 8px 12px; border: 1.5px solid var(--bordure); border-radius: 8px; font-size: 13px; }
+
+    /* ══ GRILLE DOCUMENTS ══ */
+    .docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+
+    .doc-card { background: #fff; border-radius: 12px; border: 1px solid var(--bordure); padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: box-shadow .15s; }
+    .doc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+    .doc-icone { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .doc-icone.protocole { background: #E6F4F7; }
+    .doc-icone.machine   { background: #FFF3E0; }
+    .doc-icone.autre     { background: #F3F4F6; }
+
+    .doc-header { display: flex; gap: 12px; align-items: flex-start; }
+    .doc-meta { flex: 1; }
+    .doc-nom { font-size: 13px; font-weight: 700; color: var(--texte); line-height: 1.3; }
+    .doc-categorie { font-size: 11px; color: var(--gris-doux); margin-top: 2px; }
+    .doc-date { font-size: 10px; color: var(--gris-doux); margin-top: 4px; }
+
+    .doc-description { font-size: 12px; color: var(--gris-doux); line-height: 1.5; border-top: 1px solid var(--bordure); padding-top: 10px; }
+
+    .doc-actions { display: flex; gap: 8px; margin-top: 2px; }
+    .btn-doc { padding: 7px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; gap: 4px; }
+    .btn-doc.voir    { background: var(--teal-light); color: var(--teal); }
+    .btn-doc.imprimer { background: #F3F4F6; color: var(--gris-texte); }
+    .btn-doc.suppr   { background: #FDECEA; color: var(--rouge); margin-left: auto; }
+
+    .tag-categorie { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+    .tag-protocole  { background: var(--teal-light); color: var(--teal); }
+    .tag-machine    { background: #FFF3E0; color: var(--orange); }
+    .tag-autre      { background: #F3F4F6; color: var(--gris-doux); }
+
+    /* ══ ZONE UPLOAD (directeur uniquement) ══ */
+    .upload-zone { border: 2px dashed var(--bordure); border-radius: 12px; padding: 32px; text-align: center; color: var(--gris-doux); background: #fff; cursor: pointer; transition: all .2s; margin-bottom: 24px; display: none; }
+    .upload-zone:hover { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
+    .upload-zone.active { border-color: var(--teal); background: var(--teal-light); }
+
+    /* ══ ÉTAT VIDE ══ */
+    .etat-vide { text-align: center; padding: 48px 24px; color: var(--gris-doux); }
+    .etat-vide-icone { font-size: 48px; margin-bottom: 12px; }
+
+    /* ══ MODALE UPLOAD ══ */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 16px; padding: 28px; width: 440px; max-width: 92vw; }
+    .modal-titre { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--texte); display: block; margin-bottom: 4px; }
+    .form-input { width: 100%; padding: 10px; border: 1.5px solid var(--bordure); border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .form-select { width: 100%; padding: 10px; border: 1.5px solid var(--bordure); border-radius: 8px; font-size: 13px; background: #fff; margin-bottom: 14px; }
+    .form-textarea { width: 100%; padding: 10px; border: 1.5px solid var(--bordure); border-radius: 8px; font-size: 13px; resize: none; margin-bottom: 14px; }
+    .form-file { width: 100%; padding: 10px; border: 1.5px solid var(--bordure); border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-annuler { flex: 1; padding: 10px; border: 1.5px solid var(--bordure); background: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .btn-valider { flex: 2; padding: 10px; background: var(--teal); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+
+    #btnUpload { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-fallback">APHS</div>
+      <div class="logo-sub">Azur Propreté Hygiène & Services</div>
+    </div>
+
+    <div class="sidebar-profil">
+      <div class="profil-avatar" id="profilAvatar">—</div>
+      <div>
+        <div class="profil-nom" id="profilNom">—</div>
+        <div class="profil-role" id="profilRole">—</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a class="nav-item" href="/dashboard-am" id="lienTableauBord">⊞ &nbsp;Tableau de bord</a>
+      <a class="nav-item" href="#">🏢 &nbsp;Mes clients</a>
+      <a class="nav-item" href="#">👷 &nbsp;Mes agents</a>
+
+      <div class="nav-section">Planification</div>
+      <a class="nav-item" href="#">📅 &nbsp;Planning</a>
+      <a class="nav-item" href="#">🕐 &nbsp;Pointages</a>
+
+      <div class="nav-section">Exploitation</div>
+      <a class="nav-item" href="#">✅ &nbsp;Qualité</a>
+      <a class="nav-item" href="#">📦 &nbsp;Commandes</a>
+      <a class="nav-item" href="#">🚚 &nbsp;Livraisons</a>
+      <a class="nav-item active" href="/documents">📄 &nbsp;Documents</a>
+
+      <div class="nav-section" id="navFinance" style="display:none;">Finance</div>
+      <a class="nav-item" href="#" id="navMarges" style="display:none;">📊 &nbsp;Marges</a>
+      <a class="nav-item" href="#" id="navPaie" style="display:none;">💶 &nbsp;Saisie paie</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-deconnexion" id="btnDeconnexion">↩ Se déconnecter</button>
+    </div>
+  </aside>
+
+  <!-- ══ CONTENU PRINCIPAL ══ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-titre">📄 Documents</div>
+      <button id="btnUpload" onclick="document.getElementById('modalUpload').classList.add('open')" style="padding:8px 16px; background:var(--teal); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">+ Ajouter un document</button>
+    </header>
+
+    <div class="content">
+
+      <!-- Zone upload drag & drop (directeur) -->
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('modalUpload').classList.add('open')">
+        <div style="font-size:36px; margin-bottom:8px;">📁</div>
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Déposer un document ici</div>
+        <div style="font-size:12px;">ou cliquer pour parcourir</div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="filtres-bar">
+        <input type="text" class="search-input" id="searchDoc" placeholder="🔍 Rechercher un document..." oninput="filtrerDocs()">
+        <button class="filtre-btn actif" data-filtre="tous" onclick="setFiltre(this,'tous')">Tous</button>
+        <button class="filtre-btn" data-filtre="protocole_nettoyage" onclick="setFiltre(this,'protocole_nettoyage')">🧹 Protocoles</button>
+        <button class="filtre-btn" data-filtre="mode_emploi_machine" onclick="setFiltre(this,'mode_emploi_machine')">⚙️ Machines</button>
+        <button class="filtre-btn" data-filtre="document_operationnel" onclick="setFiltre(this,'document_operationnel')">📋 Autres</button>
+      </div>
+
+      <!-- Grille documents -->
+      <div class="docs-grid" id="docsGrid"></div>
+      <div class="etat-vide" id="etatVide" style="display:none;">
+        <div class="etat-vide-icone">📂</div>
+        <div style="font-size:14px; font-weight:700; margin-bottom:6px;">Aucun document trouvé</div>
+        <div style="font-size:12px;">Ajoutez votre premier document en cliquant sur "+ Ajouter"</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ MODALE UPLOAD ══ -->
+  <div class="modal-overlay" id="modalUpload">
+    <div class="modal-box">
+      <div class="modal-titre">📁 Ajouter un document</div>
+
+      <label class="form-label">Titre du document *</label>
+      <input type="text" class="form-input" id="upTitre" placeholder="Ex : Protocole nettoyage cuisine">
+
+      <label class="form-label">Catégorie *</label>
+      <select class="form-select" id="upCategorie">
+        <option value="">— Choisir une catégorie —</option>
+        <option value="protocole_nettoyage">🧹 Protocole de nettoyage</option>
+        <option value="mode_emploi_machine">⚙️ Mode d'emploi machine</option>
+        <option value="document_operationnel">📋 Autre document</option>
+      </select>
+
+      <label class="form-label">Description <span style="font-weight:400; color:var(--gris-doux);">(facultatif)</span></label>
+      <textarea class="form-textarea" id="upDescription" rows="2" placeholder="Détails, site concerné, version..."></textarea>
+
+      <label class="form-label">Fichier (PDF, Word, image) *</label>
+      <input type="file" class="form-file" id="upFichier" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+
+      <div style="background:#E6F4F7; border-radius:8px; padding:10px 12px; font-size:11px; color:var(--teal); margin-bottom:20px;">
+        ✅ Visible par les agents de maîtrise et les agents de propreté
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-annuler" onclick="document.getElementById('modalUpload').classList.remove('open')">Annuler</button>
+        <button class="btn-valider" id="btnConfirmerUpload">⬆️ Publier le document</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const TENANT_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+    let roleUtilisateur = null;
+    let filtreActif = 'tous';
+    let tousLesDocs = [];
+
+    const categorieLabels = {
+      protocole_nettoyage: '🧹 Protocole de nettoyage',
+      mode_emploi_machine: '⚙️ Mode d\'emploi machine',
+      document_operationnel: '📋 Autre document'
+    };
+    const categorieTag = {
+      protocole_nettoyage: 'protocole',
+      mode_emploi_machine: 'machine',
+      document_operationnel: 'autre'
+    };
+    const categorieIcone = {
+      protocole_nettoyage: '🧹',
+      mode_emploi_machine: '⚙️',
+      document_operationnel: '📋'
+    };
+
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+
+      const { data: profil } = await supabaseClient
+        .from('users').select('prenom, nom, photo_url, role').eq('id', session.user.id).single();
+
+      const prenom = profil?.prenom || '';
+      const nom    = profil?.nom    || '';
+      roleUtilisateur = profil?.role || '';
+
+      document.getElementById('profilNom').textContent = prenom + ' ' + nom;
+      document.getElementById('profilRole').textContent =
+        roleUtilisateur === 'directeur' ? 'Directeur' :
+        roleUtilisateur === 'agent_maitrise' ? 'Agent de maîtrise' : 'Agent';
+
+      const avatarEl = document.getElementById('profilAvatar');
+      if (profil?.photo_url) {
+        avatarEl.innerHTML = `<img src="${profil.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      } else {
+        avatarEl.textContent = ((prenom[0]||'') + (nom[0]||'')).toUpperCase() || '—';
+      }
+
+      // Adapter l'interface selon le rôle
+      if (roleUtilisateur === 'directeur') {
+        document.getElementById('uploadZone').style.display = 'block';
+        document.getElementById('btnUpload').style.display = 'block';
+        document.getElementById('lienTableauBord').href = '/dashboard';
+        document.getElementById('navFinance').style.display = 'block';
+        document.getElementById('navMarges').style.display = 'flex';
+        document.getElementById('navPaie').style.display = 'flex';
+      }
+
+      await chargerDocuments();
+
+      document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+        await supabaseClient.auth.signOut();
+        window.location.href = '/';
+      });
+    })();
+
+    async function chargerDocuments() {
+      const { data: docs } = await supabaseClient
+        .from('documents')
+        .select('*')
+        .eq('tenant_id', TENANT_ID)
+        .in('type_document', ['protocole_nettoyage', 'mode_emploi_machine', 'document_operationnel'])
+        .order('created_at', { ascending: false });
+
+      tousLesDocs = docs || [];
+      afficherDocs(tousLesDocs);
+    }
+
+    function afficherDocs(docs) {
+      const grid = document.getElementById('docsGrid');
+      const vide = document.getElementById('etatVide');
+
+      if (!docs.length) {
+        grid.innerHTML = '';
+        vide.style.display = 'block';
+        return;
+      }
+      vide.style.display = 'none';
+
+      grid.innerHTML = docs.map(doc => {
+        const tag = categorieTag[doc.type_document] || 'autre';
+        const icone = categorieIcone[doc.type_document] || '📄';
+        const label = categorieLabels[doc.type_document] || 'Document';
+        const date = new Date(doc.created_at).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+        const peutSupprimer = roleUtilisateur === 'directeur';
+        const ext = doc.nom_fichier?.split('.').pop()?.toUpperCase() || 'PDF';
+
+        return `<div class="doc-card">
+          <div class="doc-header">
+            <div class="doc-icone ${tag}">${icone}</div>
+            <div class="doc-meta">
+              <div class="doc-nom">${doc.titre || doc.nom_fichier}</div>
+              <div class="doc-categorie"><span class="tag-categorie tag-${tag}">${label}</span></div>
+              <div class="doc-date">Ajouté le ${date} · ${ext}</div>
+            </div>
+          </div>
+          ${doc.description ? `<div class="doc-description">${doc.description}</div>` : ''}
+          <div class="doc-actions">
+            <button class="btn-doc voir" onclick="voirDocument('${doc.id}','${doc.url_storage}','${doc.nom_fichier}')">👁 Voir</button>
+            <button class="btn-doc imprimer" onclick="imprimerDocument('${doc.url_storage}')">🖨️ Imprimer</button>
+            ${peutSupprimer ? `<button class="btn-doc suppr" onclick="supprimerDocument('${doc.id}','${doc.nom_fichier}')">🗑</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function setFiltre(btn, filtre) {
+      document.querySelectorAll('.filtre-btn').forEach(b => b.classList.remove('actif'));
+      btn.classList.add('actif');
+      filtreActif = filtre;
+      filtrerDocs();
+    }
+
+    function filtrerDocs() {
+      const q = document.getElementById('searchDoc').value.toLowerCase();
+      let docs = tousLesDocs;
+      if (filtreActif !== 'tous') docs = docs.filter(d => d.type_document === filtreActif);
+      if (q) docs = docs.filter(d => (d.titre||'').toLowerCase().includes(q) || (d.description||'').toLowerCase().includes(q));
+      afficherDocs(docs);
+    }
+
+    async function voirDocument(id, urlStorage, nomFichier) {
+      const { data } = await supabaseClient.storage.from('documents').createSignedUrl(nomFichier, 3600);
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+      else alert('Impossible d\'ouvrir ce document.');
+    }
+
+    async function imprimerDocument(nomFichier) {
+      const { data } = await supabaseClient.storage.from('documents').createSignedUrl(nomFichier, 3600);
+      if (!data?.signedUrl) { alert('Impossible d\'ouvrir ce document.'); return; }
+      const win = window.open(data.signedUrl, '_blank');
+      if (win) win.addEventListener('load', () => win.print());
+    }
+
+    async function supprimerDocument(id, nomFichier) {
+      if (!confirm('Supprimer ce document définitivement ?')) return;
+      await supabaseClient.storage.from('documents').remove([nomFichier]);
+      await supabaseClient.from('documents').delete().eq('id', id);
+      await chargerDocuments();
+    }
+
+    document.getElementById('btnConfirmerUpload').addEventListener('click', async () => {
+      const titre     = document.getElementById('upTitre').value.trim();
+      const categorie = document.getElementById('upCategorie').value;
+      const desc      = document.getElementById('upDescription').value.trim();
+      const fichier   = document.getElementById('upFichier').files[0];
+
+      if (!titre || !categorie || !fichier) { alert('Veuillez remplir tous les champs obligatoires.'); return; }
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const nomFichier = `${TENANT_ID}/${Date.now()}_${fichier.name}`;
+
+      document.getElementById('btnConfirmerUpload').textContent = '⏳ Upload en cours...';
+
+      const { error: errStorage } = await supabaseClient.storage.from('documents').upload(nomFichier, fichier);
+      if (errStorage) { alert('Erreur upload : ' + errStorage.message); document.getElementById('btnConfirmerUpload').textContent = '⬆️ Publier le document'; return; }
+
+      const { error: errDB } = await supabaseClient.from('documents').insert({
+        tenant_id:     TENANT_ID,
+        type_document: categorie,
+        titre:         titre,
+        nom_fichier:   nomFichier,
+        url_storage:   nomFichier,
+        description:   desc || null,
+        visible_am:    true
+      });
+
+      if (errDB) { alert('Erreur base de données : ' + errDB.message); }
+      else {
+        document.getElementById('modalUpload').classList.remove('open');
+        document.getElementById('upTitre').value = '';
+        document.getElementById('upCategorie').value = '';
+        document.getElementById('upDescription').value = '';
+        document.getElementById('upFichier').value = '';
+        await chargerDocuments();
+      }
+      document.getElementById('btnConfirmerUpload').textContent = '⬆️ Publier le document';
+    });
+  </script>
+</body>
+</html>
