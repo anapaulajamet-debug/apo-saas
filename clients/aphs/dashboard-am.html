@@ -866,6 +866,67 @@
     }
 
     .btn-traiter:hover { background: var(--teal-light); border-color: var(--teal); color: var(--teal-dark); }
+
+    /* ══ ABSENCES À VENIR ══ */
+    .absences-list { background: var(--blanc); border-radius: 10px; border: 1px solid var(--bordure); overflow: hidden; }
+
+    .absence-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--bordure);
+    }
+    .absence-item:last-child { border-bottom: none; }
+
+    .absence-icone {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .abs-conge_paye        { background: #E3F2FD; }
+    .abs-conge_sans_solde  { background: #F3F4F6; }
+    .abs-arret_maladie     { background: #FDECEA; }
+    .abs-accident_travail  { background: #FFF3E0; }
+    .abs-maternite         { background: #FCE4EC; }
+    .abs-formation         { background: #E8F5E9; }
+    .abs-autre             { background: #F3F4F6; }
+
+    .absence-info { flex: 1; }
+    .absence-agent { font-size: 12px; font-weight: 700; color: var(--gris-texte); }
+    .absence-type  { font-size: 11px; color: var(--gris-doux); margin-top: 1px; }
+    .absence-dates { font-size: 11px; font-weight: 700; color: var(--teal-dark); margin-top: 3px; }
+    .absence-note  { font-size: 11px; color: var(--gris-doux); margin-top: 2px; font-style: italic; }
+
+    .absence-statut {
+      padding: 3px 9px; border-radius: 10px; font-size: 10px; font-weight: 700;
+      white-space: nowrap; align-self: flex-start; margin-top: 2px;
+    }
+    .abs-statut-valide     { background: #E8F5E9; color: var(--vert); }
+    .abs-statut-en_attente { background: #FFF3E0; color: #92600A; }
+    .abs-statut-refuse     { background: #FDECEA; color: var(--rouge); }
+
+    .absence-jours {
+      font-size: 18px; font-weight: 900; color: var(--teal);
+      min-width: 36px; text-align: center; align-self: center;
+      flex-shrink: 0;
+    }
+    .absence-jours-label { font-size: 9px; font-weight: 400; color: var(--gris-doux); display: block; }
+
+    /* modale absence */
+    .modal-abs-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-abs-overlay.open { display: flex; }
+    .modal-abs-box { background: #fff; border-radius: 16px; padding: 26px; width: 420px; max-width: 95vw; }
+    .modal-abs-titre { font-size: 15px; font-weight: 700; margin-bottom: 18px; }
+    .abs-form-label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; color: var(--gris-texte); }
+    .abs-form-select, .abs-form-input, .abs-form-textarea {
+      width: 100%; padding: 9px 10px; border: 1.5px solid var(--bordure);
+      border-radius: 8px; font-size: 13px; margin-bottom: 14px; background: #fff;
+    }
+    .abs-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-abs-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .abs-btn-annuler { flex: 1; padding: 10px; border: 1.5px solid var(--bordure); background: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .abs-btn-valider { flex: 2; padding: 10px; background: var(--teal); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -1167,7 +1228,17 @@
         </div>
       </div>
 
-      <!-- ══ 5. RÉCLAMATIONS CLIENTS ══ -->
+      <!-- ══ 5. ABSENCES À VENIR ══ -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:28px;">
+        <div class="section-titre" style="margin-top:0;">Absences à venir <span class="nav-badge orange" id="badgeAbsences" style="vertical-align:middle; display:none;">0</span></div>
+        <button onclick="document.getElementById('modalAbsence').classList.add('open')" style="padding:6px 14px; background:var(--teal); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">+ Saisir</button>
+      </div>
+
+      <div class="absences-list" id="absencesList">
+        <div style="padding:20px; text-align:center; color:var(--gris-doux); font-size:13px;">Chargement…</div>
+      </div>
+
+      <!-- ══ 6. RÉCLAMATIONS CLIENTS ══ -->
       <div class="section-titre" style="margin-top:28px;">Réclamations clients <span class="nav-badge orange" style="vertical-align:middle;" id="badgeReclamations">2</span></div>
 
       <div class="qualite-list" id="reclamationsList">
@@ -1476,6 +1547,7 @@
 
       // Chargement agents + pointages du jour depuis Supabase
       await chargerPointages(session.user.id);
+      await chargerAbsences(session.user.id);
     })();
 
     // ══ PLANNING : date du jour + vue semaine ══
@@ -1594,6 +1666,131 @@
     document.getElementById('btnDeconnexion').addEventListener('click', async () => {
       await supabaseClient.auth.signOut();
       window.location.href = '/';
+    });
+
+    // ══ ABSENCES À VENIR ══
+    const typeAbsLabels = {
+      conge_paye:       '🌴 Congé payé',
+      conge_sans_solde: '📋 Congé sans solde',
+      arret_maladie:    '🤒 Arrêt maladie',
+      accident_travail: '🚑 Accident du travail',
+      maternite:        '👶 Maternité / Paternité',
+      formation:        '🎓 Formation',
+      autre:            '📌 Autre'
+    };
+    const typeAbsIcone = {
+      conge_paye:'🌴', conge_sans_solde:'📋', arret_maladie:'🤒',
+      accident_travail:'🚑', maternite:'👶', formation:'🎓', autre:'📌'
+    };
+
+    let _agentsAM = [];
+
+    async function chargerAbsences(amId) {
+      // Charger les agents de cet AM (réutilise la liste déjà connue si dispo)
+      if (!_agentsAM.length) {
+        const { data } = await supabaseClient.from('agents').select('id, nom, prenom').eq('agent_maitrise_id', amId);
+        _agentsAM = data || [];
+      }
+
+      // Remplir le select de la modale
+      const sel = document.getElementById('absAgent');
+      sel.innerHTML = '<option value="">— Choisir un agent —</option>' +
+        _agentsAM.map(a => `<option value="${a.id}">${a.prenom} ${a.nom}</option>`).join('');
+
+      // Charger les absences à venir (date_fin >= aujourd'hui)
+      const auj = new Date().toISOString().split('T')[0];
+      const agentIds = _agentsAM.map(a => a.id);
+      if (!agentIds.length) { document.getElementById('absencesList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--gris-doux);font-size:13px;">Aucun agent dans votre secteur.</div>'; return; }
+
+      const { data: absences } = await supabaseClient
+        .from('absences')
+        .select('*')
+        .in('agent_id', agentIds)
+        .gte('date_fin', auj)
+        .order('date_debut', { ascending: true });
+
+      const liste = document.getElementById('absencesList');
+      const badge = document.getElementById('badgeAbsences');
+
+      if (!absences || !absences.length) {
+        liste.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gris-doux);font-size:13px;">✅ Aucune absence prévue dans les prochaines semaines.</div>';
+        badge.style.display = 'none';
+        return;
+      }
+
+      badge.textContent = absences.length;
+      badge.style.display = 'inline-block';
+
+      liste.innerHTML = absences.map(abs => {
+        const agent = _agentsAM.find(a => a.id === abs.agent_id);
+        const nomAgent = agent ? `${agent.prenom} ${agent.nom}` : '—';
+        const debut = new Date(abs.date_debut + 'T00:00:00');
+        const fin   = new Date(abs.date_fin   + 'T00:00:00');
+        const jours = Math.round((fin - debut) / 86400000) + 1;
+        const fmtDate = d => d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+        const statutClass = `abs-statut-${abs.statut}`;
+        const statutLabel = abs.statut === 'valide' ? 'Validé' : abs.statut === 'en_attente' ? 'En attente' : 'Refusé';
+
+        // Alerte si absence dans moins de 7 jours
+        const joursAvant = Math.ceil((debut - new Date()) / 86400000);
+        const urgence = joursAvant <= 7 && joursAvant >= 0 ? `<span style="font-size:10px;color:var(--rouge);font-weight:700;"> ⚠️ Dans ${joursAvant === 0 ? 'aujourd\'hui' : joursAvant + 'j'}</span>` : '';
+
+        return `<div class="absence-item">
+          <div class="absence-icone abs-${abs.type_absence}">${typeAbsIcone[abs.type_absence] || '📌'}</div>
+          <div class="absence-info">
+            <div class="absence-agent">${nomAgent}${urgence}</div>
+            <div class="absence-type">${typeAbsLabels[abs.type_absence] || abs.type_absence}</div>
+            <div class="absence-dates">Du ${fmtDate(debut)} au ${fmtDate(fin)}</div>
+            ${abs.note ? `<div class="absence-note">${abs.note}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="absence-jours">${jours}<span class="absence-jours-label">jour${jours > 1 ? 's' : ''}</span></div>
+            <span class="absence-statut ${statutClass}">${statutLabel}</span>
+            <button onclick="supprimerAbsence('${abs.id}')" style="padding:3px 8px;border:1px solid var(--bordure);background:#fff;border-radius:6px;font-size:10px;cursor:pointer;color:var(--rouge);">🗑</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function supprimerAbsence(id) {
+      if (!confirm('Supprimer cette absence ?')) return;
+      await supabaseClient.from('absences').delete().eq('id', id);
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      chargerAbsences(session.user.id);
+    }
+
+    document.getElementById('btnValiderAbsence').addEventListener('click', async () => {
+      const agentId = document.getElementById('absAgent').value;
+      const type    = document.getElementById('absType').value;
+      const debut   = document.getElementById('absDebut').value;
+      const fin     = document.getElementById('absFin').value;
+      const statut  = document.getElementById('absStatut').value;
+      const note    = document.getElementById('absNote').value.trim();
+
+      if (!agentId || !type || !debut || !fin) { alert('Veuillez remplir tous les champs obligatoires.'); return; }
+      if (fin < debut) { alert('La date de fin doit être après la date de début.'); return; }
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const { error } = await supabaseClient.from('absences').insert({
+        tenant_id:    'aaaaaaaa-0000-0000-0000-000000000001',
+        agent_id:     agentId,
+        type_absence: type,
+        date_debut:   debut,
+        date_fin:     fin,
+        statut:       statut,
+        note:         note || null,
+        created_by:   session.user.id
+      });
+
+      if (error) { alert('Erreur : ' + error.message); return; }
+
+      document.getElementById('modalAbsence').classList.remove('open');
+      document.getElementById('absAgent').value = '';
+      document.getElementById('absType').value  = '';
+      document.getElementById('absDebut').value = '';
+      document.getElementById('absFin').value   = '';
+      document.getElementById('absNote').value  = '';
+      chargerAbsences(session.user.id);
     });
 
     // ══ MODALE PLAN D'ACTION ══
@@ -1821,6 +2018,54 @@
       <div style="display:flex; gap:10px;">
         <button onclick="document.getElementById('modalEvenement').style.display='none'" style="flex:1; padding:10px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; cursor:pointer; font-size:13px;">Annuler</button>
         <button id="btnSauvegarderEv" style="flex:2; padding:10px; background:var(--teal); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">✅ Ajouter au planning</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODALE ABSENCE ══ -->
+  <div class="modal-abs-overlay" id="modalAbsence">
+    <div class="modal-abs-box">
+      <div class="modal-abs-titre">📅 Saisir une absence</div>
+
+      <label class="abs-form-label">Agent *</label>
+      <select class="abs-form-select" id="absAgent"></select>
+
+      <label class="abs-form-label">Type d'absence *</label>
+      <select class="abs-form-select" id="absType">
+        <option value="">— Choisir —</option>
+        <option value="conge_paye">🌴 Congé payé</option>
+        <option value="conge_sans_solde">📋 Congé sans solde</option>
+        <option value="arret_maladie">🤒 Arrêt maladie</option>
+        <option value="accident_travail">🚑 Accident du travail</option>
+        <option value="maternite">👶 Maternité / Paternité</option>
+        <option value="formation">🎓 Formation</option>
+        <option value="autre">📌 Autre</option>
+      </select>
+
+      <div class="abs-form-row">
+        <div>
+          <label class="abs-form-label">Date de début *</label>
+          <input type="date" class="abs-form-input" id="absDebut">
+        </div>
+        <div>
+          <label class="abs-form-label">Date de fin *</label>
+          <input type="date" class="abs-form-input" id="absFin">
+        </div>
+      </div>
+
+      <label class="abs-form-label">Statut</label>
+      <select class="abs-form-select" id="absStatut">
+        <option value="en_attente">⏳ En attente de validation</option>
+        <option value="valide">✅ Validé</option>
+        <option value="refuse">❌ Refusé</option>
+      </select>
+
+      <label class="abs-form-label">Note <span style="font-weight:400; color:var(--gris-doux);">(facultatif)</span></label>
+      <textarea class="abs-form-textarea" id="absNote" rows="2" placeholder="Précisions, contact médecin, remplacement prévu…"></textarea>
+
+      <div class="modal-abs-actions">
+        <button class="abs-btn-annuler" onclick="document.getElementById('modalAbsence').classList.remove('open')">Annuler</button>
+        <button class="abs-btn-valider" id="btnValiderAbsence">Enregistrer</button>
       </div>
     </div>
   </div>
