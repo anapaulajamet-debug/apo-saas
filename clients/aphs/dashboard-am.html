@@ -940,217 +940,41 @@
         </div>
       </div>
 
-      <!-- Agents non pointés -->
-      <div class="agents-alerte" style="margin-top:10px;">
+      <!-- Blocs pointages dynamiques -->
+      <div id="blocNonPointes" class="agents-alerte" style="margin-top:10px; display:none;">
         <div class="agents-alerte-header">
           <span class="agents-alerte-titre">🔴 Non pointés — aucun pointage reçu</span>
           <span style="font-size:11px; color:#C0392B;">Action requise</span>
         </div>
-        <div class="agent-row">
-          <div class="agent-avatar">PN</div>
-          <div class="agent-info">
-            <div class="agent-nom">Paz Nicolas</div>
-            <div class="agent-site">Real Photo · Gréasque</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
-                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-                <span class="geo-badge vide">📍 Non pointé</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
-                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill pill-rouge">Non pointé</span>
-          <a class="btn-appel" href="tel:0612345678">📞 06 12 34 56 78</a>
-        </div>
-        <div class="agent-row">
-          <div class="agent-avatar">ZZ</div>
-          <div class="agent-info">
-            <div class="agent-nom">Zidar Zizane</div>
-            <div class="agent-site">St Macla Lambesc · Lambesc</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
-                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-                <span class="geo-badge vide">📍 Non pointé</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>10h00</strong></div>
-                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill pill-rouge">Non pointé</span>
-          <a class="btn-appel" href="tel:0611223344">📞 06 11 22 33 44</a>
-        </div>
+        <div id="listeNonPointes"></div>
       </div>
 
-      <!-- Agents en retard à l'arrivée -->
-      <div class="agents-alerte" style="margin-top:10px; border-color: var(--orange);">
+      <div id="blocEnRetard" class="agents-alerte" style="margin-top:10px; border-color: var(--orange); display:none;">
         <div class="agents-alerte-header" style="background: #FFF3E0;">
           <span class="agents-alerte-titre" style="color:var(--orange);">⚠️ En retard — arrivée hors horaire contrat</span>
           <span style="font-size:11px; color:#C05700;">Pointage tardif</span>
         </div>
-        <div class="agent-row">
-          <div class="agent-avatar" style="background:var(--orange);">DC</div>
-          <div class="agent-info">
-            <div class="agent-nom">Dulac Cloé</div>
-            <div class="agent-site">Magasin Shopi Marignane · Marignane</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h30</strong></div>
-                <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h38</strong> <span class="retard-ecart">+8 min</span></div>
-                <span class="geo-badge ok">📍 Sur site · 42m</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
-                <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill pill-orange">En retard</span>
-          <a class="btn-appel" href="tel:0698765432">📞 06 98 76 54 32</a>
-        </div>
-        <div class="agent-row">
-          <div class="agent-avatar" style="background:var(--orange);">SF</div>
-          <div class="agent-info">
-            <div class="agent-nom">Silla Fatou</div>
-            <div class="agent-site">Cabinet dentaire pierre · Marseille</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
-                <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h14</strong> <span class="retard-ecart">+14 min</span></div>
-                <span class="geo-badge ok">📍 Sur site · 88m</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h00</strong></div>
-                <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill pill-orange">En retard</span>
-          <a class="btn-appel" href="tel:0655443322">📞 06 55 44 33 22</a>
-        </div>
+        <div id="listeEnRetard"></div>
       </div>
 
-      <!-- Agents pointés hors site -->
-      <div class="agents-alerte" style="margin-top:10px; border-color: var(--rouge); border-width: 2px;">
+      <div id="blocHorsSite" class="agents-alerte" style="margin-top:10px; border-color: var(--rouge); border-width:2px; display:none;">
         <div class="agents-alerte-header" style="background: #FEF2F2;">
           <span class="agents-alerte-titre" style="color:var(--rouge);">🚨 Pointage hors site — présence non confirmée</span>
           <span style="font-size:11px; color:#B91C1C;">Position GPS incorrecte</span>
         </div>
-
-        <div class="agent-row">
-          <div class="agent-avatar" style="background:var(--rouge);">AG</div>
-          <div class="agent-info">
-            <div class="agent-nom">Alice Giselle</div>
-            <div class="agent-site">Magasin Brickbrock · Châteauneuf</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
-                <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>06h01</strong> <span class="avance-ecart">À l'heure</span></div>
-                <span class="geo-badge ko">📍 Hors site · 1 240m</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
-                <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill" style="background:#FDECEA; color:var(--rouge); border: 1px solid #FECACA;">⚠️ Hors site</span>
-          <a class="btn-appel" href="tel:0633445566">📞 06 33 44 55 66</a>
-        </div>
-
-        <div class="agent-row" style="background:#FFFBFB;">
-          <div style="grid-column: 1/-1; width:100%; padding: 0;">
-            <div style="background:#FEF2F2; border-left:3px solid var(--rouge); padding:8px 12px; font-size:11px; color:#7F1D1D; border-radius:0 6px 6px 0; margin-left:52px;">
-              📍 Position enregistrée : 12 Rue de la Liberté, 13220 Châteauneuf — à 1 240m du site Magasin Brickbrock.<br>
-              Le pointage a été accepté mais la présence physique sur site <strong>n'est pas confirmée</strong>. Contacter l'agent pour vérification.
-            </div>
-          </div>
-        </div>
-
+        <div id="listeHorsSite"></div>
       </div>
 
-      <!-- Fins de prestation à vérifier -->
-      <div class="agents-alerte" style="margin-top:10px; border-color: #7C3AED;">
+      <div id="blocDepartManquant" class="agents-alerte" style="margin-top:10px; border-color: #7C3AED; display:none;">
         <div class="agents-alerte-header" style="background: #F5F3FF;">
           <span class="agents-alerte-titre" style="color:#5B21B6;">🔔 Fin de prestation — départ non enregistré</span>
           <span style="font-size:11px; color:#7C3AED;">Heure de départ dépassée</span>
         </div>
-        <div class="agent-row">
-          <div class="agent-avatar" style="background:#7C3AED;">JC</div>
-          <div class="agent-info">
-            <div class="agent-nom">Jouque Claire</div>
-            <div class="agent-site">Real Photo · Gréasque</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
-                <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>06h02</strong> <span class="avance-ecart">+2 min</span></div>
-                <span class="geo-badge ok">📍 Sur site · 18m</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>07h30</strong></div>
-                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
-                <span class="geo-badge vide">📍 En attente</span>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill" style="background:#EDE9FE; color:#5B21B6;">Départ manquant</span>
-          <a class="btn-appel" href="tel:0677889900">📞 06 77 88 99 00</a>
-        </div>
-        <div class="agent-row">
-          <div class="agent-avatar" style="background:#7C3AED;">NO</div>
-          <div class="agent-info">
-            <div class="agent-nom">Nobi Olivier</div>
-            <div class="agent-site">Magasin Brickbrock · Châteauneuf</div>
-          </div>
-          <div class="agent-heure-detail">
-            <div class="heure-bloc">
-              <div class="heure-col">
-                <div class="heure-col-label">Arrivée</div>
-                <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
-                <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>05h58</strong> <span class="avance-ecart">À l'heure</span></div>
-                <span class="geo-badge ok">📍 Sur site · 67m</span>
-              </div>
-              <div class="heure-col">
-                <div class="heure-col-label">Départ</div>
-                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
-                <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
-                <span class="geo-badge vide">📍 En attente</span>
-              </div>
-            </div>
-          </div>
-          <span class="statut-pill" style="background:#EDE9FE; color:#5B21B6;">Départ manquant</span>
-          <a class="btn-appel" href="tel:0644556677">📞 06 44 55 66 77</a>
-        </div>
+        <div id="listeDepartManquant"></div>
+      </div>
+
+      <div id="blocAucunAgent" style="margin-top:10px; padding:20px; text-align:center; color:var(--gris-doux); background:var(--gris-fond); border-radius:12px; display:none;">
+        Aucun agent attendu aujourd'hui dans votre secteur.
       </div>
 
       <!-- ══ 2. MON PLANNING ══ -->
@@ -1358,6 +1182,184 @@
     majHeure();
     setInterval(majHeure, 60000);
 
+    // ══ CHARGEMENT DYNAMIQUE DES POINTAGES ══
+    async function chargerPointages(amId) {
+      const aujourd_hui = new Date().toISOString().split('T')[0];
+      const heureNow = new Date().getHours() * 60 + new Date().getMinutes();
+
+      const { data: agents } = await supabaseClient
+        .from('agents')
+        .select('id, nom, prenom, telephone, site_principal_id, sites(nom, adresse)')
+        .eq('agent_maitrise_id', amId);
+
+      if (!agents || agents.length === 0) {
+        document.getElementById('blocAucunAgent').style.display = 'block';
+        ['nbPresents','nbAttendus','nbAbsents','nbRetards'].forEach(id => document.getElementById(id).textContent = '0');
+        document.getElementById('badgePointage').textContent = '0';
+        return;
+      }
+
+      const agentIds = agents.map(a => a.id);
+
+      const [{ data: plannings }, { data: pointages }] = await Promise.all([
+        supabaseClient.from('planning').select('*, sites(nom, adresse)').in('agent_id', agentIds).eq('date', aujourd_hui),
+        supabaseClient.from('pointage').select('*').in('agent_id', agentIds).eq('date', aujourd_hui)
+      ]);
+
+      const nonPointes = [], enRetard = [], horsSite = [], departManquant = [];
+      let presents = 0;
+
+      for (const plan of (plannings || [])) {
+        const agent = agents.find(a => a.id === plan.agent_id);
+        if (!agent) continue;
+        const ptg = (pointages || []).find(p => p.agent_id === plan.agent_id);
+        const siteNom = plan.sites?.nom || agent.sites?.nom || '—';
+        const adresse = plan.sites?.adresse || '';
+        const ville = adresse.split(',').pop()?.trim() || '';
+        const tel = agent.telephone || '—';
+        const initiales = ((agent.prenom?.[0] || '') + (agent.nom?.[0] || '')).toUpperCase();
+        const d = { agent, plan, ptg, siteNom, ville, tel, initiales };
+
+        if (!ptg || !ptg.heure_entree) {
+          nonPointes.push(d);
+        } else {
+          const entree = new Date(ptg.heure_entree);
+          const entreeMin = entree.getHours() * 60 + entree.getMinutes();
+          const [hd, md] = plan.heure_debut.split(':').map(Number);
+          const debutMin = hd * 60 + md;
+          const [hf, mf] = plan.heure_fin.split(':').map(Number);
+          const finMin = hf * 60 + mf;
+          presents++;
+          if (ptg.geo_entree_ok === false) {
+            horsSite.push(d);
+          } else if (!ptg.heure_sortie && heureNow > finMin) {
+            departManquant.push(d);
+          } else if (entreeMin > debutMin + 5) {
+            enRetard.push(d);
+          }
+        }
+      }
+
+      const attendus = (plannings || []).length;
+      document.getElementById('nbPresents').textContent = presents;
+      document.getElementById('nbAttendus').textContent = attendus;
+      document.getElementById('nbAbsents').textContent = nonPointes.length;
+      document.getElementById('nbRetards').textContent = enRetard.length;
+      document.getElementById('badgePointage').textContent = nonPointes.length + enRetard.length + horsSite.length;
+
+      function fmt(ts) {
+        if (!ts) return '—';
+        const d = new Date(ts);
+        return d.getHours().toString().padStart(2,'0') + 'h' + d.getMinutes().toString().padStart(2,'0');
+      }
+      function ecartHtml(ts, heureDebut) {
+        if (!ts || !heureDebut) return '';
+        const d = new Date(ts);
+        const [h, m] = heureDebut.split(':').map(Number);
+        const diff = (d.getHours()*60 + d.getMinutes()) - (h*60 + m);
+        if (Math.abs(diff) <= 5) return '<span class="avance-ecart">À l\'heure</span>';
+        if (diff > 5) return `<span class="retard-ecart">+${diff} min</span>`;
+        return '<span class="avance-ecart">À l\'heure</span>';
+      }
+      function hc(t) { return t ? t.slice(0,5).replace(':','h') : '—'; }
+      function btnTel(tel) { return tel !== '—' ? `<a class="btn-appel" href="tel:${tel.replace(/\s/g,'')}">📞 ${tel}</a>` : ''; }
+      function geoBadge(ptg) {
+        if (!ptg || !ptg.heure_entree) return '<span class="geo-badge vide">📍 Non pointé</span>';
+        if (ptg.geo_entree_ok === false) return `<span class="geo-badge ko">📍 Hors site · ${ptg.distance_entree_m || '?'}m</span>`;
+        return `<span class="geo-badge ok">📍 Sur site · ${ptg.distance_entree_m || '?'}m</span>`;
+      }
+
+      function rowNonPointe({agent, plan, initiales, siteNom, ville, tel}) {
+        return `<div class="agent-row">
+          <div class="agent-avatar">${initiales}</div>
+          <div class="agent-info"><div class="agent-nom">${agent.prenom} ${agent.nom}</div><div class="agent-site">${siteNom} · ${ville}</div></div>
+          <div class="agent-heure-detail"><div class="heure-bloc">
+            <div class="heure-col">
+              <div class="heure-col-label">Arrivée</div>
+              <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_debut)}</strong></div>
+              <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              <span class="geo-badge vide">📍 Non pointé</span>
+            </div>
+            <div class="heure-col">
+              <div class="heure-col-label">Départ</div>
+              <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_fin)}</strong></div>
+              <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+            </div>
+          </div></div>
+          <span class="statut-pill pill-rouge">Non pointé</span>${btnTel(tel)}</div>`;
+      }
+
+      function rowRetard({agent, plan, ptg, initiales, siteNom, ville, tel}) {
+        return `<div class="agent-row">
+          <div class="agent-avatar" style="background:var(--orange);">${initiales}</div>
+          <div class="agent-info"><div class="agent-nom">${agent.prenom} ${agent.nom}</div><div class="agent-site">${siteNom} · ${ville}</div></div>
+          <div class="agent-heure-detail"><div class="heure-bloc">
+            <div class="heure-col">
+              <div class="heure-col-label">Arrivée</div>
+              <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_debut)}</strong></div>
+              <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>${fmt(ptg.heure_entree)}</strong> ${ecartHtml(ptg.heure_entree, plan.heure_debut)}</div>
+              ${geoBadge(ptg)}
+            </div>
+            <div class="heure-col">
+              <div class="heure-col-label">Départ</div>
+              <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_fin)}</strong></div>
+              <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+            </div>
+          </div></div>
+          <span class="statut-pill pill-orange">En retard</span>${btnTel(tel)}</div>`;
+      }
+
+      function rowHorsSite({agent, plan, ptg, initiales, siteNom, ville, tel}) {
+        const dist = ptg?.distance_entree_m || '?';
+        return `<div class="agent-row">
+          <div class="agent-avatar" style="background:var(--rouge);">${initiales}</div>
+          <div class="agent-info"><div class="agent-nom">${agent.prenom} ${agent.nom}</div><div class="agent-site">${siteNom} · ${ville}</div></div>
+          <div class="agent-heure-detail"><div class="heure-bloc">
+            <div class="heure-col">
+              <div class="heure-col-label">Arrivée</div>
+              <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_debut)}</strong></div>
+              <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>${fmt(ptg.heure_entree)}</strong> ${ecartHtml(ptg.heure_entree, plan.heure_debut)}</div>
+              <span class="geo-badge ko">📍 Hors site · ${dist}m</span>
+            </div>
+            <div class="heure-col">
+              <div class="heure-col-label">Départ</div>
+              <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_fin)}</strong></div>
+              <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+            </div>
+          </div></div>
+          <span class="statut-pill" style="background:#FDECEA;color:var(--rouge);border:1px solid #FECACA;">⚠️ Hors site</span>${btnTel(tel)}</div>`;
+      }
+
+      function rowDepart({agent, plan, ptg, initiales, siteNom, ville, tel}) {
+        return `<div class="agent-row">
+          <div class="agent-avatar" style="background:#7C3AED;">${initiales}</div>
+          <div class="agent-info"><div class="agent-nom">${agent.prenom} ${agent.nom}</div><div class="agent-site">${siteNom} · ${ville}</div></div>
+          <div class="agent-heure-detail"><div class="heure-bloc">
+            <div class="heure-col">
+              <div class="heure-col-label">Arrivée</div>
+              <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_debut)}</strong></div>
+              <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>${fmt(ptg.heure_entree)}</strong> ${ecartHtml(ptg.heure_entree, plan.heure_debut)}</div>
+              ${geoBadge(ptg)}
+            </div>
+            <div class="heure-col">
+              <div class="heure-col-label">Départ</div>
+              <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_fin)}</strong></div>
+              <div class="heure-ligne rouge"><span class="heure-label">Réel :</span> <strong>Non enregistré</strong></div>
+              <span class="geo-badge vide">📍 En attente</span>
+            </div>
+          </div></div>
+          <span class="statut-pill" style="background:#EDE9FE;color:#5B21B6;">Départ manquant</span>${btnTel(tel)}</div>`;
+      }
+
+      if (nonPointes.length)     { document.getElementById('listeNonPointes').innerHTML    = nonPointes.map(rowNonPointe).join('');  document.getElementById('blocNonPointes').style.display    = 'block'; }
+      if (enRetard.length)       { document.getElementById('listeEnRetard').innerHTML      = enRetard.map(rowRetard).join('');       document.getElementById('blocEnRetard').style.display      = 'block'; }
+      if (horsSite.length)       { document.getElementById('listeHorsSite').innerHTML      = horsSite.map(rowHorsSite).join('');     document.getElementById('blocHorsSite').style.display      = 'block'; }
+      if (departManquant.length) { document.getElementById('listeDepartManquant').innerHTML = departManquant.map(rowDepart).join(''); document.getElementById('blocDepartManquant').style.display = 'block'; }
+      if (!nonPointes.length && !enRetard.length && !horsSite.length && !departManquant.length) {
+        document.getElementById('blocAucunAgent').style.display = 'block';
+      }
+    }
+
     // Vérification session + profil
     (async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1414,33 +1416,8 @@
         telAgEl.href = 'tel:0442051187';
       }
 
-      // Chargement pointages du jour
-      const aujourd_hui = new Date().toISOString().split('T')[0];
-      const heureNow = new Date().getHours() * 60 + new Date().getMinutes();
-
-      const [{ data: pointages }, { data: planning }] = await Promise.all([
-        supabaseClient.from('pointage').select('*').eq('date', aujourd_hui),
-        supabaseClient.from('planning').select('heure_debut').lte('heure_debut', new Date().toTimeString().slice(0,5))
-      ]);
-
-      if (pointages && pointages.length > 0) {
-        const presents  = pointages.filter(p => p.statut === 'present').length;
-        const absents   = pointages.filter(p => p.statut === 'absent').length;
-        const retards   = pointages.filter(p => p.statut === 'retard').length;
-        const attendus  = planning ? planning.length : (presents + absents + retards);
-        document.getElementById('nbPresents').textContent = presents;
-        document.getElementById('nbAttendus').textContent  = attendus;
-        document.getElementById('nbAbsents').textContent   = absents;
-        document.getElementById('nbRetards').textContent   = retards;
-        document.getElementById('badgePointage').textContent = absents + retards;
-      } else {
-        // Données démo si pas encore de pointages réels
-        document.getElementById('nbPresents').textContent = '6';
-        document.getElementById('nbAttendus').textContent  = '9';
-        document.getElementById('nbAbsents').textContent   = '2';
-        document.getElementById('nbRetards').textContent   = '1';
-        document.getElementById('badgePointage').textContent = '3';
-      }
+      // Chargement agents + pointages du jour depuis Supabase
+      await chargerPointages(session.user.id);
     })();
 
     // ══ PLANNING : date du jour + vue semaine ══
