@@ -1321,7 +1321,9 @@
               <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
             </div>
           </div></div>
-          <span class="statut-pill pill-orange">En retard</span>${btnTel(tel)}</div>`;
+          <span class="statut-pill pill-orange">En retard</span>
+          <button onclick="ouvrirPointageManuel('${agent.id}','${plan.site_id}','${agent.prenom} ${agent.nom}','${fmt(ptg.heure_entree)}','${ptg.heure_sortie ? fmt(ptg.heure_sortie) : ''}')" style="padding:6px 10px; background:#FFF3E0; color:var(--orange); border:1.5px solid var(--orange); border-radius:8px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;">✏️ Modifier</button>
+          ${btnTel(tel)}</div>`;
       }
 
       function rowHorsSite({agent, plan, ptg, initiales, siteNom, ville, tel}) {
@@ -1363,7 +1365,9 @@
               <span class="geo-badge vide">📍 En attente</span>
             </div>
           </div></div>
-          <span class="statut-pill" style="background:#EDE9FE;color:#5B21B6;">Départ manquant</span>${btnTel(tel)}</div>`;
+          <span class="statut-pill" style="background:#EDE9FE;color:#5B21B6;">Départ manquant</span>
+          <button onclick="ouvrirPointageManuel('${agent.id}','${plan.site_id}','${agent.prenom} ${agent.nom}','${fmt(ptg.heure_entree)}','')" style="padding:6px 10px; background:#F5F3FF; color:#5B21B6; border:1.5px solid #7C3AED; border-radius:8px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;">✏️ Modifier</button>
+          ${btnTel(tel)}</div>`;
       }
 
       if (nonPointes.length)     { document.getElementById('listeNonPointes').innerHTML    = nonPointes.map(rowNonPointe).join('');  document.getElementById('blocNonPointes').style.display    = 'block'; }
@@ -1700,14 +1704,13 @@
     // Pointage manuel
     let _pmData = null;
 
-    function ouvrirPointageManuel(agentId, siteId, agentNom, planningId) {
-      _pmData = { agentId, siteId, planningId };
+    function ouvrirPointageManuel(agentId, siteId, agentNom, heureArrivee = '', heureDepart = '') {
+      _pmData = { agentId, siteId };
       document.getElementById('pmAgentNom').textContent = agentNom;
-      document.getElementById('pmHeureArrivee').value = '';
-      document.getElementById('pmHeureDepart').value = '';
+      document.getElementById('pmHeureArrivee').value = heureArrivee ? heureArrivee.replace('h', ':') : '';
+      document.getElementById('pmHeureDepart').value = heureDepart ? heureDepart.replace('h', ':') : '';
       document.getElementById('pmMotif').value = '';
-      const modal = document.getElementById('modalPointageManuel');
-      modal.style.display = 'flex';
+      document.getElementById('modalPointageManuel').style.display = 'flex';
     }
 
     document.getElementById('btnConfirmerPointage').addEventListener('click', async () => {
