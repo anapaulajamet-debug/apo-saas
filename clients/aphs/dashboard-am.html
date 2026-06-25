@@ -792,7 +792,7 @@
     <nav class="sidebar-nav">
       <div class="nav-section">Principal</div>
       <a class="nav-item active" href="dashboard-am.html">⊞ &nbsp;Tableau de bord</a>
-      <a class="nav-item" href="#">📍 &nbsp;Mes sites</a>
+      <a class="nav-item" href="#">🏢 &nbsp;Mes clients</a>
       <a class="nav-item" href="#">👷 &nbsp;Mes agents</a>
 
       <div class="nav-section">Planification</div>
@@ -1129,12 +1129,17 @@
           .select('nom, telephone, adresse')
           .eq('id', tenant.tenant_id)
           .single();
-        if (agence) {
-          document.getElementById('contactAgence').textContent   = (agence.adresse || agence.nom || '—');
-          const telAgEl = document.getElementById('contactTelAgence');
-          telAgEl.textContent = agence.telephone || '—';
-          telAgEl.href = agence.telephone ? 'tel:' + agence.telephone.replace(/\s/g,'') : '#';
-        }
+        const adresseAgence = agence?.adresse || '30 allée André-Marie Ampère, 13270 Fos-sur-Mer';
+        const telAgence     = agence?.telephone || '04 42 05 11 87';
+        document.getElementById('contactAgence').textContent = adresseAgence;
+        const telAgEl = document.getElementById('contactTelAgence');
+        telAgEl.textContent = telAgence;
+        telAgEl.href = 'tel:' + telAgence.replace(/\s/g,'');
+      } else {
+        document.getElementById('contactAgence').textContent = '30 allée André-Marie Ampère, 13270 Fos-sur-Mer';
+        const telAgEl = document.getElementById('contactTelAgence');
+        telAgEl.textContent = '04 42 05 11 87';
+        telAgEl.href = 'tel:0442051187';
       }
 
       // Chargement pointages du jour
