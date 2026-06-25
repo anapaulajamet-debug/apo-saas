@@ -293,6 +293,36 @@
 
     .agent-heure { font-size: 11px; color: var(--gris-doux); }
 
+    .agent-heure-detail {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 148px;
+      flex-shrink: 0;
+    }
+
+    .heure-ligne {
+      font-size: 11px;
+      color: var(--gris-doux);
+      font-family: 'Courier New', monospace;
+    }
+
+    .heure-ligne strong { font-weight: 700; }
+    .heure-ligne.rouge  strong { color: var(--rouge); }
+    .heure-ligne.orange strong { color: var(--orange); }
+
+    .retard-ecart {
+      display: inline-block;
+      background: #FFF3E0;
+      color: #C05700;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-left: 4px;
+      font-family: Arial, sans-serif;
+    }
+
     .statut-pill {
       font-size: 10px;
       font-weight: 700;
@@ -856,28 +886,68 @@
       <!-- Agents non pointés -->
       <div class="agents-alerte" style="margin-top:10px;">
         <div class="agents-alerte-header">
-          <span class="agents-alerte-titre">🔴 Agents non pointés — action requise</span>
-          <span style="font-size:11px; color:#C0392B;">Il y a 15 min +</span>
+          <span class="agents-alerte-titre">🔴 Non pointés — aucun pointage reçu</span>
+          <span style="font-size:11px; color:#C0392B;">Action requise</span>
         </div>
         <div class="agent-row">
           <div class="agent-avatar">PN</div>
           <div class="agent-info">
             <div class="agent-nom">Paz Nicolas</div>
-            <div class="agent-site">Real Photo · Prévu 06h00</div>
+            <div class="agent-site">Real Photo · Gréasque</div>
           </div>
-          <div class="agent-heure">Retard : 22 min</div>
+          <div class="agent-heure-detail">
+            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>06h00</strong></div>
+            <div class="heure-ligne reel rouge">Pointage : <strong>—</strong></div>
+          </div>
           <span class="statut-pill pill-rouge">Non pointé</span>
           <a class="btn-appel" href="tel:0612345678">📞 06 12 34 56 78</a>
         </div>
         <div class="agent-row">
-          <div class="agent-avatar">DC</div>
+          <div class="agent-avatar">ZZ</div>
+          <div class="agent-info">
+            <div class="agent-nom">Zidar Zizane</div>
+            <div class="agent-site">St Macla Lambesc · Lambesc</div>
+          </div>
+          <div class="agent-heure-detail">
+            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>07h00</strong></div>
+            <div class="heure-ligne reel rouge">Pointage : <strong>—</strong></div>
+          </div>
+          <span class="statut-pill pill-rouge">Non pointé</span>
+          <a class="btn-appel" href="tel:0611223344">📞 06 11 22 33 44</a>
+        </div>
+      </div>
+
+      <!-- Agents en retard -->
+      <div class="agents-alerte" style="margin-top:10px; border-color: var(--orange);">
+        <div class="agents-alerte-header" style="background: #FFF3E0;">
+          <span class="agents-alerte-titre" style="color:var(--orange);">⚠️ En retard — pointage reçu hors délai</span>
+          <span style="font-size:11px; color:#C05700;">Pointage tardif</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-avatar" style="background:var(--orange);">DC</div>
           <div class="agent-info">
             <div class="agent-nom">Dulac Cloé</div>
-            <div class="agent-site">Magasin Shopi Marignane · Prévu 06h30</div>
+            <div class="agent-site">Magasin Shopi Marignane · Marignane</div>
           </div>
-          <div class="agent-heure">Retard : 8 min</div>
+          <div class="agent-heure-detail">
+            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>06h30</strong></div>
+            <div class="heure-ligne reel orange">Pointage : <strong>06h38</strong> <span class="retard-ecart">+8 min</span></div>
+          </div>
           <span class="statut-pill pill-orange">En retard</span>
           <a class="btn-appel" href="tel:0698765432">📞 06 98 76 54 32</a>
+        </div>
+        <div class="agent-row">
+          <div class="agent-avatar" style="background:var(--orange);">SF</div>
+          <div class="agent-info">
+            <div class="agent-nom">Silla Fatou</div>
+            <div class="agent-site">Cabinet dentaire pierre · Marseille</div>
+          </div>
+          <div class="agent-heure-detail">
+            <div class="heure-ligne prevu">Prévu&nbsp;&nbsp;&nbsp;: <strong>06h00</strong></div>
+            <div class="heure-ligne reel orange">Pointage : <strong>06h14</strong> <span class="retard-ecart">+14 min</span></div>
+          </div>
+          <span class="statut-pill pill-orange">En retard</span>
+          <a class="btn-appel" href="tel:0655443322">📞 06 55 44 33 22</a>
         </div>
       </div>
 
