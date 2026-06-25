@@ -386,6 +386,178 @@
     .btn-action.urgent { background: var(--rouge); }
     .btn-action.urgent:hover { background: #992020; }
 
+    /* ══ MODALE PLAN D'ACTION ══ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--blanc);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+      background: var(--teal-dark);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 { font-size: 14px; font-weight: 700; margin: 0; }
+    .modal-header p  { font-size: 11px; color: rgba(255,255,255,0.7); margin: 2px 0 0; }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.8;
+    }
+
+    .modal-close:hover { opacity: 1; }
+
+    .modal-steps {
+      display: flex;
+      border-bottom: 1px solid var(--bordure);
+    }
+
+    .modal-step {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--gris-doux);
+      border-bottom: 3px solid transparent;
+    }
+
+    .modal-step.actif {
+      color: var(--teal);
+      border-bottom-color: var(--teal);
+    }
+
+    .modal-step.fait {
+      color: var(--vert);
+      border-bottom-color: var(--vert);
+    }
+
+    .modal-body { padding: 20px; }
+
+    .modal-champ { margin-bottom: 16px; }
+
+    .modal-champ label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--teal-dark);
+      margin-bottom: 6px;
+    }
+
+    .modal-champ textarea,
+    .modal-champ input,
+    .modal-champ select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--bordure);
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: Arial, sans-serif;
+      color: var(--gris-texte);
+      background: #F8FAFC;
+      outline: none;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    .modal-champ textarea:focus,
+    .modal-champ input:focus,
+    .modal-champ select:focus {
+      border-color: var(--teal);
+      background: var(--blanc);
+    }
+
+    .modal-note-info {
+      font-size: 11px;
+      color: var(--gris-doux);
+      background: var(--teal-light);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-grille {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .note-select-wrap { display: flex; align-items: center; gap: 8px; }
+    .note-select-wrap select { flex: 1; }
+    .note-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--rouge);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--bordure);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-modal-annuler {
+      padding: 9px 18px;
+      background: none;
+      border: 1.5px solid var(--bordure);
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gris-doux);
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    .btn-modal-suivant {
+      padding: 9px 20px;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: background 0.2s;
+    }
+
+    .btn-modal-suivant:hover    { background: var(--teal-dark); }
+    .btn-modal-suivant.valider  { background: var(--vert); }
+    .btn-modal-suivant.valider:hover { background: #166534; }
+
     /* ══ BLOC 4 — DEMANDES AGENTS ══ */
     .demandes-list {
       background: var(--blanc);
@@ -619,7 +791,7 @@
             <div class="qualite-titre">Non-conformité — Zone Industrielle Est</div>
             <div class="qualite-detail">Sols non nettoyés salle de pompes · Audit du 23/06 · Note : 8/20</div>
           </div>
-          <button class="btn-action urgent">Traiter maintenant</button>
+          <button class="btn-action urgent" onclick="ouvrirPlanAction('Zone Industrielle Est','Sols non nettoyés salle de pompes','23/06/2026','8')">📋 Plan d'action</button>
         </div>
         <div class="qualite-item">
           <div class="chrono">
@@ -631,7 +803,7 @@
             <div class="qualite-titre">Non-conformité — Résidence Les Pins</div>
             <div class="qualite-detail">Produits manquants local ménage · Audit du 22/06 · Note : 11/20</div>
           </div>
-          <button class="btn-action">Traiter</button>
+          <button class="btn-action" onclick="ouvrirPlanAction('Résidence Les Pins','Produits manquants local ménage','22/06/2026','11')">📋 Plan d'action</button>
         </div>
         <div class="qualite-item">
           <div class="chrono">
@@ -643,7 +815,7 @@
             <div class="qualite-titre">Non-conformité — Centre Commercial</div>
             <div class="qualite-detail">Vitres entrée principale · Audit du 22/06 · Note : 13/20</div>
           </div>
-          <button class="btn-action">Traiter</button>
+          <button class="btn-action" onclick="ouvrirPlanAction('Centre Commercial','Vitres entrée principale','22/06/2026','13')">📋 Plan d'action</button>
         </div>
       </div>
 
@@ -771,7 +943,171 @@
       await supabaseClient.auth.signOut();
       window.location.href = '/';
     });
+
+    // ══ MODALE PLAN D'ACTION ══
+    let modalEtape = 1;
+
+    function ouvrirPlanAction(site, nonConformite, dateAudit, note) {
+      modalEtape = 1;
+      document.getElementById('modalSite').textContent        = site;
+      document.getElementById('modalNonConf').textContent     = nonConformite;
+      document.getElementById('modalDateAudit').textContent   = dateAudit;
+      document.getElementById('modalNote').textContent        = note + '/20';
+      document.getElementById('modalPlanTexte').value         = '';
+      document.getElementById('modalNoteRecontRole').value    = '';
+      document.getElementById('modalDateControle').value      = '';
+      document.getElementById('modalResponsable').value       = '';
+      afficherEtape(1);
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function fermerModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    function afficherEtape(n) {
+      modalEtape = n;
+      document.getElementById('etape1').style.display = n === 1 ? 'block' : 'none';
+      document.getElementById('etape2').style.display = n === 2 ? 'block' : 'none';
+      document.getElementById('stepLabel1').className = 'modal-step' + (n === 1 ? ' actif' : ' fait');
+      document.getElementById('stepLabel2').className = 'modal-step' + (n === 2 ? ' actif' : '');
+    }
+
+    document.getElementById('btnSuivant').addEventListener('click', () => {
+      const texte = document.getElementById('modalPlanTexte').value.trim();
+      if (!texte) {
+        document.getElementById('modalPlanTexte').focus();
+        document.getElementById('modalPlanTexte').style.borderColor = 'var(--rouge)';
+        return;
+      }
+      document.getElementById('modalPlanTexte').style.borderColor = '';
+      afficherEtape(2);
+    });
+
+    document.getElementById('btnValider').addEventListener('click', () => {
+      const note = document.getElementById('modalNoteRecontRole').value;
+      const date = document.getElementById('modalDateControle').value;
+      if (!note) document.getElementById('modalNoteRecontRole').style.borderColor = 'var(--rouge)';
+      if (!date) document.getElementById('modalDateControle').style.borderColor   = 'var(--rouge)';
+      if (!note || !date) return;
+      // TODO : sauvegarder en base (audits_qualite)
+      fermerModal();
+      afficherConfirmation();
+    });
+
+    function afficherConfirmation() {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+        background:#1E8449; color:#fff; padding:12px 24px; border-radius:8px;
+        font-size:13px; font-weight:700; z-index:2000;
+        box-shadow:0 4px 20px rgba(0,0,0,0.25);
+      `;
+      toast.textContent = '✅ Plan d\'action enregistré — nouveau contrôle planifié';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // Fermer en cliquant hors de la modale
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalOverlay')) fermerModal();
+    });
+
+    // Mise à jour couleur note nouveau contrôle
+    document.getElementById('modalNoteRecontRole').addEventListener('input', function() {
+      const v = parseInt(this.value);
+      const badge = document.getElementById('noteBadge');
+      if (!v) { badge.textContent = '—'; badge.style.color = 'var(--gris-doux)'; return; }
+      badge.textContent = v + '/20';
+      badge.style.color = v < 10 ? 'var(--rouge)' : v < 14 ? 'var(--orange)' : 'var(--vert)';
+      this.style.borderColor = '';
+    });
   </script>
+
+  <!-- ══ MODALE PLAN D'ACTION ══ -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+
+      <div class="modal-header">
+        <div>
+          <h3>📋 Plan d'action qualité</h3>
+          <p id="modalSite">—</p>
+        </div>
+        <button class="modal-close" onclick="fermerModal()">✕</button>
+      </div>
+
+      <div class="modal-steps">
+        <div class="modal-step actif" id="stepLabel1">① Actions réalisées</div>
+        <div class="modal-step" id="stepLabel2">② Nouveau contrôle</div>
+      </div>
+
+      <!-- ÉTAPE 1 : ce qui a été fait -->
+      <div id="etape1">
+        <div class="modal-body">
+          <div class="modal-note-info">
+            <strong>Non-conformité :</strong> <span id="modalNonConf">—</span><br>
+            Audit du <span id="modalDateAudit">—</span> · Note initiale : <span id="modalNote">—</span>
+          </div>
+          <div class="modal-champ">
+            <label>Actions réalisées pour corriger la non-conformité *</label>
+            <textarea id="modalPlanTexte" rows="5" placeholder="Décrivez les actions mises en place : nettoyage effectué le …, par qui, avec quels produits, consignes données à l'agent…"></textarea>
+          </div>
+          <div class="modal-champ">
+            <label>Date de réalisation</label>
+            <input type="date" id="modalDateRealisation" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-annuler" onclick="fermerModal()">Annuler</button>
+          <button class="btn-modal-suivant" id="btnSuivant">Étape suivante →</button>
+        </div>
+      </div>
+
+      <!-- ÉTAPE 2 : nouveau contrôle -->
+      <div id="etape2" style="display:none;">
+        <div class="modal-body">
+          <div class="modal-note-info">
+            Planifiez le contrôle de vérification pour confirmer la remise en conformité du site.
+          </div>
+          <div class="modal-grille">
+            <div class="modal-champ">
+              <label>Date du nouveau contrôle *</label>
+              <input type="date" id="modalDateControle" />
+            </div>
+            <div class="modal-champ">
+              <label>Responsable du contrôle</label>
+              <input type="text" id="modalResponsable" placeholder="Nom de l'agent de maîtrise" />
+            </div>
+          </div>
+          <div class="modal-champ">
+            <label>Note obtenue au nouveau contrôle *</label>
+            <div class="note-select-wrap">
+              <select id="modalNoteRecontRole">
+                <option value="">— Note /20 —</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                <option value="19">19</option><option value="20">20</option>
+              </select>
+              <span class="note-badge" id="noteBadge">—</span>
+            </div>
+          </div>
+          <div class="modal-champ">
+            <label>Observations du nouveau contrôle</label>
+            <textarea id="modalObservations" rows="3" placeholder="Site remis en conformité. Consignes rappelées à l'agent…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-annuler" onclick="afficherEtape(1)">← Retour</button>
+          <button class="btn-modal-suivant valider" id="btnValider">✅ Valider et clôturer</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
 </body>
 </html>
