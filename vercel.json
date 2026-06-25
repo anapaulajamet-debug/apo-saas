@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/clients/aphs/login.html" },
-    { "source": "/dashboard", "destination": "/clients/aphs/dashboard.html" }
+    { "source": "/dashboard", "destination": "/clients/aphs/dashboard.html" },
+    { "source": "/dashboard.html", "destination": "/clients/aphs/dashboard.html" }
   ]
 }
