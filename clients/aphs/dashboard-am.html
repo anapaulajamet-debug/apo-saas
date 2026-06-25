@@ -1686,28 +1686,38 @@
     let _agentsAM = [];
 
     async function chargerAbsences(amId) {
-      // Charger les agents de cet AM (réutilise la liste déjà connue si dispo)
-      if (!_agentsAM.length) {
-        const { data } = await supabaseClient.from('agents').select('id, nom, prenom').eq('agent_maitrise_id', amId);
-        _agentsAM = data || [];
-      }
+      const liste = document.getElementById('absencesList');
+      const badge = document.getElementById('badgeAbsences');
 
-      // Remplir le select de la modale
-      const sel = document.getElementById('absAgent');
-      sel.innerHTML = '<option value="">— Choisir un agent —</option>' +
-        _agentsAM.map(a => `<option value="${a.id}">${a.prenom} ${a.nom}</option>`).join('');
+      try {
+        // Charger les agents de cet AM
+        if (!_agentsAM.length) {
+          const { data, error: errAgents } = await supabaseClient.from('agents').select('id, nom, prenom').eq('agent_maitrise_id', amId);
+          if (errAgents) throw new Error('Agents : ' + errAgents.message);
+          _agentsAM = data || [];
+        }
 
-      // Charger les absences à venir (date_fin >= aujourd'hui)
-      const auj = new Date().toISOString().split('T')[0];
-      const agentIds = _agentsAM.map(a => a.id);
-      if (!agentIds.length) { document.getElementById('absencesList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--gris-doux);font-size:13px;">Aucun agent dans votre secteur.</div>'; return; }
+        // Remplir le select de la modale
+        const sel = document.getElementById('absAgent');
+        sel.innerHTML = '<option value="">— Choisir un agent —</option>' +
+          _agentsAM.map(a => `<option value="${a.id}">${a.prenom} ${a.nom}</option>`).join('');
 
-      const { data: absences } = await supabaseClient
-        .from('absences')
-        .select('*')
-        .in('agent_id', agentIds)
-        .gte('date_fin', auj)
-        .order('date_debut', { ascending: true });
+        // Charger les absences à venir (date_fin >= aujourd'hui)
+        const auj = new Date().toISOString().split('T')[0];
+        const agentIds = _agentsAM.map(a => a.id);
+        if (!agentIds.length) {
+          liste.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gris-doux);font-size:13px;">Aucun agent dans votre secteur.</div>';
+          return;
+        }
+
+        const { data: absences, error: errAbs } = await supabaseClient
+          .from('absences')
+          .select('*')
+          .in('agent_id', agentIds)
+          .gte('date_fin', auj)
+          .order('date_debut', { ascending: true });
+
+        if (errAbs) throw new Error('Absences : ' + errAbs.message);
 
       const liste = document.getElementById('absencesList');
       const badge = document.getElementById('badgeAbsences');
@@ -1721,35 +1731,40 @@
       badge.textContent = absences.length;
       badge.style.display = 'inline-block';
 
-      liste.innerHTML = absences.map(abs => {
-        const agent = _agentsAM.find(a => a.id === abs.agent_id);
-        const nomAgent = agent ? `${agent.prenom} ${agent.nom}` : '—';
-        const debut = new Date(abs.date_debut + 'T00:00:00');
-        const fin   = new Date(abs.date_fin   + 'T00:00:00');
-        const jours = Math.round((fin - debut) / 86400000) + 1;
-        const fmtDate = d => d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
-        const statutClass = `abs-statut-${abs.statut}`;
-        const statutLabel = abs.statut === 'valide' ? 'Validé' : abs.statut === 'en_attente' ? 'En attente' : 'Refusé';
+        liste.innerHTML = absences.map(abs => {
+          const agent = _agentsAM.find(a => a.id === abs.agent_id);
+          const nomAgent = agent ? `${agent.prenom} ${agent.nom}` : '—';
+          const debut = new Date(abs.date_debut + 'T00:00:00');
+          const fin   = new Date(abs.date_fin   + 'T00:00:00');
+          const jours = Math.round((fin - debut) / 86400000) + 1;
+          const fmtDate = d => d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+          const statutClass = `abs-statut-${abs.statut}`;
+          const statutLabel = abs.statut === 'valide' ? 'Validé' : abs.statut === 'en_attente' ? 'En attente' : 'Refusé';
+          const joursAvant = Math.ceil((debut - new Date()) / 86400000);
+          const urgence = joursAvant <= 7 && joursAvant >= 0 ? `<span style="font-size:10px;color:var(--rouge);font-weight:700;"> ⚠️ Dans ${joursAvant === 0 ? 'aujourd\'hui' : joursAvant + 'j'}</span>` : '';
 
-        // Alerte si absence dans moins de 7 jours
-        const joursAvant = Math.ceil((debut - new Date()) / 86400000);
-        const urgence = joursAvant <= 7 && joursAvant >= 0 ? `<span style="font-size:10px;color:var(--rouge);font-weight:700;"> ⚠️ Dans ${joursAvant === 0 ? 'aujourd\'hui' : joursAvant + 'j'}</span>` : '';
+          return `<div class="absence-item">
+            <div class="absence-icone abs-${abs.type_absence}">${typeAbsIcone[abs.type_absence] || '📌'}</div>
+            <div class="absence-info">
+              <div class="absence-agent">${nomAgent}${urgence}</div>
+              <div class="absence-type">${typeAbsLabels[abs.type_absence] || abs.type_absence}</div>
+              <div class="absence-dates">Du ${fmtDate(debut)} au ${fmtDate(fin)}</div>
+              ${abs.note ? `<div class="absence-note">${abs.note}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <div class="absence-jours">${jours}<span class="absence-jours-label">jour${jours > 1 ? 's' : ''}</span></div>
+              <span class="absence-statut ${statutClass}">${statutLabel}</span>
+              <button onclick="supprimerAbsence('${abs.id}')" style="padding:3px 8px;border:1px solid var(--bordure);background:#fff;border-radius:6px;font-size:10px;cursor:pointer;color:var(--rouge);">🗑</button>
+            </div>
+          </div>`;
+        }).join('');
 
-        return `<div class="absence-item">
-          <div class="absence-icone abs-${abs.type_absence}">${typeAbsIcone[abs.type_absence] || '📌'}</div>
-          <div class="absence-info">
-            <div class="absence-agent">${nomAgent}${urgence}</div>
-            <div class="absence-type">${typeAbsLabels[abs.type_absence] || abs.type_absence}</div>
-            <div class="absence-dates">Du ${fmtDate(debut)} au ${fmtDate(fin)}</div>
-            ${abs.note ? `<div class="absence-note">${abs.note}</div>` : ''}
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-            <div class="absence-jours">${jours}<span class="absence-jours-label">jour${jours > 1 ? 's' : ''}</span></div>
-            <span class="absence-statut ${statutClass}">${statutLabel}</span>
-            <button onclick="supprimerAbsence('${abs.id}')" style="padding:3px 8px;border:1px solid var(--bordure);background:#fff;border-radius:6px;font-size:10px;cursor:pointer;color:var(--rouge);">🗑</button>
-          </div>
-        </div>`;
-      }).join('');
+      } catch(e) {
+        document.getElementById('absencesList').innerHTML =
+          `<div style="padding:16px 18px; color:var(--rouge); font-size:12px; background:#FDECEA; border-radius:8px;">
+            ⚠️ Erreur de chargement : ${e.message}
+          </div>`;
+      }
     }
 
     async function supprimerAbsence(id) {
