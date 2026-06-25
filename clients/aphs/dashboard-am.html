@@ -1725,16 +1725,31 @@
       const heureDepart = document.getElementById('pmHeureDepart').value;
       const tsDepart = heureDepart ? new Date(`${aujourd_hui}T${heureDepart}:00`).toISOString() : null;
 
-      const { error } = await supabaseClient.from('pointage').upsert({
-        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
-        agent_id: _pmData.agentId,
-        site_id: _pmData.siteId,
-        date: aujourd_hui,
-        heure_entree: tsArrivee,
-        heure_sortie: tsDepart,
-        pointe_manuellement: true,
-        pointe_par: session.user.id
-      }, { onConflict: 'agent_id,date' });
+      // Vérifier si un pointage existe déjà pour cet agent aujourd'hui
+      const { data: existant } = await supabaseClient
+        .from('pointage').select('id')
+        .eq('agent_id', _pmData.agentId).eq('date', aujourd_hui).single();
+
+      let error;
+      if (existant) {
+        ({ error } = await supabaseClient.from('pointage').update({
+          heure_entree: tsArrivee,
+          heure_sortie: tsDepart,
+          pointe_manuellement: true,
+          pointe_par: session.user.id
+        }).eq('id', existant.id));
+      } else {
+        ({ error } = await supabaseClient.from('pointage').insert({
+          tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+          agent_id: _pmData.agentId,
+          site_id: _pmData.siteId,
+          date: aujourd_hui,
+          heure_entree: tsArrivee,
+          heure_sortie: tsDepart,
+          pointe_manuellement: true,
+          pointe_par: session.user.id
+        }));
+      }
 
       if (error) {
         alert('Erreur : ' + error.message);
