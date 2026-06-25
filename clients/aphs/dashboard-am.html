@@ -1037,7 +1037,7 @@
                 <div class="heure-col-label">Arrivée</div>
                 <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
                 <div class="heure-ligne orange"><span class="heure-label">Réel :</span> <strong>06h14</strong> <span class="retard-ecart">+14 min</span></div>
-                <span class="geo-badge ko">📍 Hors site · 320m</span>
+                <span class="geo-badge ok">📍 Sur site · 88m</span>
               </div>
               <div class="heure-col">
                 <div class="heure-col-label">Départ</div>
@@ -1049,6 +1049,49 @@
           <span class="statut-pill pill-orange">En retard</span>
           <a class="btn-appel" href="tel:0655443322">📞 06 55 44 33 22</a>
         </div>
+      </div>
+
+      <!-- Agents pointés hors site -->
+      <div class="agents-alerte" style="margin-top:10px; border-color: var(--rouge); border-width: 2px;">
+        <div class="agents-alerte-header" style="background: #FEF2F2;">
+          <span class="agents-alerte-titre" style="color:var(--rouge);">🚨 Pointage hors site — présence non confirmée</span>
+          <span style="font-size:11px; color:#B91C1C;">Position GPS incorrecte</span>
+        </div>
+
+        <div class="agent-row">
+          <div class="agent-avatar" style="background:var(--rouge);">AG</div>
+          <div class="agent-info">
+            <div class="agent-nom">Alice Giselle</div>
+            <div class="agent-site">Magasin Brickbrock · Châteauneuf</div>
+          </div>
+          <div class="agent-heure-detail">
+            <div class="heure-bloc">
+              <div class="heure-col">
+                <div class="heure-col-label">Arrivée</div>
+                <div class="heure-ligne vert"><span class="heure-label">Prévu :</span> <strong>06h00</strong></div>
+                <div class="heure-ligne vert"><span class="heure-label">Réel :</span> <strong>06h01</strong> <span class="avance-ecart">À l'heure</span></div>
+                <span class="geo-badge ko">📍 Hors site · 1 240m</span>
+              </div>
+              <div class="heure-col">
+                <div class="heure-col-label">Départ</div>
+                <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>08h00</strong></div>
+                <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              </div>
+            </div>
+          </div>
+          <span class="statut-pill" style="background:#FDECEA; color:var(--rouge); border: 1px solid #FECACA;">⚠️ Hors site</span>
+          <a class="btn-appel" href="tel:0633445566">📞 06 33 44 55 66</a>
+        </div>
+
+        <div class="agent-row" style="background:#FFFBFB;">
+          <div style="grid-column: 1/-1; width:100%; padding: 0;">
+            <div style="background:#FEF2F2; border-left:3px solid var(--rouge); padding:8px 12px; font-size:11px; color:#7F1D1D; border-radius:0 6px 6px 0; margin-left:52px;">
+              📍 Position enregistrée : 12 Rue de la Liberté, 13220 Châteauneuf — à 1 240m du site Magasin Brickbrock.<br>
+              Le pointage a été accepté mais la présence physique sur site <strong>n'est pas confirmée</strong>. Contacter l'agent pour vérification.
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Fins de prestation à vérifier -->
