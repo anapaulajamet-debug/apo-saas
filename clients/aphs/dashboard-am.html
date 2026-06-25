@@ -1235,7 +1235,20 @@
           } else if (!ptg.heure_sortie && heureNow > finMin) {
             departManquant.push(d);
           } else if (entreeMin > debutMin + 5) {
-            enRetard.push(d);
+            // Retard à l'arrivée — vérifier si compensé par départ tardif
+            if (ptg.heure_sortie) {
+              const sortie = new Date(ptg.heure_sortie);
+              const sortieMin = sortie.getHours() * 60 + sortie.getMinutes();
+              const dureeContrat = finMin - debutMin;
+              const dureeReelle = sortieMin - entreeMin;
+              if (dureeReelle >= dureeContrat) {
+                // Retard compensé → présent, pas d'alerte
+              } else {
+                enRetard.push(d);
+              }
+            } else {
+              enRetard.push(d);
+            }
           }
         }
       }
@@ -1709,7 +1722,7 @@
       const heureDepart = document.getElementById('pmHeureDepart').value;
       const tsDepart = heureDepart ? new Date(`${aujourd_hui}T${heureDepart}:00`).toISOString() : null;
 
-      const { error } = await supabaseClient.from('pointage').insert({
+      const { error } = await supabaseClient.from('pointage').upsert({
         tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
         agent_id: _pmData.agentId,
         site_id: _pmData.siteId,
@@ -1718,7 +1731,7 @@
         heure_sortie: tsDepart,
         pointe_manuellement: true,
         pointe_par: session.user.id
-      });
+      }, { onConflict: 'agent_id,date' });
 
       if (error) {
         alert('Erreur : ' + error.message);
