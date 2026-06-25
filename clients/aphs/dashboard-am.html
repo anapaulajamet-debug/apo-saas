@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APHS — Agent de maîtrise</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:       #2A8FA8;
+      --teal-dark:  #1A6B80;
+      --teal-light: #E6F4F7;
+      --or:         #D4A017;
+      --rouge:      #C0392B;
+      --rouge-light:#FDECEA;
+      --orange:     #E67E22;
+      --orange-light:#FEF3CD;
+      --vert:       #1E8449;
+      --vert-light: #E8F5E9;
+      --gris-texte: #374151;
+      --gris-doux:  #6B7280;
+      --gris-fond:  #F3F6F8;
+      --blanc:      #FFFFFF;
+      --bordure:    #DDE3E8;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--gris-fond);
+      color: var(--gris-texte);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background: var(--teal-dark);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+    }
+
+    .sidebar-logo {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .sidebar-logo img {
+      max-width: 120px;
+      width: 100%;
+    }
+
+    .logo-fallback { font-size: 22px; font-weight: 900; letter-spacing: 4px; color: #fff; }
+    .logo-sub { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-top: 3px; }
+
+    .sidebar-profil {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .profil-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .profil-nom { font-size: 12px; font-weight: 700; color: #fff; }
+    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); }
+
+    .sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+    .nav-section { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.35); padding: 12px 16px 4px; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: var(--or); font-weight: 700; }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--rouge);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 20px;
+    }
+
+    .nav-badge.orange { background: var(--orange); }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .btn-deconnexion {
+      width: 100%;
+      padding: 8px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    .btn-deconnexion:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ══ MAIN ══ */
+    .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+
+    .topbar {
+      background: var(--blanc);
+      border-bottom: 1px solid var(--bordure);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar-titre { font-size: 16px; font-weight: 700; color: var(--gris-texte); }
+    .topbar-date { font-size: 12px; color: var(--gris-doux); }
+
+    .content { padding: 24px; flex: 1; }
+
+    /* ══ SECTION TITRE ══ */
+    .section-titre {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gris-doux);
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    .section-titre:first-child { margin-top: 0; }
+
+    /* ══ BLOC 1 — POINTAGES DU JOUR ══ */
+    .pointage-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .compteur-card {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .compteur-icone {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .icone-vert   { background: var(--vert-light); }
+    .icone-rouge  { background: var(--rouge-light); }
+    .icone-orange { background: var(--orange-light); }
+
+    .compteur-val { font-size: 28px; font-weight: 700; line-height: 1; }
+    .compteur-val.vert   { color: var(--vert); }
+    .compteur-val.rouge  { color: var(--rouge); }
+    .compteur-val.orange { color: var(--orange); }
+    .compteur-label { font-size: 12px; color: var(--gris-doux); margin-top: 2px; }
+
+    /* Liste agents non pointés */
+    .agents-alerte {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      overflow: hidden;
+    }
+
+    .agents-alerte-header {
+      padding: 12px 18px;
+      background: var(--rouge-light);
+      border-bottom: 1px solid #FECACA;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .agents-alerte-titre { font-size: 12px; font-weight: 700; color: var(--rouge); }
+
+    .agent-row {
+      display: flex;
+      align-items: center;
+      padding: 11px 18px;
+      border-bottom: 1px solid var(--bordure);
+      gap: 12px;
+    }
+
+    .agent-row:last-child { border-bottom: none; }
+
+    .agent-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--teal-light);
+      color: var(--teal-dark);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .agent-info { flex: 1; }
+    .agent-nom { font-size: 13px; font-weight: 700; color: var(--gris-texte); }
+    .agent-site { font-size: 11px; color: var(--gris-doux); }
+
+    .agent-heure { font-size: 11px; color: var(--gris-doux); }
+
+    .statut-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    .pill-rouge  { background: var(--rouge-light); color: var(--rouge); }
+    .pill-orange { background: var(--orange-light); color: #92600A; }
+    .pill-vert   { background: var(--vert-light); color: var(--vert); }
+
+    .btn-appel {
+      padding: 5px 12px;
+      background: var(--teal-light);
+      color: var(--teal-dark);
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    .btn-appel:hover { background: var(--teal); color: #fff; }
+
+    /* ══ BLOC 2 — PLANNING DU JOUR ══ */
+    .planning-list {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      overflow: hidden;
+    }
+
+    .planning-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--bordure);
+    }
+
+    .planning-item:last-child { border-bottom: none; }
+
+    .planning-heure {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--teal);
+      min-width: 44px;
+      padding-top: 1px;
+    }
+
+    .planning-barre {
+      width: 3px;
+      border-radius: 2px;
+      align-self: stretch;
+      min-height: 36px;
+      flex-shrink: 0;
+    }
+
+    .barre-teal   { background: var(--teal); }
+    .barre-orange { background: var(--orange); }
+    .barre-rouge  { background: var(--rouge); }
+    .barre-vert   { background: var(--vert); }
+
+    .planning-contenu { flex: 1; }
+    .planning-titre { font-size: 13px; font-weight: 700; color: var(--gris-texte); }
+    .planning-detail { font-size: 11px; color: var(--gris-doux); margin-top: 2px; }
+
+    /* ══ BLOC 3 — PLANS D'ACTION QUALITÉ ══ */
+    .qualite-list {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      overflow: hidden;
+    }
+
+    .qualite-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--bordure);
+    }
+
+    .qualite-item:last-child { border-bottom: none; }
+
+    .chrono {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 52px;
+      flex-shrink: 0;
+    }
+
+    .chrono-val {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .chrono-val.rouge  { color: var(--rouge); }
+    .chrono-val.orange { color: var(--orange); }
+    .chrono-val.vert   { color: var(--vert); }
+
+    .chrono-unit { font-size: 9px; color: var(--gris-doux); letter-spacing: 0.5px; }
+
+    .qualite-info { flex: 1; }
+    .qualite-titre { font-size: 13px; font-weight: 700; color: var(--gris-texte); }
+    .qualite-detail { font-size: 11px; color: var(--gris-doux); margin-top: 2px; }
+
+    .btn-action {
+      padding: 6px 14px;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      white-space: nowrap;
+    }
+
+    .btn-action:hover { background: var(--teal-dark); }
+    .btn-action.urgent { background: var(--rouge); }
+    .btn-action.urgent:hover { background: #992020; }
+
+    /* ══ BLOC 4 — DEMANDES AGENTS ══ */
+    .demandes-list {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      overflow: hidden;
+    }
+
+    .demande-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--bordure);
+    }
+
+    .demande-item:last-child { border-bottom: none; }
+
+    .demande-type {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .type-produit  { background: var(--teal-light); color: var(--teal-dark); }
+    .type-message  { background: #F3F0FF; color: #5A3EA1; }
+    .type-conge    { background: var(--orange-light); color: #92600A; }
+
+    .demande-contenu { flex: 1; }
+    .demande-agent { font-size: 12px; font-weight: 700; color: var(--gris-texte); }
+    .demande-texte { font-size: 12px; color: var(--gris-doux); margin-top: 2px; line-height: 1.4; }
+    .demande-date  { font-size: 10px; color: #9CA3AF; margin-top: 3px; }
+
+    .btn-traiter {
+      padding: 5px 12px;
+      background: var(--gris-fond);
+      color: var(--gris-texte);
+      border: 1px solid var(--bordure);
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      white-space: nowrap;
+    }
+
+    .btn-traiter:hover { background: var(--teal-light); border-color: var(--teal); color: var(--teal-dark); }
+  </style>
+</head>
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-logo">
+      <img src="assets/logo.png" alt="APHS"
+        onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
+      <div id="logoFallback" style="display:none;">
+        <div class="logo-fallback">APHS</div>
+        <div class="logo-sub">Azur Propreté Hygiène &amp; Services</div>
+      </div>
+    </div>
+
+    <div class="sidebar-profil">
+      <div class="profil-avatar" id="profilAvatar">AM</div>
+      <div>
+        <div class="profil-nom" id="profilNom">—</div>
+        <div class="profil-role">Agent de maîtrise</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a class="nav-item active" href="dashboard-am.html">⊞ &nbsp;Tableau de bord</a>
+      <a class="nav-item" href="#">📍 &nbsp;Mes sites</a>
+      <a class="nav-item" href="#">👷 &nbsp;Mes agents</a>
+
+      <div class="nav-section">Planification</div>
+      <a class="nav-item" href="#">📅 &nbsp;Planning</a>
+      <a class="nav-item" href="#">🕐 &nbsp;Pointages <span class="nav-badge" id="badgePointage">2</span></a>
+
+      <div class="nav-section">Exploitation</div>
+      <a class="nav-item" href="#">✅ &nbsp;Qualité <span class="nav-badge orange" id="badgeQualite">3</span></a>
+      <a class="nav-item" href="#">📦 &nbsp;Commandes</a>
+      <a class="nav-item" href="#">🚚 &nbsp;Livraisons</a>
+      <a class="nav-item" href="#">📄 &nbsp;Documents</a>
+
+      <div class="nav-section">Finance</div>
+      <a class="nav-item" href="#">📊 &nbsp;Marges</a>
+      <a class="nav-item" href="#">💶 &nbsp;Saisie paie</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-deconnexion" id="btnDeconnexion">Se déconnecter</button>
+    </div>
+
+  </aside>
+
+  <!-- ══ CONTENU ══ -->
+  <div class="main">
+
+    <header class="topbar">
+      <div class="topbar-titre">Bonjour <span id="prenomAM">—</span> 👋</div>
+      <div class="topbar-date" id="dateJour"></div>
+    </header>
+
+    <div class="content">
+
+      <!-- ══ 1. POINTAGES DU JOUR ══ -->
+      <div class="section-titre">Pointages du jour — <span id="heureActuelle"></span></div>
+
+      <div class="pointage-grid">
+        <div class="compteur-card">
+          <div class="compteur-icone icone-vert">✅</div>
+          <div>
+            <div class="compteur-val vert" id="nbPresents">—</div>
+            <div class="compteur-label">Agents présents</div>
+          </div>
+        </div>
+        <div class="compteur-card">
+          <div class="compteur-icone icone-rouge">🔴</div>
+          <div>
+            <div class="compteur-val rouge" id="nbAbsents">—</div>
+            <div class="compteur-label">Non pointés</div>
+          </div>
+        </div>
+        <div class="compteur-card">
+          <div class="compteur-icone icone-orange">⚠️</div>
+          <div>
+            <div class="compteur-val orange" id="nbRetards">—</div>
+            <div class="compteur-label">En retard</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agents non pointés -->
+      <div class="agents-alerte" style="margin-top:10px;">
+        <div class="agents-alerte-header">
+          <span class="agents-alerte-titre">🔴 Agents non pointés — action requise</span>
+          <span style="font-size:11px; color:#C0392B;">Il y a 15 min +</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-avatar">ML</div>
+          <div class="agent-info">
+            <div class="agent-nom">Martin Lecomte</div>
+            <div class="agent-site">Port de Fos · Prévu 06h00</div>
+          </div>
+          <div class="agent-heure">Retard : 22 min</div>
+          <span class="statut-pill pill-rouge">Non pointé</span>
+          <button class="btn-appel">📞 Appeler</button>
+        </div>
+        <div class="agent-row">
+          <div class="agent-avatar">SB</div>
+          <div class="agent-info">
+            <div class="agent-nom">Sara Benali</div>
+            <div class="agent-site">Zone Industrielle Est · Prévu 06h30</div>
+          </div>
+          <div class="agent-heure">Retard : 8 min</div>
+          <span class="statut-pill pill-orange">En retard</span>
+          <button class="btn-appel">📞 Appeler</button>
+        </div>
+      </div>
+
+      <!-- ══ 2. MON PLANNING DU JOUR ══ -->
+      <div class="section-titre" style="margin-top:28px;">Mon planning du jour</div>
+
+      <div class="planning-list">
+        <div class="planning-item">
+          <div class="planning-heure">07h30</div>
+          <div class="planning-barre barre-rouge"></div>
+          <div class="planning-contenu">
+            <div class="planning-titre">Visite de site — Zone Industrielle Est</div>
+            <div class="planning-detail">Vérification suite absence Sara Benali · TOTAL Raffinerie</div>
+          </div>
+          <span class="statut-pill pill-rouge">Urgent</span>
+        </div>
+        <div class="planning-item">
+          <div class="planning-heure">09h00</div>
+          <div class="planning-barre barre-teal"></div>
+          <div class="planning-contenu">
+            <div class="planning-titre">Audit qualité — Port de Fos</div>
+            <div class="planning-detail">Contrôle mensuel programmé · Grand Port Maritime</div>
+          </div>
+          <span class="statut-pill pill-vert">Planifié</span>
+        </div>
+        <div class="planning-item">
+          <div class="planning-heure">11h00</div>
+          <div class="planning-barre barre-orange"></div>
+          <div class="planning-contenu">
+            <div class="planning-titre">Réception livraison produits</div>
+            <div class="planning-detail">Fournisseur Ecolab · Résidence Les Pins</div>
+          </div>
+          <span class="statut-pill pill-orange">À confirmer</span>
+        </div>
+        <div class="planning-item">
+          <div class="planning-heure">14h00</div>
+          <div class="planning-barre barre-teal"></div>
+          <div class="planning-contenu">
+            <div class="planning-titre">Visite de site — Centre Commercial</div>
+            <div class="planning-detail">Contrôle routine · Klepierre</div>
+          </div>
+          <span class="statut-pill pill-vert">Planifié</span>
+        </div>
+        <div class="planning-item">
+          <div class="planning-heure">16h30</div>
+          <div class="planning-barre barre-teal"></div>
+          <div class="planning-contenu">
+            <div class="planning-titre">Saisie paie — Clôture juin</div>
+            <div class="planning-detail">Validation heures des 8 agents · Export Silae</div>
+          </div>
+          <span class="statut-pill pill-vert">Planifié</span>
+        </div>
+      </div>
+
+      <!-- ══ 3. PLANS D'ACTION QUALITÉ ══ -->
+      <div class="section-titre" style="margin-top:28px;">Plans d'action qualité — délai 48h</div>
+
+      <div class="qualite-list">
+        <div class="qualite-item">
+          <div class="chrono">
+            <div class="chrono-val rouge">6h</div>
+            <div class="chrono-unit">restantes</div>
+          </div>
+          <div style="width:3px; border-radius:2px; background:var(--rouge); align-self:stretch; min-height:36px; flex-shrink:0;"></div>
+          <div class="qualite-info">
+            <div class="qualite-titre">Non-conformité — Zone Industrielle Est</div>
+            <div class="qualite-detail">Sols non nettoyés salle de pompes · Audit du 23/06 · Note : 8/20</div>
+          </div>
+          <button class="btn-action urgent">Traiter maintenant</button>
+        </div>
+        <div class="qualite-item">
+          <div class="chrono">
+            <div class="chrono-val orange">19h</div>
+            <div class="chrono-unit">restantes</div>
+          </div>
+          <div style="width:3px; border-radius:2px; background:var(--orange); align-self:stretch; min-height:36px; flex-shrink:0;"></div>
+          <div class="qualite-info">
+            <div class="qualite-titre">Non-conformité — Résidence Les Pins</div>
+            <div class="qualite-detail">Produits manquants local ménage · Audit du 22/06 · Note : 11/20</div>
+          </div>
+          <button class="btn-action">Traiter</button>
+        </div>
+        <div class="qualite-item">
+          <div class="chrono">
+            <div class="chrono-val vert">31h</div>
+            <div class="chrono-unit">restantes</div>
+          </div>
+          <div style="width:3px; border-radius:2px; background:var(--vert); align-self:stretch; min-height:36px; flex-shrink:0;"></div>
+          <div class="qualite-info">
+            <div class="qualite-titre">Non-conformité — Centre Commercial</div>
+            <div class="qualite-detail">Vitres entrée principale · Audit du 22/06 · Note : 13/20</div>
+          </div>
+          <button class="btn-action">Traiter</button>
+        </div>
+      </div>
+
+      <!-- ══ 4. DEMANDES AGENTS ══ -->
+      <div class="section-titre" style="margin-top:28px;">Demandes de mes agents</div>
+
+      <div class="demandes-list">
+        <div class="demande-item">
+          <span class="demande-type type-produit">Produits</span>
+          <div class="demande-contenu">
+            <div class="demande-agent">Martin Lecomte</div>
+            <div class="demande-texte">Besoin de 4 bidons de détergent sol (5L) et 2 boîtes de gants M pour Port de Fos</div>
+            <div class="demande-date">Aujourd'hui à 05h42</div>
+          </div>
+          <button class="btn-traiter">Traiter</button>
+        </div>
+        <div class="demande-item">
+          <span class="demande-type type-conge">Congé</span>
+          <div class="demande-contenu">
+            <div class="demande-agent">Karim Djelloul</div>
+            <div class="demande-texte">Demande de congé du 30/06 au 04/07 — raison personnelle</div>
+            <div class="demande-date">Hier à 18h15</div>
+          </div>
+          <button class="btn-traiter">Traiter</button>
+        </div>
+        <div class="demande-item">
+          <span class="demande-type type-message">Message</span>
+          <div class="demande-contenu">
+            <div class="demande-agent">Fatima Ouali</div>
+            <div class="demande-texte">Le digicode du local ménage Zone Industrielle Est a changé, je n'ai pas le nouveau code</div>
+            <div class="demande-date">Hier à 22h03</div>
+          </div>
+          <button class="btn-traiter">Répondre</button>
+        </div>
+        <div class="demande-item">
+          <span class="demande-type type-produit">Produits</span>
+          <div class="demande-contenu">
+            <div class="demande-agent">Sara Benali</div>
+            <div class="demande-texte">Stock balais autolaveuse terminé — besoin urgence pour lundi matin</div>
+            <div class="demande-date">Avant-hier à 14h30</div>
+          </div>
+          <button class="btn-traiter">Traiter</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Date et heure
+    const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+    document.getElementById('dateJour').textContent = new Date().toLocaleDateString('fr-FR', opts);
+
+    function majHeure() {
+      const h = new Date();
+      document.getElementById('heureActuelle').textContent =
+        h.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    }
+    majHeure();
+    setInterval(majHeure, 60000);
+
+    // Vérification session + profil
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+
+      const user = session.user;
+      const prenom = user.user_metadata?.prenom || user.email.split('@')[0];
+      const nom    = user.user_metadata?.nom || '';
+      const initiales = (prenom[0] || '') + (nom[0] || '');
+
+      document.getElementById('prenomAM').textContent = prenom;
+      document.getElementById('profilNom').textContent = prenom + ' ' + nom;
+      if (initiales) document.getElementById('profilAvatar').textContent = initiales.toUpperCase();
+
+      // Chargement pointages du jour
+      const aujourd_hui = new Date().toISOString().split('T')[0];
+      const { data: pointages } = await supabaseClient
+        .from('pointage')
+        .select('*')
+        .eq('date', aujourd_hui);
+
+      if (pointages) {
+        const presents = pointages.filter(p => p.statut === 'present').length;
+        const absents  = pointages.filter(p => p.statut === 'absent').length;
+        const retards  = pointages.filter(p => p.statut === 'retard').length;
+        document.getElementById('nbPresents').textContent = presents;
+        document.getElementById('nbAbsents').textContent  = absents;
+        document.getElementById('nbRetards').textContent  = retards;
+        document.getElementById('badgePointage').textContent = absents + retards;
+      } else {
+        // Données démo si pas encore de pointages réels
+        document.getElementById('nbPresents').textContent = '6';
+        document.getElementById('nbAbsents').textContent  = '2';
+        document.getElementById('nbRetards').textContent  = '1';
+      }
+    })();
+
+    // Déconnexion
+    document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = '/';
+    });
+  </script>
+
+</body>
+</html>
