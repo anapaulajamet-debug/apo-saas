@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APHS — Créer un profil</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:      #2A8FA8;
+      --teal-dark: #1A6B80;
+      --teal-light:#E6F4F7;
+      --or:        #D4A017;
+      --rouge:     #C0392B;
+      --vert:      #1E8449;
+      --gris-fond: #F3F6F8;
+      --bordure:   #DDE3E8;
+      --blanc:     #FFFFFF;
+      --gris-texte:#374151;
+      --gris-doux: #6B7280;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--gris-fond);
+      color: var(--gris-texte);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .carte {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid var(--bordure);
+      padding: 40px 40px 36px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .carte-titre {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gris-texte);
+      margin-bottom: 4px;
+    }
+
+    .carte-sous-titre {
+      font-size: 13px;
+      color: var(--gris-doux);
+      margin-bottom: 32px;
+    }
+
+    /* Photo */
+    .photo-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .photo-apercu {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: var(--teal-light);
+      border: 3px solid var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .photo-apercu img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-initiales {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    .photo-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(26, 107, 128, 0.75);
+      color: #fff;
+      font-size: 10px;
+      text-align: center;
+      padding: 5px 0;
+    }
+
+    .photo-hint {
+      font-size: 11px;
+      color: var(--gris-doux);
+    }
+
+    #inputPhoto { display: none; }
+
+    /* Champs */
+    .champ-groupe {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .champ { margin-bottom: 14px; }
+
+    .champ label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--teal-dark);
+      margin-bottom: 6px;
+    }
+
+    .champ input,
+    .champ select {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid var(--bordure);
+      border-radius: 7px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      color: var(--gris-texte);
+      background: #F8FAFC;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .champ input:focus,
+    .champ select:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(42,143,168,0.12);
+      background: var(--blanc);
+    }
+
+    .btn-creer {
+      width: 100%;
+      padding: 13px;
+      background: var(--teal);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-creer:hover    { background: var(--teal-dark); }
+    .btn-creer:disabled { background: #9ecdd8; cursor: not-allowed; }
+
+    .msg {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .msg.succes { background: #E8F5E9; color: var(--vert); border: 1px solid #A8D5B0; }
+    .msg.erreur { background: #FDECEA; color: var(--rouge); border: 1px solid #FECACA; }
+
+    .retour {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--teal);
+      text-decoration: none;
+    }
+
+    .retour:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="carte">
+    <div class="carte-titre">Créer un profil utilisateur</div>
+    <div class="carte-sous-titre">Réservé au directeur — renseignez les informations du collaborateur</div>
+
+    <!-- Photo -->
+    <div class="photo-zone">
+      <div class="photo-apercu" id="photoApercu" onclick="document.getElementById('inputPhoto').click()">
+        <div class="photo-initiales" id="photoInitiales">?</div>
+        <div class="photo-overlay">Changer</div>
+      </div>
+      <div class="photo-hint">Cliquez pour ajouter une photo</div>
+      <input type="file" id="inputPhoto" accept="image/*" />
+    </div>
+
+    <form id="formProfil" novalidate>
+
+      <div class="champ-groupe">
+        <div class="champ">
+          <label for="prenom">Prénom</label>
+          <input type="text" id="prenom" placeholder="Sophie" required />
+        </div>
+        <div class="champ">
+          <label for="nom">Nom</label>
+          <input type="text" id="nom" placeholder="Martin" required />
+        </div>
+      </div>
+
+      <div class="champ">
+        <label for="email">Adresse e-mail</label>
+        <input type="email" id="email" placeholder="sophie.martin@aphs.fr" required />
+      </div>
+
+      <div class="champ">
+        <label for="telephone">Téléphone</label>
+        <input type="tel" id="telephone" placeholder="06 00 00 00 00" />
+      </div>
+
+      <div class="champ">
+        <label for="role">Rôle</label>
+        <select id="role" required>
+          <option value="">— Choisir un rôle —</option>
+          <option value="agent_maitrise">Agent de maîtrise</option>
+          <option value="chef_equipe">Chef d'équipe</option>
+          <option value="agent_proprete">Agent de propreté</option>
+          <option value="commercial">Commercial</option>
+          <option value="responsable_exploitation">Responsable d'exploitation</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-creer" id="btnCreer">Créer le profil</button>
+
+      <div class="msg" id="msg"></div>
+
+    </form>
+
+    <a class="retour" href="/dashboard">← Retour au tableau de bord</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const TENANT_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+    let photoFile = null;
+
+    // Vérification session directeur
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+    })();
+
+    // Mise à jour initiales en temps réel
+    ['prenom', 'nom'].forEach(id => {
+      document.getElementById(id).addEventListener('input', majInitiales);
+    });
+
+    function majInitiales() {
+      const p = document.getElementById('prenom').value.trim();
+      const n = document.getElementById('nom').value.trim();
+      const initiales = (p[0] || '') + (n[0] || '') || '?';
+      document.getElementById('photoInitiales').textContent = initiales.toUpperCase();
+    }
+
+    // Prévisualisation photo
+    document.getElementById('inputPhoto').addEventListener('change', (e) => {
+      photoFile = e.target.files[0];
+      if (!photoFile) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const apercu = document.getElementById('photoApercu');
+        apercu.innerHTML = `
+          <img src="${ev.target.result}" alt="Photo" />
+          <div class="photo-overlay">Changer</div>
+        `;
+        apercu.onclick = () => document.getElementById('inputPhoto').click();
+      };
+      reader.readAsDataURL(photoFile);
+    });
+
+    // Soumission
+    document.getElementById('formProfil').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const prenom    = document.getElementById('prenom').value.trim();
+      const nom       = document.getElementById('nom').value.trim();
+      const email     = document.getElementById('email').value.trim();
+      const telephone = document.getElementById('telephone').value.trim();
+      const role      = document.getElementById('role').value;
+      const btn       = document.getElementById('btnCreer');
+      const msgEl     = document.getElementById('msg');
+
+      if (!prenom || !nom || !email || !role) {
+        msgEl.className = 'msg erreur';
+        msgEl.textContent = 'Veuillez remplir tous les champs obligatoires.';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      btn.textContent = 'Création en cours…';
+      btn.disabled = true;
+      msgEl.style.display = 'none';
+
+      try {
+        // 1. Créer l'utilisateur dans Supabase Auth
+        const mdpProvisoire = 'Aphs' + Math.floor(1000 + Math.random() * 9000) + '!';
+        const { data: authData, error: authError } = await supabaseClient.auth.admin
+          ? await supabaseClient.auth.admin.createUser({ email, password: mdpProvisoire, email_confirm: true })
+          : { data: null, error: { message: 'Utilisez le SQL Editor pour créer le compte Auth.' } };
+
+        let userId = authData?.user?.id;
+
+        // Si pas admin, on insère quand même dans users (l'UUID sera mis à jour)
+        if (authError) {
+          msgEl.className = 'msg erreur';
+          msgEl.textContent = 'Créez d\'abord le compte dans Supabase Auth, puis revenez ici pour compléter le profil.';
+          msgEl.style.display = 'block';
+          btn.textContent = 'Créer le profil';
+          btn.disabled = false;
+          return;
+        }
+
+        // 2. Upload photo si fournie
+        let photoUrl = null;
+        if (photoFile && userId) {
+          const ext = photoFile.name.split('.').pop();
+          const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('photos-profil')
+            .upload(`${userId}.${ext}`, photoFile, { upsert: true });
+          if (!uploadError) {
+            const { data: urlData } = supabaseClient.storage
+              .from('photos-profil')
+              .getPublicUrl(`${userId}.${ext}`);
+            photoUrl = urlData.publicUrl;
+          }
+        }
+
+        // 3. Insérer dans la table users
+        if (userId) {
+          const { error: userError } = await supabaseClient.from('users').insert({
+            id: userId,
+            tenant_id: TENANT_ID,
+            role,
+            prenom,
+            nom,
+            email,
+            telephone: telephone || null,
+            photo_url: photoUrl
+          });
+
+          if (userError) throw userError;
+        }
+
+        msgEl.className = 'msg succes';
+        msgEl.textContent = `✅ Profil de ${prenom} ${nom} créé avec succès ! Mot de passe provisoire : ${mdpProvisoire}`;
+        msgEl.style.display = 'block';
+        btn.textContent = 'Créer le profil';
+        btn.disabled = false;
+        document.getElementById('formProfil').reset();
+        document.getElementById('photoInitiales').textContent = '?';
+
+      } catch (err) {
+        msgEl.className = 'msg erreur';
+        msgEl.textContent = 'Erreur : ' + (err.message || 'Veuillez réessayer.');
+        msgEl.style.display = 'block';
+        btn.textContent = 'Créer le profil';
+        btn.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>

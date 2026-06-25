@@ -707,14 +707,27 @@
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) { window.location.href = '/'; return; }
 
-      const user = session.user;
-      const prenom = user.user_metadata?.prenom || user.email.split('@')[0];
-      const nom    = user.user_metadata?.nom || '';
-      const initiales = (prenom[0] || '') + (nom[0] || '');
+      // Récupération du profil dans la table users
+      const { data: profil } = await supabaseClient
+        .from('users')
+        .select('prenom, nom, photo_url, role')
+        .eq('id', session.user.id)
+        .single();
+
+      const prenom = profil?.prenom || session.user.email.split('@')[0];
+      const nom    = profil?.nom    || '';
+      const initiales = ((prenom[0] || '') + (nom[0] || '')).toUpperCase();
 
       document.getElementById('prenomAM').textContent = prenom;
       document.getElementById('profilNom').textContent = prenom + ' ' + nom;
-      if (initiales) document.getElementById('profilAvatar').textContent = initiales.toUpperCase();
+
+      // Photo ou initiales
+      const avatarEl = document.getElementById('profilAvatar');
+      if (profil?.photo_url) {
+        avatarEl.innerHTML = `<img src="${profil.photo_url}" alt="${prenom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+      } else {
+        avatarEl.textContent = initiales || 'AM';
+      }
 
       // Chargement pointages du jour
       const aujourd_hui = new Date().toISOString().split('T')[0];
