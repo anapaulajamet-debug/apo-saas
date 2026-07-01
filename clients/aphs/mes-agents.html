@@ -142,6 +142,16 @@
     .total-ded { margin:10px 18px 18px; padding:12px 16px; background:var(--rouge-light); border-radius:8px; font-size:13px; font-weight:700; color:var(--rouge); display:flex; justify-content:space-between; }
     .vide-msg { padding:24px; text-align:center; color:var(--gris-doux); font-size:13px; }
 
+    /* Contrat & CCN */
+    .contrat-section { background:#fff; border-radius:12px; border:1px solid var(--bordure); padding:18px 20px; margin-bottom:16px; }
+    .contrat-titre { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); margin-bottom:12px; }
+    .contrat-grille { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .contrat-item { }
+    .contrat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); margin-bottom:3px; }
+    .contrat-val { font-size:13px; font-weight:600; color:var(--gris-texte); }
+    .contrat-val.vide { color:var(--gris-doux); font-weight:400; font-style:italic; }
+    .badge-contrat { display:inline-block; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700; background:var(--teal-light); color:var(--teal-dark); }
+
     /* Sites d'intervention */
     .sites-section { background:#fff; border-radius:12px; border:1px solid var(--bordure); padding:18px 20px; margin-bottom:16px; }
     .sites-titre { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); margin-bottom:12px; }
@@ -228,6 +238,12 @@
 
       <!-- Grille infos -->
       <div class="info-grille" id="ficheInfos"></div>
+
+      <!-- Contrat & CCN -->
+      <div class="contrat-section">
+        <div class="contrat-titre">📄 Contrat & Convention collective</div>
+        <div class="contrat-grille" id="ficheContrat"></div>
+      </div>
 
       <!-- Sites d'intervention -->
       <div class="sites-section" id="sitesSectionWrap" style="display:none;">
@@ -329,7 +345,7 @@ async function changerMois(delta) {
 
 async function chargerListe(session) {
   const { data: agents, error: errAgents } = await supabaseClient.from('agents')
-    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, site_principal_id')
+    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, site_principal_id, adresse, type_contrat, volume_horaire, taux_horaire, coefficient, filiere_ccn, date_entree, solde_cp, numero_ss')
     .eq('agent_maitrise_id', session.user.id);
 
   if (errAgents) console.error('Erreur chargement agents:', errAgents);
@@ -413,12 +429,30 @@ async function ouvrirFiche(agentId) {
     { label:'Date de naissance', val: agent.date_naissance ? fmtDate(agent.date_naissance) + (age ? ' · ' + age : '') : null },
     { label:'Téléphone',         val: agent.telephone },
     { label:'Email',             val: agent.email },
+    { label:'Adresse postale',   val: agent.adresse, full: true },
   ];
 
   document.getElementById('ficheInfos').innerHTML = infos.map(info => `
     <div class="info-card${info.full ? ' info-card-full' : ''}">
       <div class="info-label">${info.label}</div>
       <div class="info-val${!info.val ? ' vide' : ''}">${info.val || 'Non renseigné'}</div>
+    </div>`).join('');
+
+  // Contrat & CCN
+  const contratChamps = [
+    { label:'Type de contrat',   val: agent.type_contrat },
+    { label:'Filière CCN',       val: agent.filiere_ccn },
+    { label:'Coefficient',       val: agent.coefficient },
+    { label:'Heures / semaine',  val: agent.volume_horaire ? agent.volume_horaire + ' h/sem' : null },
+    { label:'Taux horaire',      val: agent.taux_horaire ? parseFloat(agent.taux_horaire).toFixed(2) + ' €/h' : null },
+    { label:'Date d\'embauche',  val: agent.date_entree ? fmtDate(agent.date_entree) : null },
+    { label:'Solde CP',          val: agent.solde_cp != null ? agent.solde_cp + ' jour(s)' : null },
+    { label:'N° Sécurité sociale', val: agent.numero_ss },
+  ];
+  document.getElementById('ficheContrat').innerHTML = contratChamps.map(c => `
+    <div class="contrat-item">
+      <div class="contrat-label">${c.label}</div>
+      <div class="contrat-val${!c.val ? ' vide' : ''}">${c.val ? (c.label === 'Type de contrat' ? `<span class="badge-contrat">${c.val}</span>` : c.val) : '—'}</div>
     </div>`).join('');
 
   const { label } = getMois();
