@@ -142,6 +142,19 @@
     .total-ded { margin:10px 18px 18px; padding:12px 16px; background:var(--rouge-light); border-radius:8px; font-size:13px; font-weight:700; color:var(--rouge); display:flex; justify-content:space-between; }
     .vide-msg { padding:24px; text-align:center; color:var(--gris-doux); font-size:13px; }
 
+    /* Congés */
+    .conge-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--bordure); font-size:12px; }
+    .conge-row:last-child { border-bottom:none; }
+    .conge-type { font-weight:700; color:var(--gris-texte); min-width:170px; }
+    .conge-dates { color:var(--gris-doux); flex:1; }
+    .conge-jours { font-weight:700; min-width:50px; text-align:right; }
+    .pill-conge-en_attente  { background:#FEF3CD; color:#B7791F; }
+    .pill-conge-valide      { background:var(--vert-light); color:var(--vert); }
+    .pill-conge-refuse      { background:var(--rouge-light); color:var(--rouge); }
+    .pill-conge-pris        { background:var(--teal-light); color:var(--teal-dark); }
+    .conge-del { margin-left:8px; background:none; border:none; color:var(--gris-doux); cursor:pointer; font-size:14px; }
+    .conge-del:hover { color:var(--rouge); }
+
     /* Contrat & CCN */
     .contrat-section { background:#fff; border-radius:12px; border:1px solid var(--bordure); padding:18px 20px; margin-bottom:16px; }
     .contrat-titre { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); margin-bottom:12px; }
@@ -264,6 +277,7 @@
         <div class="onglet actif" onclick="switchOnglet('planning', this)">📅 Planning</div>
         <div class="onglet" onclick="switchOnglet('retards', this)">⏰ Retards</div>
         <div class="onglet" onclick="switchOnglet('absences', this)">📋 Absences</div>
+        <div class="onglet" onclick="switchOnglet('conges', this)">🌴 Congés</div>
       </div>
 
       <div class="onglet-contenu visible" id="ongletPlanning">
@@ -301,7 +315,86 @@
         </div>
       </div>
 
+      <!-- ══ ONGLET CONGÉS ══ -->
+      <div class="onglet-contenu" id="ongletConges">
+        <!-- KPI CP -->
+        <div class="kpi-grille" style="padding:16px 18px; border-bottom:1px solid var(--bordure);">
+          <div class="kpi-box">
+            <div class="kpi-val kpi-vert" id="kpiCpN">—</div>
+            <div class="kpi-label">CP N restants</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-val kpi-orange" id="kpiCpN1">—</div>
+            <div class="kpi-label">CP N-1 à solder</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-val kpi-teal" id="kpiCongesValides">—</div>
+            <div class="kpi-label">Jours validés</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-val kpi-rouge" id="kpiCongesAttente">—</div>
+            <div class="kpi-label">En attente</div>
+          </div>
+        </div>
+        <!-- Bouton + action -->
+        <div style="padding:12px 18px; border-bottom:1px solid var(--bordure); display:flex; justify-content:flex-end;">
+          <button class="btn-export" style="background:var(--vert);" onclick="ouvrirModalConge()">+ Nouvelle demande</button>
+        </div>
+        <div class="table-wrap" id="tableConges"><div class="vide-msg">Aucune demande de congé.</div></div>
+      </div>
+
     </div><!-- fin fiche-agent -->
+
+    <!-- ══ MODAL CONGÉ ══ -->
+    <div id="modalCongeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:none; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:16px; padding:28px; width:420px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+        <div style="font-size:17px; font-weight:800; margin-bottom:20px;">🌴 Nouvelle demande de congé</div>
+        <div style="display:grid; gap:14px;">
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Type de congé</label>
+            <select id="congeType" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+              <option value="CP_N">Congés payés N (année en cours)</option>
+              <option value="CP_N1">Congés payés N-1 (à solder)</option>
+              <option value="RTT">RTT</option>
+              <option value="sans_solde">Congé sans solde</option>
+              <option value="familial">Événement familial</option>
+              <option value="maladie_enfant">Maladie enfant</option>
+            </select>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Date début</label>
+              <input type="date" id="congeDebut" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Date fin</label>
+              <input type="date" id="congeFin" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Nb jours ouvrés</label>
+            <input type="number" id="congeNbJours" min="0.5" step="0.5" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" placeholder="Ex: 5" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Statut</label>
+            <select id="congeStatut" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+              <option value="en_attente">En attente de validation</option>
+              <option value="valide">Validé</option>
+              <option value="refuse">Refusé</option>
+              <option value="pris">Pris</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Note (optionnel)</label>
+            <textarea id="congeNote" rows="2" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;"></textarea>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+          <button onclick="fermerModalConge()" style="padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer;">Annuler</button>
+          <button onclick="enregistrerConge()" style="padding:9px 18px; background:var(--vert); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Enregistrer</button>
+        </div>
+      </div>
+    </div>
   </div><!-- fin col-fiche -->
 </div>
 
@@ -480,6 +573,7 @@ async function ouvrirFiche(agentId) {
   document.getElementById('moisLabelPlanning').textContent = labelCap2;
 
   await chargerHistorique(agent);
+  await chargerConges(agent);
 }
 
 const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -692,6 +786,101 @@ function majTotalAbsence() {
   let t = 0;
   document.querySelectorAll('.cb-absence:checked').forEach(cb => t += parseInt(cb.dataset.jours||0));
   document.getElementById('totalAbsenceVal').textContent = t + ' jour' + (t>1?'s':'');
+}
+
+// ══ CONGÉS ══
+const typeCongeLabels = {
+  CP_N:'🌴 CP N (en cours)', CP_N1:'🌴 CP N-1 (à solder)',
+  RTT:'⏱ RTT', sans_solde:'📋 Sans solde',
+  familial:'👨‍👩‍👧 Événement familial', maladie_enfant:'🤒 Maladie enfant'
+};
+const statutCongeLabels = { en_attente:'En attente', valide:'Validé ✓', refuse:'Refusé ✗', pris:'Pris ✓' };
+
+async function chargerConges(agent) {
+  const { data: conges, error } = await supabaseClient.from('conges')
+    .select('*').eq('agent_id', agent.id).order('date_debut', { ascending: false });
+  if (error) { console.error('Erreur congés:', error); return; }
+  afficherConges(conges || [], agent);
+}
+
+function afficherConges(conges, agent) {
+  // KPI
+  const valides = conges.filter(c => c.statut === 'valide' || c.statut === 'pris');
+  const attente = conges.filter(c => c.statut === 'en_attente');
+  const joursValides = valides.reduce((s, c) => s + parseFloat(c.nb_jours), 0);
+  const joursAttente = attente.reduce((s, c) => s + parseFloat(c.nb_jours), 0);
+  const cpN  = Math.max(0, (parseFloat(agent.solde_cp) || 0) - joursValides);
+  const cpN1 = conges.filter(c => c.type_conge === 'CP_N1').reduce((s,c) => s + parseFloat(c.nb_jours), 0);
+
+  document.getElementById('kpiCpN').textContent      = cpN.toFixed(1) + ' j';
+  document.getElementById('kpiCpN1').textContent     = cpN1 > 0 ? cpN1.toFixed(1) + ' j' : '—';
+  document.getElementById('kpiCongesValides').textContent = joursValides.toFixed(1) + ' j';
+  document.getElementById('kpiCongesAttente').textContent = joursAttente > 0 ? joursAttente.toFixed(1) + ' j' : '0';
+
+  // Liste
+  const el = document.getElementById('tableConges');
+  if (!conges.length) { el.innerHTML = '<div class="vide-msg">Aucune demande de congé enregistrée.</div>'; return; }
+
+  el.innerHTML = conges.map(c => `
+    <div class="conge-row">
+      <div class="conge-type">${typeCongeLabels[c.type_conge] || c.type_conge}</div>
+      <div class="conge-dates">Du ${fmtDate(c.date_debut)} au ${fmtDate(c.date_fin)}</div>
+      <div class="conge-jours">${c.nb_jours} j</div>
+      <span class="pill pill-conge-${c.statut}">${statutCongeLabels[c.statut] || c.statut}</span>
+      <button class="conge-del" onclick="supprimerConge('${c.id}')" title="Supprimer">🗑</button>
+    </div>
+    ${c.note ? `<div style="padding:0 12px 8px; font-size:11px; color:var(--gris-doux); font-style:italic;">💬 ${c.note}</div>` : ''}
+  `).join('');
+}
+
+function ouvrirModalConge() {
+  if (!_agentActif) return;
+  document.getElementById('congeType').value = 'CP_N';
+  document.getElementById('congeDebut').value = '';
+  document.getElementById('congeFin').value = '';
+  document.getElementById('congeNbJours').value = '';
+  document.getElementById('congeStatut').value = 'en_attente';
+  document.getElementById('congeNote').value = '';
+  document.getElementById('modalCongeOverlay').style.display = 'flex';
+}
+
+function fermerModalConge() {
+  document.getElementById('modalCongeOverlay').style.display = 'none';
+}
+
+async function enregistrerConge() {
+  const type     = document.getElementById('congeType').value;
+  const debut    = document.getElementById('congeDebut').value;
+  const fin      = document.getElementById('congeFin').value;
+  const nbJours  = parseFloat(document.getElementById('congeNbJours').value);
+  const statut   = document.getElementById('congeStatut').value;
+  const note     = document.getElementById('congeNote').value.trim();
+
+  if (!debut || !fin || !nbJours) { alert('Veuillez remplir les dates et le nombre de jours.'); return; }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { error } = await supabaseClient.from('conges').insert({
+    tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+    agent_id:  _agentActif.id,
+    type_conge: type,
+    date_debut: debut,
+    date_fin:   fin,
+    nb_jours:   nbJours,
+    statut:     statut,
+    note:       note || null,
+    valide_par: statut === 'valide' ? session.user.id : null,
+    valide_le:  statut === 'valide' ? new Date().toISOString() : null,
+  });
+
+  if (error) { alert('Erreur : ' + error.message); return; }
+  fermerModalConge();
+  await chargerConges(_agentActif);
+}
+
+async function supprimerConge(id) {
+  if (!confirm('Supprimer cette demande de congé ?')) return;
+  await supabaseClient.from('conges').delete().eq('id', id);
+  await chargerConges(_agentActif);
 }
 
 async function deconnexion() {
