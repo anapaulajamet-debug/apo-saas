@@ -463,10 +463,21 @@
             <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Notes</label>
             <textarea id="formNotes" rows="2" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Objectifs, compétences visées, résultats attendus…"></textarea>
           </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Document (attestation, certificat, diplôme…)</label>
+            <div id="formDocZone" onclick="document.getElementById('formDocFichier').click()"
+              style="margin-top:4px; border:2px dashed var(--bordure); border-radius:8px; padding:16px; text-align:center; cursor:pointer; transition:border-color 0.15s;"
+              onmouseenter="this.style.borderColor='var(--teal)'" onmouseleave="this.style.borderColor='var(--bordure)'">
+              <div style="font-size:22px; margin-bottom:4px;">📎</div>
+              <div id="formDocLabel" style="font-size:12px; color:var(--gris-doux);">Cliquez pour sélectionner un PDF</div>
+            </div>
+            <input type="file" id="formDocFichier" accept=".pdf,.jpg,.jpeg,.png" style="display:none;"
+              onchange="formDocSelectionne(this)" />
+          </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
           <button onclick="fermerModalFormation()" style="padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer;">Annuler</button>
-          <button onclick="enregistrerFormation()" style="padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Enregistrer</button>
+          <button id="btnEnregistrerFormation" onclick="enregistrerFormation()" style="padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Enregistrer</button>
         </div>
       </div>
     </div>
@@ -1366,6 +1377,7 @@ function afficherFormations(liste) {
           </div>
           ${periode ? `<div style="font-size:11px; color:var(--gris-doux); margin-top:4px;">📅 ${periode} · ⏱ ${duree}</div>` : ''}
           ${f.notes ? `<div style="font-size:12px; color:var(--gris-texte); margin-top:6px; font-style:italic;">${f.notes}</div>` : ''}
+          ${f.document_url ? `<a href="${f.document_url}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-size:12px; font-weight:700; color:var(--teal); text-decoration:none; background:var(--teal-light); padding:4px 10px; border-radius:6px;">📎 ${f.document_nom || 'Voir le document'}</a>` : ''}
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; margin-left:12px;">
           <span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:7px; background:${st.bg}; color:${st.color}; white-space:nowrap;">${st.label}</span>
@@ -1376,6 +1388,13 @@ function afficherFormations(liste) {
   }).join('');
 }
 
+function formDocSelectionne(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('formDocLabel').innerHTML =
+    `<span style="color:var(--teal); font-weight:700;">📄 ${file.name}</span><br><span style="font-size:10px; color:var(--gris-doux);">${(file.size/1024).toFixed(0)} Ko — Cliquer pour changer</span>`;
+}
+
 function ouvrirModalFormation() {
   if (!_agentActif) return;
   ['formTitre','formOrganisme','formNotes'].forEach(id => document.getElementById(id).value = '');
@@ -1384,6 +1403,8 @@ function ouvrirModalFormation() {
   document.getElementById('formFin').value = '';
   document.getElementById('formHeures').value = '';
   document.getElementById('formLienQualite').checked = false;
+  document.getElementById('formDocFichier').value = '';
+  document.getElementById('formDocLabel').innerHTML = 'Cliquez pour sélectionner un PDF';
   document.getElementById('modalFormationOverlay').style.display = 'flex';
 }
 
@@ -1394,6 +1415,27 @@ function fermerModalFormation() {
 async function enregistrerFormation() {
   const titre = document.getElementById('formTitre').value.trim();
   if (!titre) { alert('Veuillez indiquer l\'intitulé de la formation.'); return; }
+
+  const btn = document.getElementById('btnEnregistrerFormation');
+  btn.disabled = true;
+  btn.textContent = 'Enregistrement…';
+
+  let document_url = null, document_nom = null;
+  const fichier = document.getElementById('formDocFichier').files[0];
+  if (fichier) {
+    const ext = fichier.name.split('.').pop();
+    const chemin = `${_agentActif.id}/${Date.now()}.${ext}`;
+    const { data: uploadData, error: uploadErr } = await supabaseClient.storage
+      .from('formations-docs').upload(chemin, fichier, { upsert: true });
+    if (uploadErr) {
+      alert('Erreur upload document : ' + uploadErr.message);
+      btn.disabled = false; btn.textContent = 'Enregistrer'; return;
+    }
+    const { data: urlData } = supabaseClient.storage.from('formations-docs').getPublicUrl(chemin);
+    document_url = urlData.publicUrl;
+    document_nom = fichier.name;
+  }
+
   const heures = document.getElementById('formHeures').value;
   const { error } = await supabaseClient.from('formations').insert({
     tenant_id:      'aaaaaaaa-0000-0000-0000-000000000001',
@@ -1408,7 +1450,11 @@ async function enregistrerFormation() {
     statut:         document.getElementById('formStatut').value,
     lien_qualite:   document.getElementById('formLienQualite').checked,
     notes:          document.getElementById('formNotes').value.trim() || null,
+    document_url,
+    document_nom,
   });
+
+  btn.disabled = false; btn.textContent = 'Enregistrer';
   if (error) { alert('Erreur : ' + error.message); return; }
   fermerModalFormation();
   await chargerFormations(_agentActif);
