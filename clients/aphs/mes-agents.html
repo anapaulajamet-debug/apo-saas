@@ -1002,6 +1002,16 @@ function cqRendreZones() {
 
   container.innerHTML = _cqZones.map((z, zi) => {
     const cfg = ZONES_CONFIG[z.type];
+    // Calcul note de cette zone
+    let noteZone = null;
+    if (cfg) {
+      let num = 0, den = 0;
+      cfg.items.forEach(it => { const sc = z.items[it.id]; if (sc != null) { num += sc * it.coeff; den += it.coeff; } });
+      if (den > 0) noteZone = Math.round(num / den);
+    }
+    const noteZoneHtml = noteZone != null
+      ? `<span style="font-size:13px; font-weight:900; color:${noteZone>=90?'var(--vert)':noteZone>=80?'var(--orange)':'var(--rouge)'};">${noteZone}/100</span>`
+      : '';
     const optionsType = Object.entries(ZONES_CONFIG).map(([k,v]) =>
       `<option value="${k}"${z.type===k?' selected':''}>${v.label}</option>`).join('');
     const itemsHtml = cfg ? cfg.items.map(item => {
@@ -1025,6 +1035,7 @@ function cqRendreZones() {
           style="flex:1; padding:6px 8px; border:1.5px solid var(--bordure); border-radius:7px; font-size:13px; font-weight:700;">
           ${optionsType}
         </select>
+        ${noteZoneHtml}
         <button onclick="cqSupprimerZone(${zi})" style="padding:5px 10px; background:var(--rouge-light); color:var(--rouge); border:none; border-radius:6px; cursor:pointer; font-size:13px;">✕</button>
       </div>
       ${itemsHtml}
@@ -1058,7 +1069,7 @@ function cqChangerTypeZone(i, type) {
 
 function cqSetScore(zi, itemId, val) {
   _cqZones[zi].items[itemId] = val === '' ? null : parseInt(val);
-  cqMajNoteGlobale();
+  cqRendreZones();
 }
 
 function cqSetObs(zi, val) {
