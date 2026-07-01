@@ -309,9 +309,8 @@ async function changerMois(delta) {
 
 async function chargerListe(session) {
   const { data: agents, error: errAgents } = await supabaseClient.from('agents')
-    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, site_principal_id, sites(nom, adresse)')
-    .eq('agent_maitrise_id', session.user.id)
-    .order('nom');
+    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, site_principal_id')
+    .eq('agent_maitrise_id', session.user.id);
 
   if (errAgents) console.error('Erreur chargement agents:', errAgents);
   console.log('session.user.id =', session.user.id, '| agents =', agents);
