@@ -309,7 +309,7 @@ async function changerMois(delta) {
 
 async function chargerListe(session) {
   const { data: agents } = await supabaseClient.from('agents')
-    .select('id, nom, prenom, email, telephone, date_naissance, date_entree, type_contrat, volume_horaire, taux_horaire, coefficient, photo_url, site_principal_id, sites(nom, adresse)')
+    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, site_principal_id, sites(nom, adresse)')
     .eq('agent_maitrise_id', session.user.id)
     .order('nom');
 
@@ -387,12 +387,7 @@ async function ouvrirFiche(agentId) {
   document.getElementById('ficheNom').textContent = agent.prenom + ' ' + agent.nom;
   document.getElementById('ficheSousTitre').textContent = agent.sites?.nom || '—';
 
-  // Tags
-  const tags = [];
-  if (agent.type_contrat) tags.push(agent.type_contrat);
-  if (agent.volume_horaire) tags.push(agent.volume_horaire + 'h/sem');
-  if (agent.coefficient) tags.push('Coeff. ' + agent.coefficient);
-  document.getElementById('ficheTags').innerHTML = tags.map(t => `<span class="fiche-tag">${t}</span>`).join('');
+  document.getElementById('ficheTags').innerHTML = '';
 
   // Infos
   const age = agent.date_naissance
@@ -402,11 +397,8 @@ async function ouvrirFiche(agentId) {
     { label:'Date de naissance', val: agent.date_naissance ? fmtDate(agent.date_naissance) + (age ? ' · ' + age : '') : null },
     { label:'Téléphone',         val: agent.telephone },
     { label:'Email',             val: agent.email },
-    { label:'Date d\'entrée',    val: agent.date_entree ? fmtDate(agent.date_entree) : null },
     { label:'Site principal',    val: agent.sites?.nom },
     { label:'Adresse du site',   val: agent.sites?.adresse, full: true },
-    { label:'Taux horaire',      val: agent.taux_horaire ? agent.taux_horaire + ' €/h' : null },
-    { label:'Volume horaire',    val: agent.volume_horaire ? agent.volume_horaire + ' h/semaine' : null },
   ];
 
   document.getElementById('ficheInfos').innerHTML = infos.map(info => `
