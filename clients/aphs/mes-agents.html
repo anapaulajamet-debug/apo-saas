@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APHS — Mes agents</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:#2A8FA8; --teal-dark:#1A6B80; --teal-light:#E6F4F7;
+      --rouge:#C0392B; --rouge-light:#FDECEA;
+      --orange:#E67E22; --orange-light:#FEF3CD;
+      --vert:#1E8449; --vert-light:#E8F5E9;
+      --gris-texte:#374151; --gris-doux:#6B7280;
+      --gris-fond:#F3F6F8; --blanc:#FFFFFF; --bordure:#DDE3E8;
+    }
+    body { font-family:Arial,sans-serif; background:var(--gris-fond); color:var(--gris-texte); min-height:100vh; display:flex; }
+
+    /* SIDEBAR */
+    .sidebar { width:220px; min-height:100vh; background:var(--teal-dark); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; }
+    .sidebar-logo { padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,0.12); }
+    .logo-fallback { font-size:22px; font-weight:900; color:#fff; letter-spacing:1px; }
+    .logo-sub { font-size:9px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+    .sidebar-logo img { max-width:100%; max-height:48px; object-fit:contain; }
+    .sidebar-profil { display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.1); }
+    .profil-avatar { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.2); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; overflow:hidden; flex-shrink:0; }
+    .profil-nom { font-size:13px; font-weight:700; color:#fff; }
+    .profil-role { font-size:10px; color:rgba(255,255,255,0.6); }
+    .sidebar-nav { flex:1; padding:10px 0; overflow-y:auto; }
+    .nav-section { font-size:9px; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px; padding:14px 16px 4px; }
+    .nav-item { display:flex; align-items:center; gap:8px; padding:8px 16px; color:rgba(255,255,255,0.75); font-size:12px; text-decoration:none; border-radius:0; transition:background 0.15s; }
+    .nav-item:hover, .nav-item.actif { background:rgba(255,255,255,0.12); color:#fff; }
+    .nav-badge { font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:auto; }
+    .nav-badge.orange { background:#E67E22; color:#fff; }
+    .sidebar-footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,0.1); }
+    .btn-deconnexion { width:100%; padding:9px; background:rgba(255,255,255,0.1); color:#fff; border:none; border-radius:8px; font-size:12px; cursor:pointer; }
+    .btn-deconnexion:hover { background:rgba(255,255,255,0.2); }
+
+    /* MAIN */
+    .main { margin-left:220px; flex:1; padding:28px 32px; }
+    .page-titre { font-size:22px; font-weight:800; color:var(--gris-texte); margin-bottom:6px; }
+    .page-sous-titre { font-size:13px; color:var(--gris-doux); margin-bottom:24px; }
+
+    /* MOIS SELECTOR */
+    .mois-bar { display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+    .mois-btn { padding:7px 14px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer; color:var(--gris-texte); }
+    .mois-label { font-size:14px; font-weight:700; color:var(--teal-dark); min-width:120px; text-align:center; }
+
+    /* GRILLE AGENTS */
+    .agents-grille { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:14px; margin-bottom:32px; }
+    .agent-card { background:#fff; border-radius:12px; border:2px solid var(--bordure); padding:16px; cursor:pointer; transition:border-color 0.15s, box-shadow 0.15s; text-align:center; }
+    .agent-card:hover { border-color:var(--teal); box-shadow:0 4px 16px rgba(42,143,168,0.12); }
+    .agent-card.actif { border-color:var(--teal); background:var(--teal-light); }
+    .agent-card-avatar { width:52px; height:52px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; margin:0 auto 10px; overflow:hidden; }
+    .agent-card-nom { font-size:13px; font-weight:700; }
+    .agent-card-site { font-size:11px; color:var(--gris-doux); margin-top:2px; }
+    .agent-card-badges { display:flex; gap:6px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
+    .badge-mini { font-size:10px; font-weight:700; padding:2px 7px; border-radius:8px; }
+    .badge-retard { background:var(--orange-light); color:var(--orange); }
+    .badge-absence { background:var(--rouge-light); color:var(--rouge); }
+    .badge-ok { background:var(--vert-light); color:var(--vert); }
+
+    /* FICHE AGENT */
+    .fiche-agent { background:#fff; border-radius:14px; border:1px solid var(--bordure); padding:24px; display:none; }
+    .fiche-agent.visible { display:block; }
+    .fiche-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--bordure); }
+    .fiche-avatar { width:60px; height:60px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; overflow:hidden; flex-shrink:0; }
+    .fiche-nom { font-size:18px; font-weight:800; }
+    .fiche-site { font-size:13px; color:var(--gris-doux); margin-top:2px; }
+    .fiche-mois { font-size:12px; color:var(--teal); font-weight:600; margin-top:4px; }
+
+    /* KPI FICHE */
+    .fiche-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+    .fiche-kpi { background:var(--gris-fond); border-radius:10px; padding:14px 16px; text-align:center; }
+    .fiche-kpi-val { font-size:26px; font-weight:900; line-height:1; }
+    .fiche-kpi-label { font-size:11px; color:var(--gris-doux); margin-top:4px; }
+    .kpi-rouge { color:var(--rouge); }
+    .kpi-orange { color:var(--orange); }
+    .kpi-vert { color:var(--vert); }
+    .kpi-teal { color:var(--teal); }
+
+    /* SECTIONS FICHE */
+    .fiche-section-titre { font-size:13px; font-weight:700; margin-bottom:10px; margin-top:20px; display:flex; align-items:center; gap:8px; }
+    .table-historique { width:100%; border-collapse:collapse; font-size:12px; }
+    .table-historique th { text-align:left; padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); border-bottom:2px solid var(--bordure); background:var(--gris-fond); }
+    .table-historique td { padding:10px; border-bottom:1px solid var(--bordure); vertical-align:middle; }
+    .table-historique tr:last-child td { border-bottom:none; }
+    .table-historique tr:hover td { background:#FAFBFC; }
+    .ecart-rouge { color:var(--rouge); font-weight:700; }
+    .ecart-orange { color:var(--orange); font-weight:700; }
+    .pill { padding:2px 8px; border-radius:8px; font-size:10px; font-weight:700; }
+    .pill-orange { background:var(--orange-light); color:var(--orange); }
+    .pill-rouge  { background:var(--rouge-light);  color:var(--rouge); }
+    .pill-vert   { background:var(--vert-light);   color:var(--vert); }
+    .pill-gris   { background:#F3F4F6; color:var(--gris-doux); }
+
+    /* CHECKBOX déduction */
+    .cb-deduction { width:15px; height:15px; cursor:pointer; accent-color:var(--rouge); }
+    .total-deduction { margin-top:14px; padding:12px 16px; background:var(--rouge-light); border-radius:8px; font-size:13px; font-weight:700; color:var(--rouge); display:flex; justify-content:space-between; align-items:center; }
+
+    /* EXPORT */
+    .btn-export { padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+    .btn-export:hover { background:var(--teal-dark); }
+
+    .vide-msg { padding:24px; text-align:center; color:var(--gris-doux); font-size:13px; }
+
+    @media print {
+      .sidebar, .mois-bar, .agents-grille, .btn-export, .cb-deduction { display:none !important; }
+      .main { margin-left:0; }
+      .fiche-agent { border:none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/logo.png" alt="APHS" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='block';" />
+      <div id="logoFallback" style="display:none;">
+        <div class="logo-fallback">APHS</div>
+        <div class="logo-sub">Azur Propreté Hygiène &amp; Services</div>
+      </div>
+    </div>
+    <div class="sidebar-profil">
+      <div class="profil-avatar" id="profilAvatar">AM</div>
+      <div>
+        <div class="profil-nom" id="profilNom">—</div>
+        <div class="profil-role">Agent de maîtrise</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a class="nav-item" href="/dashboard-am">🏠 &nbsp;Tableau de bord</a>
+      <a class="nav-item" href="#">👥 &nbsp;Mes clients</a>
+      <a class="nav-item actif" href="/mes-agents">👷 &nbsp;Mes agents</a>
+      <div class="nav-section">Planification</div>
+      <a class="nav-item" href="#">📅 &nbsp;Planning</a>
+      <a class="nav-item" href="#">⏱ &nbsp;Pointages</a>
+      <div class="nav-section">Exploitation</div>
+      <a class="nav-item" href="#">✅ &nbsp;Qualité</a>
+      <a class="nav-item" href="#">📦 &nbsp;Commandes</a>
+      <a class="nav-item" href="/documents">📄 &nbsp;Documents</a>
+      <div class="nav-section">Finance</div>
+      <a class="nav-item" href="#">📊 &nbsp;Marges</a>
+      <a class="nav-item" href="#">💶 &nbsp;Saisie paie</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-deconnexion" onclick="deconnexion()">Se déconnecter</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-titre">👷 Mes agents</div>
+    <div class="page-sous-titre" id="sousTitre">Chargement…</div>
+
+    <!-- Sélecteur de mois -->
+    <div class="mois-bar">
+      <button class="mois-btn" onclick="changerMois(-1)">◀</button>
+      <div class="mois-label" id="moisLabel">—</div>
+      <button class="mois-btn" onclick="changerMois(+1)">▶</button>
+      <button class="btn-export" onclick="exporterFiche()" id="btnExport" style="display:none;">⬇ Exporter la fiche</button>
+    </div>
+
+    <!-- Grille des agents -->
+    <div class="agents-grille" id="agentsGrille">
+      <div style="grid-column:1/-1; padding:20px; text-align:center; color:var(--gris-doux);">Chargement des agents…</div>
+    </div>
+
+    <!-- Fiche détail agent -->
+    <div class="fiche-agent" id="ficheAgent">
+      <div class="fiche-header">
+        <div class="fiche-avatar" id="ficheAvatar">—</div>
+        <div>
+          <div class="fiche-nom" id="ficheNom">—</div>
+          <div class="fiche-site" id="ficheSite">—</div>
+          <div class="fiche-mois" id="ficheMois">—</div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="fiche-kpis">
+        <div class="fiche-kpi">
+          <div class="fiche-kpi-val kpi-orange" id="kpiRetards">—</div>
+          <div class="fiche-kpi-label">Retards</div>
+        </div>
+        <div class="fiche-kpi">
+          <div class="fiche-kpi-val kpi-rouge" id="kpiHeurePerdues">—</div>
+          <div class="fiche-kpi-label">Min perdues</div>
+        </div>
+        <div class="fiche-kpi">
+          <div class="fiche-kpi-val kpi-rouge" id="kpiAbsences">—</div>
+          <div class="fiche-kpi-label">Absences</div>
+        </div>
+        <div class="fiche-kpi">
+          <div class="fiche-kpi-val kpi-teal" id="kpiJoursAbs">—</div>
+          <div class="fiche-kpi-label">Jours absents</div>
+        </div>
+      </div>
+
+      <!-- Historique retards -->
+      <div class="fiche-section-titre">⏰ Historique des retards du mois</div>
+      <div id="tableRetards">
+        <div class="vide-msg">Chargement…</div>
+      </div>
+      <div class="total-deduction" id="totalDeductionRetard" style="display:none;">
+        <span>Total retards à déduire :</span>
+        <span id="totalMinRetard">0 min</span>
+      </div>
+
+      <!-- Historique absences -->
+      <div class="fiche-section-titre" style="margin-top:28px;">📋 Historique des absences du mois</div>
+      <div id="tableAbsences">
+        <div class="vide-msg">Chargement…</div>
+      </div>
+      <div class="total-deduction" id="totalDeductionAbsence" style="display:none; margin-top:10px; background:#FFF3E0;">
+        <span style="color:var(--orange);">Total jours absences à déduire :</span>
+        <span id="totalJoursAbsence" style="color:var(--orange);">0 jour</span>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const supabaseClient = supabase.createClient(
+      'https://zqehxwggzyepiftjrkxq.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc'
+    );
+
+    const typeAbsLabels = {
+      conge_paye:'🌴 Congé payé', conge_sans_solde:'📋 Congé sans solde',
+      arret_maladie:'🤒 Arrêt maladie', accident_travail:'🚑 Accident travail',
+      maternite:'👶 Maternité', formation:'🎓 Formation', autre:'📌 Autre'
+    };
+
+    let _agents = [];
+    let _agentActif = null;
+    let _moisOffset = 0; // 0 = mois courant, -1 = mois précédent, etc.
+
+    function getMoisDates() {
+      const now = new Date();
+      const d = new Date(now.getFullYear(), now.getMonth() + _moisOffset, 1);
+      const debut = new Date(d.getFullYear(), d.getMonth(), 1);
+      const fin   = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      return {
+        debut: debut.toISOString().split('T')[0],
+        fin:   fin.toISOString().split('T')[0],
+        label: debut.toLocaleDateString('fr-FR', { month:'long', year:'numeric' })
+      };
+    }
+
+    function changerMois(delta) {
+      _moisOffset += delta;
+      const { label } = getMoisDates();
+      document.getElementById('moisLabel').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+      afficherGrille();
+      if (_agentActif) ouvrirFiche(_agentActif);
+    }
+
+    function fmt(ts) {
+      if (!ts) return '—';
+      const d = new Date(ts);
+      return d.getHours().toString().padStart(2,'0') + 'h' + d.getMinutes().toString().padStart(2,'0');
+    }
+
+    function fmtDate(s) {
+      return new Date(s + 'T00:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+    }
+
+    async function afficherGrille() {
+      const { debut, fin } = getMoisDates();
+      const grille = document.getElementById('agentsGrille');
+
+      // Charger les retards et absences du mois pour chaque agent
+      const agentIds = _agents.map(a => a.id);
+      if (!agentIds.length) { grille.innerHTML = '<div class="vide-msg">Aucun agent dans votre secteur.</div>'; return; }
+
+      const [{ data: pointages }, { data: absences }] = await Promise.all([
+        supabaseClient.from('pointage').select('agent_id, heure_entree, heure_sortie, date').in('agent_id', agentIds).gte('date', debut).lte('date', fin),
+        supabaseClient.from('absences').select('agent_id, date_debut, date_fin, statut').in('agent_id', agentIds).gte('date_debut', debut).lte('date_debut', fin)
+      ]);
+
+      const [{ data: plannings }] = await Promise.all([
+        supabaseClient.from('planning').select('agent_id, date, heure_debut').in('agent_id', agentIds).gte('date', debut).lte('date', fin)
+      ]);
+
+      grille.innerHTML = _agents.map(agent => {
+        const initiales = ((agent.prenom?.[0]||'') + (agent.nom?.[0]||'')).toUpperCase();
+        const siteNom = agent.sites?.nom || '—';
+
+        // Compter retards
+        const ptgsAgent = (pointages||[]).filter(p => p.agent_id === agent.id);
+        const plansAgent = (plannings||[]).filter(p => p.agent_id === agent.id);
+        let nbRetards = 0;
+        ptgsAgent.forEach(ptg => {
+          const plan = plansAgent.find(p => p.date === ptg.date);
+          if (!plan) return;
+          const debutMin = parseInt(plan.heure_debut.split(':')[0])*60 + parseInt(plan.heure_debut.split(':')[1]);
+          const entreeMin = new Date(ptg.heure_entree).getHours()*60 + new Date(ptg.heure_entree).getMinutes();
+          if (entreeMin > debutMin + 5) nbRetards++;
+        });
+
+        const nbAbs = (absences||[]).filter(a => a.agent_id === agent.id).length;
+        const actif = _agentActif?.id === agent.id;
+
+        let badgesHtml = '';
+        if (nbRetards === 0 && nbAbs === 0) badgesHtml = '<span class="badge-mini badge-ok">✅ RAS</span>';
+        if (nbRetards > 0) badgesHtml += `<span class="badge-mini badge-retard">⏰ ${nbRetards} retard${nbRetards>1?'s':''}</span>`;
+        if (nbAbs > 0)     badgesHtml += `<span class="badge-mini badge-absence">📋 ${nbAbs} absence${nbAbs>1?'s':''}</span>`;
+
+        return `<div class="agent-card${actif?' actif':''}" onclick="ouvrirFiche({id:'${agent.id}',prenom:'${agent.prenom}',nom:'${agent.nom}',sites:{nom:'${siteNom}'}})">
+          <div class="agent-card-avatar">${initiales}</div>
+          <div class="agent-card-nom">${agent.prenom} ${agent.nom}</div>
+          <div class="agent-card-site">${siteNom}</div>
+          <div class="agent-card-badges">${badgesHtml}</div>
+        </div>`;
+      }).join('');
+    }
+
+    async function ouvrirFiche(agent) {
+      _agentActif = agent;
+      document.getElementById('ficheAgent').classList.add('visible');
+      document.getElementById('btnExport').style.display = 'inline-block';
+
+      const initiales = ((agent.prenom?.[0]||'') + (agent.nom?.[0]||'')).toUpperCase();
+      document.getElementById('ficheAvatar').textContent = initiales;
+      document.getElementById('ficheNom').textContent = agent.prenom + ' ' + agent.nom;
+      document.getElementById('ficheSite').textContent = agent.sites?.nom || '—';
+
+      const { debut, fin, label } = getMoisDates();
+      document.getElementById('ficheMois').textContent = 'Mois de ' + label;
+
+      document.getElementById('tableRetards').innerHTML  = '<div class="vide-msg">Chargement…</div>';
+      document.getElementById('tableAbsences').innerHTML = '<div class="vide-msg">Chargement…</div>';
+
+      const [{ data: pointages }, { data: absences }, { data: plannings }] = await Promise.all([
+        supabaseClient.from('pointage').select('*').eq('agent_id', agent.id).gte('date', debut).lte('date', fin).order('date'),
+        supabaseClient.from('absences').select('*').eq('agent_id', agent.id).gte('date_debut', debut).lte('date_debut', fin).order('date_debut'),
+        supabaseClient.from('planning').select('*').eq('agent_id', agent.id).gte('date', debut).lte('date', fin).order('date')
+      ]);
+
+      // ── Retards ──
+      const retards = [];
+      let totalMinPerdues = 0;
+      (pointages||[]).forEach(ptg => {
+        const plan = (plannings||[]).find(p => p.date === ptg.date);
+        if (!plan || !ptg.heure_entree) return;
+        const debutMin  = parseInt(plan.heure_debut.split(':')[0])*60 + parseInt(plan.heure_debut.split(':')[1]);
+        const finMin    = parseInt(plan.heure_fin.split(':')[0])*60   + parseInt(plan.heure_fin.split(':')[1]);
+        const entreeMin = new Date(ptg.heure_entree).getHours()*60 + new Date(ptg.heure_entree).getMinutes();
+        const retardMin = entreeMin - debutMin;
+        if (retardMin <= 5) return;
+
+        let dureeManquante = retardMin;
+        if (ptg.heure_sortie) {
+          const sortieMin = new Date(ptg.heure_sortie).getHours()*60 + new Date(ptg.heure_sortie).getMinutes();
+          const dureeContrat = finMin - debutMin;
+          const dureeReelle  = sortieMin - entreeMin;
+          dureeManquante = Math.max(0, dureeContrat - dureeReelle);
+        }
+        totalMinPerdues += dureeManquante;
+        retards.push({ ptg, plan, retardMin, dureeManquante });
+      });
+
+      document.getElementById('kpiRetards').textContent     = retards.length;
+      document.getElementById('kpiHeurePerdues').textContent = totalMinPerdues;
+
+      if (!retards.length) {
+        document.getElementById('tableRetards').innerHTML = '<div class="vide-msg">✅ Aucun retard ce mois-ci.</div>';
+        document.getElementById('totalDeductionRetard').style.display = 'none';
+      } else {
+        document.getElementById('totalDeductionRetard').style.display = 'flex';
+        document.getElementById('tableRetards').innerHTML = `
+          <table class="table-historique">
+            <thead><tr>
+              <th>Date</th><th>Arrivée prévue</th><th>Arrivée réelle</th><th>Retard</th><th>Min manquantes</th><th>À déduire</th>
+            </tr></thead>
+            <tbody>
+              ${retards.map((r,i) => `<tr>
+                <td>${fmtDate(r.plan.date)}</td>
+                <td>${r.plan.heure_debut.slice(0,5)}</td>
+                <td>${fmt(r.ptg.heure_entree)}</td>
+                <td class="ecart-orange">+${r.retardMin} min</td>
+                <td class="ecart-rouge">${r.dureeManquante > 0 ? '-'+r.dureeManquante+' min' : '—'}</td>
+                <td><input type="checkbox" class="cb-deduction cb-retard" data-min="${r.dureeManquante}" onchange="majTotalRetard()"></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`;
+        majTotalRetard();
+      }
+
+      // ── Absences ──
+      const nbAbs = (absences||[]).length;
+      let totalJoursAbs = 0;
+      (absences||[]).forEach(a => {
+        const d1 = new Date(a.date_debut+'T00:00:00'), d2 = new Date(a.date_fin+'T00:00:00');
+        totalJoursAbs += Math.round((d2-d1)/86400000)+1;
+      });
+
+      document.getElementById('kpiAbsences').textContent  = nbAbs;
+      document.getElementById('kpiJoursAbs').textContent  = totalJoursAbs;
+
+      if (!nbAbs) {
+        document.getElementById('tableAbsences').innerHTML = '<div class="vide-msg">✅ Aucune absence ce mois-ci.</div>';
+        document.getElementById('totalDeductionAbsence').style.display = 'none';
+      } else {
+        document.getElementById('totalDeductionAbsence').style.display = 'flex';
+        document.getElementById('tableAbsences').innerHTML = `
+          <table class="table-historique">
+            <thead><tr>
+              <th>Type</th><th>Du</th><th>Au</th><th>Durée</th><th>Statut</th><th>À déduire</th>
+            </tr></thead>
+            <tbody>
+              ${(absences||[]).map(a => {
+                const d1 = new Date(a.date_debut+'T00:00:00'), d2 = new Date(a.date_fin+'T00:00:00');
+                const jours = Math.round((d2-d1)/86400000)+1;
+                const statutClass = a.statut==='valide' ? 'pill-vert' : a.statut==='en_attente' ? 'pill-gris' : 'pill-rouge';
+                const statutLabel = a.statut==='valide' ? 'Validé' : a.statut==='en_attente' ? 'En attente' : 'Refusé';
+                return `<tr>
+                  <td>${typeAbsLabels[a.type_absence]||a.type_absence}</td>
+                  <td>${fmtDate(a.date_debut)}</td>
+                  <td>${fmtDate(a.date_fin)}</td>
+                  <td>${jours} jour${jours>1?'s':''}</td>
+                  <td><span class="pill ${statutClass}">${statutLabel}</span></td>
+                  <td><input type="checkbox" class="cb-deduction cb-absence" data-jours="${jours}" onchange="majTotalAbsence()"></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>`;
+        majTotalAbsence();
+      }
+
+      // Scroll vers la fiche
+      document.getElementById('ficheAgent').scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+
+    function majTotalRetard() {
+      let total = 0;
+      document.querySelectorAll('.cb-retard:checked').forEach(cb => total += parseInt(cb.dataset.min||0));
+      document.getElementById('totalMinRetard').textContent = total + ' min';
+    }
+
+    function majTotalAbsence() {
+      let total = 0;
+      document.querySelectorAll('.cb-absence:checked').forEach(cb => total += parseInt(cb.dataset.jours||0));
+      document.getElementById('totalJoursAbsence').textContent = total + ' jour' + (total>1?'s':'');
+    }
+
+    function exporterFiche() {
+      if (!_agentActif) return;
+      window.print();
+    }
+
+    async function deconnexion() {
+      await supabaseClient.auth.signOut();
+      window.location.href = '/';
+    }
+
+    // ── INIT ──
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+
+      const { data: profil } = await supabaseClient.from('users')
+        .select('prenom, nom, photo_url').eq('id', session.user.id).single();
+
+      const prenom = profil?.prenom || '';
+      const nom    = profil?.nom    || '';
+      const initiales = ((prenom[0]||'') + (nom[0]||'')).toUpperCase();
+      document.getElementById('profilNom').textContent = prenom + ' ' + nom;
+      const avatarEl = document.getElementById('profilAvatar');
+      if (profil?.photo_url) {
+        avatarEl.innerHTML = `<img src="${profil.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+      } else {
+        avatarEl.textContent = initiales || 'AM';
+      }
+
+      const { data: agents } = await supabaseClient.from('agents')
+        .select('id, nom, prenom, sites(nom)')
+        .eq('agent_maitrise_id', session.user.id)
+        .order('nom');
+
+      _agents = agents || [];
+      document.getElementById('sousTitre').textContent = _agents.length + ' agent' + (_agents.length>1?'s':'') + ' dans votre secteur';
+
+      const { label } = getMoisDates();
+      document.getElementById('moisLabel').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+
+      await afficherGrille();
+    })();
+  </script>
+</body>
+</html>
