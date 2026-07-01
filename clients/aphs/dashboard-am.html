@@ -1072,6 +1072,15 @@
         Aucun agent attendu aujourd'hui dans votre secteur.
       </div>
 
+      <!-- ══ ALERTE FORMATION URGENTE QUALITÉ ══ -->
+      <div id="blocFormationUrgente" style="display:none; margin-top:14px; border:2px solid var(--rouge); border-radius:12px; overflow:hidden;">
+        <div style="background:var(--rouge-light); padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:13px; font-weight:800; color:var(--rouge);">⚡ Formation urgente recommandée — Récidive qualité détectée</span>
+          <a href="/mes-agents" style="font-size:11px; font-weight:700; color:var(--rouge); text-decoration:underline;">Voir les fiches agents →</a>
+        </div>
+        <div id="listeFormationUrgente" style="padding:10px 14px; display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
       <!-- ══ 2. MON PLANNING ══ -->
       <div style="margin-top:28px; display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
         <div>
@@ -1570,6 +1579,7 @@
       // Chargement agents + pointages du jour depuis Supabase
       await chargerPointages(session.user.id);
       await chargerAbsences(session.user.id);
+      await chargerAlertesFormation(session.user.id);
     })();
 
     // ══ PLANNING : date du jour + vue semaine ══
@@ -1704,6 +1714,64 @@
       conge_paye:'🌴', conge_sans_solde:'📋', arret_maladie:'🤒',
       accident_travail:'🚑', maternite:'👶', formation:'🎓', autre:'📌'
     };
+
+    const ZONES_LABELS = {
+      sanitaires:'🚻 Sanitaires', bureau:'🖥️ Bureau', cafeteria:'☕ Cafétaria',
+      couloirs:'🚶 Couloirs', escaliers:'🪜 Escaliers', accueil:'🏛️ Accueil', vestiaire:'👕 Vestiaire'
+    };
+
+    async function chargerAlertesFormation(amId) {
+      // Récupérer tous les agents de l'AM
+      const { data: agents } = await supabaseClient.from('agents')
+        .select('id, nom, prenom').eq('agent_maitrise_id', amId);
+      if (!agents || !agents.length) return;
+
+      const agentIds = agents.map(a => a.id);
+      const { data: controles } = await supabaseClient.from('controles_qualite')
+        .select('agent_id, zones_detail').in('agent_id', agentIds);
+      if (!controles || !controles.length) return;
+
+      // Pour chaque agent : compter les zones <80 par type
+      const alertesParAgent = {};
+      controles.forEach(c => {
+        if (!Array.isArray(c.zones_detail)) return;
+        c.zones_detail.forEach(z => {
+          // Recalcul note zone côté dashboard (simplifié : moyenne des scores fournis)
+          if (!z.items) return;
+          const vals = Object.values(z.items).filter(v => v != null);
+          if (!vals.length) return;
+          const moy = Math.round(vals.reduce((a,b) => a+b,0) / vals.length);
+          if (moy < 80) {
+            if (!alertesParAgent[c.agent_id]) alertesParAgent[c.agent_id] = {};
+            alertesParAgent[c.agent_id][z.type] = (alertesParAgent[c.agent_id][z.type] || 0) + 1;
+          }
+        });
+      });
+
+      // Garder seulement les zones en récidive (≥2 fois)
+      const lignes = [];
+      Object.entries(alertesParAgent).forEach(([agentId, zones]) => {
+        const agent = agents.find(a => a.id === agentId);
+        if (!agent) return;
+        Object.entries(zones).forEach(([type, count]) => {
+          if (count >= 2) {
+            lignes.push({ agent, type, count });
+          }
+        });
+      });
+
+      if (!lignes.length) return;
+
+      document.getElementById('blocFormationUrgente').style.display = 'block';
+      document.getElementById('listeFormationUrgente').innerHTML = lignes.map(l => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--rouge-light); border-radius:8px; border-left:3px solid var(--rouge);">
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:700; color:var(--gris-texte);">${l.agent.prenom} ${l.agent.nom}</div>
+            <div style="font-size:11px; color:var(--gris-doux); margin-top:2px;">Zone <b>${ZONES_LABELS[l.type]||l.type}</b> en dessous du seuil sur <b>${l.count} contrôles</b></div>
+          </div>
+          <div style="font-size:11px; font-weight:700; color:var(--rouge); white-space:nowrap;">⚡ Formation requise</div>
+        </div>`).join('');
+    }
 
     let _agentsAM = [];
 
