@@ -158,6 +158,13 @@
     .sites-liste { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
     .site-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:var(--teal-light); border-radius:8px; }
     .site-item-ico { font-size:16px; flex-shrink:0; margin-top:1px; }
+    /* Planning */
+    .planning-jour { margin-bottom:12px; }
+    .planning-jour-titre { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; color:var(--teal-dark); padding:6px 0 4px; border-bottom:2px solid var(--teal-light); margin-bottom:6px; }
+    .planning-creneau { display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--gris-fond); border-radius:8px; margin-bottom:4px; font-size:12px; }
+    .planning-heure { font-weight:700; color:var(--gris-texte); min-width:110px; }
+    .planning-site { color:var(--teal-dark); font-weight:600; }
+    .planning-duree { margin-left:auto; background:var(--teal-light); color:var(--teal-dark); font-size:10px; font-weight:700; padding:2px 8px; border-radius:6px; }
     .site-item-nom { font-size:13px; font-weight:700; color:var(--teal-dark); }
     .site-item-adr { font-size:11px; color:var(--gris-doux); margin-top:2px; }
     #ficheMap { height:240px; border-radius:10px; overflow:hidden; border:1px solid var(--bordure); }
@@ -254,11 +261,21 @@
 
       <!-- Onglets historique -->
       <div class="onglets">
-        <div class="onglet actif" onclick="switchOnglet('retards', this)">⏰ Retards</div>
+        <div class="onglet actif" onclick="switchOnglet('planning', this)">📅 Planning</div>
+        <div class="onglet" onclick="switchOnglet('retards', this)">⏰ Retards</div>
         <div class="onglet" onclick="switchOnglet('absences', this)">📋 Absences</div>
       </div>
 
-      <div class="onglet-contenu visible" id="ongletRetards">
+      <div class="onglet-contenu visible" id="ongletPlanning">
+        <div class="mois-bar">
+          <button class="mois-btn" onclick="changerMois(-1)">◀</button>
+          <div class="mois-label" id="moisLabelPlanning">—</div>
+          <button class="mois-btn" onclick="changerMois(+1)">▶</button>
+        </div>
+        <div class="table-wrap" id="tablePlanning"><div class="vide-msg">Sélectionnez un agent.</div></div>
+      </div>
+
+      <div class="onglet-contenu" id="ongletRetards">
         <div class="mois-bar">
           <button class="mois-btn" onclick="changerMois(-1)">◀</button>
           <div class="mois-label" id="moisLabel">—</div>
@@ -339,7 +356,9 @@ function switchOnglet(id, el) {
 async function changerMois(delta) {
   _moisOffset += delta;
   const { label } = getMois();
-  document.getElementById('moisLabel').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+  const labelCap = label.charAt(0).toUpperCase() + label.slice(1);
+  document.getElementById('moisLabel').textContent = labelCap;
+  document.getElementById('moisLabelPlanning').textContent = labelCap;
   if (_agentActif) await chargerHistorique(_agentActif);
 }
 
@@ -456,9 +475,48 @@ async function ouvrirFiche(agentId) {
     </div>`).join('');
 
   const { label } = getMois();
-  document.getElementById('moisLabel').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+  const labelCap2 = label.charAt(0).toUpperCase() + label.slice(1);
+  document.getElementById('moisLabel').textContent = labelCap2;
+  document.getElementById('moisLabelPlanning').textContent = labelCap2;
 
   await chargerHistorique(agent);
+}
+
+const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+function afficherPlanning(plans) {
+  const el = document.getElementById('tablePlanning');
+  if (!plans.length) { el.innerHTML = '<div class="vide-msg">Aucune prestation ce mois-ci.</div>'; return; }
+
+  // Grouper par jour de semaine puis par créneau unique (heure_debut+heure_fin+site)
+  const parJour = {};
+  plans.forEach(p => {
+    const jour = new Date(p.date).getDay(); // 0=dim, 1=lun...
+    if (!parJour[jour]) parJour[jour] = {};
+    const cle = `${p.heure_debut}-${p.heure_fin}-${p.site_id}`;
+    if (!parJour[jour][cle]) parJour[jour][cle] = { heure_debut: p.heure_debut, heure_fin: p.heure_fin, site: p.sites };
+  });
+
+  const ordre = [1,2,3,4,5,6,0].filter(j => parJour[j]);
+  let html = '';
+  ordre.forEach(j => {
+    html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]}</div>`;
+    Object.values(parJour[j]).forEach(c => {
+      const h1 = c.heure_debut.slice(0,5), h2 = c.heure_fin.slice(0,5);
+      const [hd,md] = h1.split(':').map(Number), [hf,mf] = h2.split(':').map(Number);
+      const dureeMin = (hf*60+mf) - (hd*60+md);
+      const dureeStr = dureeMin >= 60
+        ? `${Math.floor(dureeMin/60)}h${dureeMin%60 ? (dureeMin%60)+'min' : ''}`
+        : `${dureeMin} min`;
+      html += `<div class="planning-creneau">
+        <span class="planning-heure">🕐 ${h1} – ${h2}</span>
+        <span class="planning-site">🏢 ${c.site?.nom || '—'}</span>
+        <span class="planning-duree">${dureeStr}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html;
 }
 
 let _carteLeaflet = null;
@@ -538,6 +596,9 @@ async function chargerHistorique(agent) {
 
   // ── Sites d'intervention ──
   afficherSitesEtCarte(plans || []);
+
+  // ── Planning ──
+  afficherPlanning(plans || []);
 
   // ── Retards ──
   const retards = [];
