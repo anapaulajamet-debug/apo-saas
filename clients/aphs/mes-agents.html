@@ -308,9 +308,14 @@ async function changerMois(delta) {
 }
 
 async function chargerListe(session) {
+  // agent_maitrise_id = id dans la table agents (pas user_id auth)
+  const { data: amAgent } = await supabaseClient.from('agents')
+    .select('id').eq('user_id', session.user.id).single();
+  const amAgentId = amAgent ? amAgent.id : session.user.id;
+
   const { data: agents } = await supabaseClient.from('agents')
     .select('id, nom, prenom, email, telephone, date_naissance, photo_url, site_principal_id, sites(nom, adresse)')
-    .eq('agent_maitrise_id', session.user.id)
+    .eq('agent_maitrise_id', amAgentId)
     .order('nom');
 
   _agents = agents || [];
