@@ -368,8 +368,8 @@
         <div class="kpi-grille" style="padding:16px 18px; border-bottom:1px solid var(--bordure);">
           <div class="kpi-box"><div class="kpi-val kpi-vert" id="kpiCqTotal">—</div><div class="kpi-label">Contrôles réalisés</div></div>
           <div class="kpi-box"><div class="kpi-val kpi-teal" id="kpiCqMoyenne">—</div><div class="kpi-label">Note moyenne /100</div></div>
-          <div class="kpi-box"><div class="kpi-val kpi-orange" id="kpiCqSouseSeuil">—</div><div class="kpi-label">Sous le seuil (80)</div></div>
-          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiCqActions">—</div><div class="kpi-label">Actions correctives</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiCqSouseSeuil">—</div><div class="kpi-label">Zones en alerte (&lt;80)</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiCqFormation">—</div><div class="kpi-label">Formations urgentes</div></div>
         </div>
         <div style="padding:10px 18px; border-bottom:1px solid var(--bordure); display:flex; gap:8px; align-items:center; justify-content:flex-end;">
           <button class="btn-export" style="background:var(--teal);" onclick="ouvrirModalCQ()">+ Nouveau contrôle</button>
@@ -981,7 +981,7 @@ function cqMajNoteGlobale() {
   const msgEl = document.getElementById('cqNoteSeuilMsg');
   if (note == null) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
-  const color = note >= 90 ? 'var(--vert)' : note >= 80 ? 'var(--orange)' : 'var(--rouge)';
+  const color = note >= 80 ? 'var(--vert)' : 'var(--rouge)';
   wrap.style.borderColor = color;
   valEl.style.color = color;
   valEl.textContent = note + '/100';
@@ -1010,7 +1010,7 @@ function cqRendreZones() {
       if (den > 0) noteZone = Math.round(num / den);
     }
     const noteZoneHtml = noteZone != null
-      ? `<span style="font-size:13px; font-weight:900; color:${noteZone>=90?'var(--vert)':noteZone>=80?'var(--orange)':'var(--rouge)'};">${noteZone}/100</span>`
+      ? `<span style="font-size:13px; font-weight:900; color:${noteZone>=80?'var(--vert)':'var(--rouge)'};">${noteZone}/100</span>`
       : '';
     const optionsType = Object.entries(ZONES_CONFIG).map(([k,v]) =>
       `<option value="${k}"${z.type===k?' selected':''}>${v.label}</option>`).join('');
@@ -1084,16 +1084,42 @@ async function chargerCQ(agent) {
   afficherCQ(_tousLesCQ);
 }
 
+function cqNoteZone(z) {
+  const cfg = ZONES_CONFIG[z.type];
+  if (!cfg || !z.items) return null;
+  let num = 0, den = 0;
+  cfg.items.forEach(it => { const sc = z.items[it.id]; if (sc != null) { num += sc * it.coeff; den += it.coeff; } });
+  return den > 0 ? Math.round(num / den) : null;
+}
+
+function cqCouleur(note) {
+  if (note == null) return 'var(--gris-doux)';
+  return note >= 80 ? 'var(--vert)' : 'var(--rouge)';
+}
+
 function afficherCQ(liste) {
   const total   = liste.length;
   const notes   = liste.map(c => c.note_globale).filter(n => n != null);
   const moyenne = notes.length ? Math.round(notes.reduce((a,b) => a+b,0) / notes.length) : null;
-  const sousSeuil = liste.filter(c => c.note_globale != null && c.note_globale < 80).length;
-  const actions   = liste.filter(c => c.actions_correctives).length;
-  document.getElementById('kpiCqTotal').textContent     = total;
-  document.getElementById('kpiCqMoyenne').textContent   = moyenne != null ? moyenne + '/100' : '—';
-  document.getElementById('kpiCqSouseSeuil').textContent = sousSeuil;
-  document.getElementById('kpiCqActions').textContent   = actions;
+
+  // Zones en alerte : toutes les zones <80 dans tous les contrôles
+  let zonesEnAlerte = 0;
+  const zoneAlertesCount = {}; // type → nb de fois <80
+  liste.forEach(c => {
+    (c.zones_detail || []).forEach(z => {
+      const n = cqNoteZone(z);
+      if (n != null && n < 80) {
+        zonesEnAlerte++;
+        zoneAlertesCount[z.type] = (zoneAlertesCount[z.type] || 0) + 1;
+      }
+    });
+  });
+  const formationsUrgentes = Object.values(zoneAlertesCount).filter(v => v >= 2).length;
+
+  document.getElementById('kpiCqTotal').textContent      = total;
+  document.getElementById('kpiCqMoyenne').textContent    = moyenne != null ? moyenne + '/100' : '—';
+  document.getElementById('kpiCqSouseSeuil').textContent = zonesEnAlerte;
+  document.getElementById('kpiCqFormation').textContent  = formationsUrgentes;
 
   const el = document.getElementById('tableCQ');
   if (!liste.length) { el.innerHTML = '<div class="vide-msg">Aucun contrôle qualité enregistré.</div>'; return; }
@@ -1102,46 +1128,52 @@ function afficherCQ(liste) {
 
   el.innerHTML = liste.map(c => {
     const note = c.note_globale;
-    const noteCls = note >= 90 ? 'cq-note-vert' : note >= 80 ? 'cq-note-orange' : 'cq-note-rouge';
+    const noteCol = cqCouleur(note);
     const zones = Array.isArray(c.zones_detail) ? c.zones_detail : [];
-    const zonesBadges = zones.map(z => {
+
+    const zonesHtml = zones.map(z => {
       const cfg = ZONES_CONFIG[z.type];
-      return cfg ? `<span style="font-size:10px; background:#f0f4f8; padding:2px 7px; border-radius:5px; margin-right:4px;">${cfg.label}</span>` : '';
+      if (!cfg || !z.items || !Object.keys(z.items).length) return '';
+      const noteZone = cqNoteZone(z);
+      const zCol = cqCouleur(noteZone);
+      const itemDetails = cfg.items.filter(it => z.items[it.id] != null).map(it => {
+        const sc = z.items[it.id];
+        return `<span style="font-size:11px;">${it.label}: <b style="color:${cqCouleur(sc >= 80 ? 80 : sc < 80 ? 0 : sc)};">${sc}</b></span>`;
+      }).join(' · ');
+
+      const enAlerte = noteZone != null && noteZone < 80;
+      const repetitive = zoneAlertesCount[z.type] >= 2;
+
+      const alerteHtml = enAlerte ? `
+        <div style="background:var(--rouge-light); border:1px solid var(--rouge); border-radius:8px; padding:10px 12px; margin-top:8px;">
+          <div style="font-size:12px; font-weight:700; color:var(--rouge); margin-bottom:6px;">🚨 Zone en alerte — Note inférieure au seuil requis (80/100)</div>
+          <div style="font-size:11px; color:var(--gris-texte); margin-bottom:4px;">📋 <b>Plan d'action correctif</b> : identifier les points défaillants et mettre en place des mesures correctives immédiates.</div>
+          <div style="font-size:11px; color:var(--gris-texte);">🛡️ <b>Plan de prévention</b> : définir les actions pour éviter la récidive (contrôle renforcé, rappel des protocoles).</div>
+          ${repetitive ? `<div style="font-size:11px; font-weight:700; color:var(--rouge); margin-top:6px; padding-top:6px; border-top:1px solid rgba(192,57,43,0.2);">⚡ Alerte récidive — Cette zone est en dessous du seuil sur plusieurs contrôles. <u>Formation urgente recommandée.</u></div>` : ''}
+        </div>` : '';
+
+      return `<div class="cq-section" style="margin-top:8px;">
+        <div class="cq-section-titre" style="display:flex; align-items:center; justify-content:space-between;">
+          <span>${cfg.label}</span>
+          ${noteZone != null ? `<span style="font-size:13px; font-weight:900; color:${zCol};">${noteZone}/100</span>` : ''}
+        </div>
+        <div class="cq-section-val" style="font-size:11px; line-height:1.8;">${itemDetails}</div>
+        ${z.obs ? `<div style="font-size:11px; color:var(--gris-doux); margin-top:3px; font-style:italic;">${z.obs}</div>` : ''}
+        ${alerteHtml}
+      </div>`;
     }).join('');
+
     return `<div class="cq-card">
       <div class="cq-card-header">
         <div style="flex:1;">
           <div><span class="cq-date">📅 ${fmtDate(c.date_controle)}${c.sites ? ' · 🏢 ' + c.sites.nom : ''}</span>
             <span class="pill pill-gris" style="margin-left:6px; font-size:10px;">${statutLabel[c.statut]||c.statut}</span>
           </div>
-          ${zonesBadges ? `<div style="margin-top:5px;">${zonesBadges}</div>` : ''}
         </div>
-        <span class="cq-note ${noteCls}" style="font-size:24px;">${note != null ? note + '/100' : '—'}</span>
+        <span class="cq-note" style="font-size:24px; font-weight:900; color:${noteCol};">${note != null ? note + '/100' : '—'}</span>
         <button class="conge-del" onclick="supprimerCQ('${c.id}')">🗑</button>
       </div>
-      ${zones.map(z => {
-        const cfg = ZONES_CONFIG[z.type];
-        if (!cfg || !z.items || !Object.keys(z.items).length) return '';
-        // Calcul note de la zone
-        let num = 0, den = 0;
-        cfg.items.forEach(it => { const sc = z.items[it.id]; if (sc != null) { num += sc * it.coeff; den += it.coeff; } });
-        const noteZone = den > 0 ? Math.round(num / den) : null;
-        const noteCol = noteZone == null ? '' : noteZone >= 90 ? 'var(--vert)' : noteZone >= 80 ? 'var(--orange)' : 'var(--rouge)';
-        const itemDetails = cfg.items.filter(it => z.items[it.id] != null).map(it => {
-          const sc = z.items[it.id];
-          const col = sc>=75?'var(--vert)':sc>=50?'var(--orange)':'var(--rouge)';
-          return `<span style="font-size:11px;">${it.label}: <b style="color:${col};">${sc}</b></span>`;
-        }).join(' · ');
-        return `<div class="cq-section" style="margin-top:8px;">
-          <div class="cq-section-titre" style="display:flex; align-items:center; justify-content:space-between;">
-            <span>${cfg.label}</span>
-            ${noteZone != null ? `<span style="font-size:13px; font-weight:900; color:${noteCol};">${noteZone}/100</span>` : ''}
-          </div>
-          <div class="cq-section-val" style="font-size:11px; line-height:1.8;">${itemDetails}</div>
-          ${z.obs ? `<div style="font-size:11px; color:var(--gris-doux); margin-top:3px; font-style:italic;">${z.obs}</div>` : ''}
-        </div>`;
-      }).join('')}
-      ${c.actions_correctives ? `<div class="cq-section"><div class="cq-section-titre">🔧 Actions correctives</div><div class="cq-actions-val">${c.actions_correctives}</div></div>` : ''}
+      ${zonesHtml}
     </div>`;
   }).join('');
 }
