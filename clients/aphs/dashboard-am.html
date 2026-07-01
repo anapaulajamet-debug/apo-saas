@@ -1774,7 +1774,7 @@
       chargerAbsences(session.user.id);
     }
 
-    document.getElementById('btnValiderAbsence').addEventListener('click', async () => {
+    async function enregistrerAbsence() {
       const agentId = document.getElementById('absAgent').value;
       const type    = document.getElementById('absType').value;
       const debut   = document.getElementById('absDebut').value;
@@ -2080,7 +2080,7 @@
 
       <div class="modal-abs-actions">
         <button class="abs-btn-annuler" onclick="document.getElementById('modalAbsence').classList.remove('open')">Annuler</button>
-        <button class="abs-btn-valider" id="btnValiderAbsence">Enregistrer</button>
+        <button class="abs-btn-valider" id="btnValiderAbsence" onclick="enregistrerAbsence()">Enregistrer</button>
       </div>
     </div>
   </div>
