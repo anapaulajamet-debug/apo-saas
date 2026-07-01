@@ -1122,13 +1122,21 @@ function afficherCQ(liste) {
       ${zones.map(z => {
         const cfg = ZONES_CONFIG[z.type];
         if (!cfg || !z.items || !Object.keys(z.items).length) return '';
+        // Calcul note de la zone
+        let num = 0, den = 0;
+        cfg.items.forEach(it => { const sc = z.items[it.id]; if (sc != null) { num += sc * it.coeff; den += it.coeff; } });
+        const noteZone = den > 0 ? Math.round(num / den) : null;
+        const noteCol = noteZone == null ? '' : noteZone >= 90 ? 'var(--vert)' : noteZone >= 80 ? 'var(--orange)' : 'var(--rouge)';
         const itemDetails = cfg.items.filter(it => z.items[it.id] != null).map(it => {
           const sc = z.items[it.id];
           const col = sc>=75?'var(--vert)':sc>=50?'var(--orange)':'var(--rouge)';
           return `<span style="font-size:11px;">${it.label}: <b style="color:${col};">${sc}</b></span>`;
         }).join(' · ');
         return `<div class="cq-section" style="margin-top:8px;">
-          <div class="cq-section-titre">${cfg.label}</div>
+          <div class="cq-section-titre" style="display:flex; align-items:center; justify-content:space-between;">
+            <span>${cfg.label}</span>
+            ${noteZone != null ? `<span style="font-size:13px; font-weight:900; color:${noteCol};">${noteZone}/100</span>` : ''}
+          </div>
           <div class="cq-section-val" style="font-size:11px; line-height:1.8;">${itemDetails}</div>
           ${z.obs ? `<div style="font-size:11px; color:var(--gris-doux); margin-top:3px; font-style:italic;">${z.obs}</div>` : ''}
         </div>`;
