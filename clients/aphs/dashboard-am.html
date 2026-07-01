@@ -1412,6 +1412,27 @@
       }
 
       function rowRetard({agent, plan, ptg, initiales, siteNom, ville, tel}) {
+        // Calcul durée planifiée vs réelle
+        const debutMin  = parseInt(plan.heure_debut.split(':')[0])*60 + parseInt(plan.heure_debut.split(':')[1]);
+        const finMin    = parseInt(plan.heure_fin.split(':')[0])*60   + parseInt(plan.heure_fin.split(':')[1]);
+        const dureeContrat = finMin - debutMin;
+        let dureeHtml = '';
+        if (ptg.heure_sortie) {
+          const entreeMin = new Date(ptg.heure_entree).getHours()*60 + new Date(ptg.heure_entree).getMinutes();
+          const sortieMin = new Date(ptg.heure_sortie).getHours()*60 + new Date(ptg.heure_sortie).getMinutes();
+          const dureeReelle = sortieMin - entreeMin;
+          const ecartDuree  = dureeReelle - dureeContrat;
+          const ecartLabel  = ecartDuree < 0
+            ? `<span style="color:var(--rouge);font-size:10px;font-weight:700;"> ${ecartDuree}min</span>`
+            : `<span style="color:var(--vert);font-size:10px;font-weight:700;"> +${ecartDuree}min</span>`;
+          const hR = Math.floor(dureeReelle/60), mR = dureeReelle%60;
+          const hC = Math.floor(dureeContrat/60), mC = dureeContrat%60;
+          dureeHtml = `<div class="heure-col">
+              <div class="heure-col-label">Durée prestation</div>
+              <div class="heure-ligne"><span class="heure-label">Contrat :</span> <strong>${hC}h${mC > 0 ? mC : '00'}</strong></div>
+              <div class="heure-ligne orange"><span class="heure-label">Réelle :</span> <strong>${hR}h${mR > 0 ? String(mR).padStart(2,'0') : '00'}</strong>${ecartLabel}</div>
+            </div>`;
+        }
         return `<div class="agent-row">
           <div class="agent-avatar" style="background:var(--orange);">${initiales}</div>
           <div class="agent-info"><div class="agent-nom">${agent.prenom} ${agent.nom}</div><div class="agent-site">${siteNom} · ${ville}</div></div>
@@ -1425,8 +1446,9 @@
             <div class="heure-col">
               <div class="heure-col-label">Départ</div>
               <div class="heure-ligne"><span class="heure-label">Prévu :</span> <strong>${hc(plan.heure_fin)}</strong></div>
-              <div class="heure-ligne"><span class="heure-label">Réel :</span> <strong>—</strong></div>
+              <div class="heure-ligne${ptg.heure_sortie ? ' orange' : ''}"><span class="heure-label">Réel :</span> <strong>${ptg.heure_sortie ? fmt(ptg.heure_sortie) : '—'}</strong></div>
             </div>
+            ${dureeHtml}
           </div></div>
           <span class="statut-pill pill-orange">En retard</span>
           <button onclick="ouvrirPointageManuel('${agent.id}','${plan.site_id}','${agent.prenom} ${agent.nom}','${fmt(ptg.heure_entree)}','${ptg.heure_sortie ? fmt(ptg.heure_sortie) : ''}')" style="padding:6px 10px; background:#FFF3E0; color:var(--orange); border:1.5px solid var(--orange); border-radius:8px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;">✏️ Modifier</button>
