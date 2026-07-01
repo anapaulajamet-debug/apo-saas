@@ -298,6 +298,7 @@
         <div class="onglet" onclick="switchOnglet('absences', this)">📋 Absences</div>
         <div class="onglet" onclick="switchOnglet('conges', this)">🌴 Congés</div>
         <div class="onglet" onclick="switchOnglet('qualite', this)">✅ Qualité</div>
+        <div class="onglet" onclick="switchOnglet('formations', this)">🎓 Formations</div>
       </div>
 
       <div class="onglet-contenu visible" id="ongletPlanning">
@@ -377,7 +378,98 @@
         <div class="table-wrap" id="tableCQ"><div class="vide-msg">Aucun contrôle qualité enregistré.</div></div>
       </div>
 
+      <!-- ══ ONGLET FORMATIONS ══ -->
+      <div class="onglet-contenu" id="ongletFormations">
+        <div class="kpi-grille" style="padding:16px 18px; border-bottom:1px solid var(--bordure);">
+          <div class="kpi-box"><div class="kpi-val kpi-vert" id="kpiFormTotal">—</div><div class="kpi-label">Formations réalisées</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-teal" id="kpiFormHeures">—</div><div class="kpi-label">Heures de formation</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-orange" id="kpiFormEnCours">—</div><div class="kpi-label">En cours / planifiées</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiFormQualite">—</div><div class="kpi-label">Liées à alerte qualité</div></div>
+        </div>
+        <div style="padding:10px 18px; border-bottom:1px solid var(--bordure); display:flex; align-items:center; justify-content:flex-end;">
+          <button class="btn-export" style="background:var(--teal);" onclick="ouvrirModalFormation()">+ Nouvelle formation</button>
+        </div>
+        <div class="table-wrap" id="tableFormations"><div class="vide-msg">Aucune formation enregistrée.</div></div>
+      </div>
+
     </div><!-- fin fiche-agent -->
+
+    <!-- ══ MODAL FORMATION ══ -->
+    <div id="modalFormationOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; overflow-y:auto; padding:20px 0;">
+      <div style="background:#fff; border-radius:16px; padding:28px; width:520px; max-width:96vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); margin:auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <div style="font-size:17px; font-weight:800;">🎓 Nouvelle formation</div>
+          <button onclick="fermerModalFormation()" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--gris-doux);">×</button>
+        </div>
+        <div style="display:grid; gap:14px;">
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Intitulé de la formation *</label>
+            <input type="text" id="formTitre" placeholder="Ex: Hygiène et sécurité HACCP" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Type</label>
+              <select id="formType" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+                <option value="externe">Externe (organisme)</option>
+                <option value="interne">Interne (entreprise)</option>
+                <option value="e_learning">E-learning</option>
+                <option value="tutorat">Tutorat terrain</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Financement</label>
+              <select id="formFinancement" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+                <option value="plan_formation">Plan de formation</option>
+                <option value="CPF">CPF</option>
+                <option value="OPCO">OPCO Net Entreprises</option>
+                <option value="employeur">Employeur</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Organisme de formation</label>
+            <input type="text" id="formOrganisme" placeholder="Ex: INHNI, FARE Propreté, organisme interne…" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Date début</label>
+              <input type="date" id="formDebut" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Date fin</label>
+              <input type="date" id="formFin" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Durée (heures)</label>
+              <input type="number" id="formHeures" min="0" step="0.5" placeholder="Ex: 7" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Statut</label>
+              <select id="formStatut" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+                <option value="planifiee">Planifiée</option>
+                <option value="en_cours">En cours</option>
+                <option value="realisee">Réalisée ✓</option>
+                <option value="annulee">Annulée</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; padding-top:20px;">
+              <input type="checkbox" id="formLienQualite" style="width:16px; height:16px; cursor:pointer;" />
+              <label for="formLienQualite" style="font-size:12px; font-weight:600; color:var(--rouge); cursor:pointer;">⚡ Déclenchée par alerte qualité</label>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Notes</label>
+            <textarea id="formNotes" rows="2" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Objectifs, compétences visées, résultats attendus…"></textarea>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+          <button onclick="fermerModalFormation()" style="padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer;">Annuler</button>
+          <button onclick="enregistrerFormation()" style="padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Enregistrer</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ══ MODAL CONGÉ ══ -->
     <div id="modalCongeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:none; align-items:center; justify-content:center;">
@@ -665,6 +757,7 @@ async function ouvrirFiche(agentId) {
   await chargerHistorique(agent);
   await chargerConges(agent);
   await chargerCQ(agent);
+  await chargerFormations(agent);
 }
 
 const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -1223,6 +1316,108 @@ async function supprimerCQ(id) {
   if (!confirm('Supprimer ce contrôle qualité ?')) return;
   await supabaseClient.from('controles_qualite').delete().eq('id', id);
   await chargerCQ(_agentActif);
+}
+
+// ══ FORMATIONS ══
+const formTypeLabels = { externe:'🏫 Externe', interne:'🏢 Interne', e_learning:'💻 E-learning', tutorat:'👷 Tutorat' };
+const formStatutStyle = {
+  planifiee: { label:'Planifiée', bg:'#EFF6FF', color:'#1D4ED8' },
+  en_cours:  { label:'En cours', bg:'#FFF7ED', color:'#C2410C' },
+  realisee:  { label:'Réalisée ✓', bg:'var(--vert-light)', color:'var(--vert)' },
+  annulee:   { label:'Annulée', bg:'#F3F4F6', color:'#6B7280' },
+};
+
+async function chargerFormations(agent) {
+  const { data, error } = await supabaseClient.from('formations')
+    .select('*').eq('agent_id', agent.id).order('date_debut', { ascending: false });
+  if (error) { console.error('Erreur formations:', error); return; }
+  afficherFormations(data || []);
+}
+
+function afficherFormations(liste) {
+  const realisees = liste.filter(f => f.statut === 'realisee');
+  const heures    = realisees.reduce((s,f) => s + (f.duree_heures || 0), 0);
+  const enCours   = liste.filter(f => f.statut === 'en_cours' || f.statut === 'planifiee').length;
+  const qualite   = liste.filter(f => f.lien_qualite).length;
+
+  document.getElementById('kpiFormTotal').textContent   = realisees.length;
+  document.getElementById('kpiFormHeures').textContent  = heures ? heures + ' h' : '—';
+  document.getElementById('kpiFormEnCours').textContent = enCours;
+  document.getElementById('kpiFormQualite').textContent = qualite;
+
+  const el = document.getElementById('tableFormations');
+  if (!liste.length) { el.innerHTML = '<div class="vide-msg">Aucune formation enregistrée.</div>'; return; }
+
+  el.innerHTML = liste.map(f => {
+    const st = formStatutStyle[f.statut] || formStatutStyle.planifiee;
+    const duree = f.duree_heures ? f.duree_heures + ' h' : '—';
+    const periode = [f.date_debut ? fmtDate(f.date_debut) : null, f.date_fin ? fmtDate(f.date_fin) : null].filter(Boolean).join(' → ');
+    return `<div class="cq-card">
+      <div class="cq-card-header" style="align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="font-size:14px; font-weight:800; color:var(--gris-texte); margin-bottom:4px;">
+            ${f.titre}
+            ${f.lien_qualite ? '<span style="font-size:10px; font-weight:700; background:var(--rouge-light); color:var(--rouge); padding:2px 7px; border-radius:5px; margin-left:6px;">⚡ Alerte qualité</span>' : ''}
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span style="font-size:11px; background:#F0F4F8; padding:2px 8px; border-radius:5px;">${formTypeLabels[f.type_formation]||f.type_formation}</span>
+            ${f.organisme ? `<span style="font-size:11px; color:var(--gris-doux);">📍 ${f.organisme}</span>` : ''}
+            ${f.financement ? `<span style="font-size:11px; color:var(--gris-doux);">💰 ${f.financement}</span>` : ''}
+          </div>
+          ${periode ? `<div style="font-size:11px; color:var(--gris-doux); margin-top:4px;">📅 ${periode} · ⏱ ${duree}</div>` : ''}
+          ${f.notes ? `<div style="font-size:12px; color:var(--gris-texte); margin-top:6px; font-style:italic;">${f.notes}</div>` : ''}
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; margin-left:12px;">
+          <span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:7px; background:${st.bg}; color:${st.color}; white-space:nowrap;">${st.label}</span>
+          <button class="conge-del" onclick="supprimerFormation('${f.id}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ouvrirModalFormation() {
+  if (!_agentActif) return;
+  ['formTitre','formOrganisme','formNotes'].forEach(id => document.getElementById(id).value = '');
+  ['formType','formFinancement','formStatut'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  document.getElementById('formDebut').value = '';
+  document.getElementById('formFin').value = '';
+  document.getElementById('formHeures').value = '';
+  document.getElementById('formLienQualite').checked = false;
+  document.getElementById('modalFormationOverlay').style.display = 'flex';
+}
+
+function fermerModalFormation() {
+  document.getElementById('modalFormationOverlay').style.display = 'none';
+}
+
+async function enregistrerFormation() {
+  const titre = document.getElementById('formTitre').value.trim();
+  if (!titre) { alert('Veuillez indiquer l\'intitulé de la formation.'); return; }
+  const heures = document.getElementById('formHeures').value;
+  const { error } = await supabaseClient.from('formations').insert({
+    tenant_id:      'aaaaaaaa-0000-0000-0000-000000000001',
+    agent_id:       _agentActif.id,
+    titre,
+    type_formation: document.getElementById('formType').value,
+    financement:    document.getElementById('formFinancement').value,
+    organisme:      document.getElementById('formOrganisme').value.trim() || null,
+    date_debut:     document.getElementById('formDebut').value || null,
+    date_fin:       document.getElementById('formFin').value || null,
+    duree_heures:   heures ? parseFloat(heures) : null,
+    statut:         document.getElementById('formStatut').value,
+    lien_qualite:   document.getElementById('formLienQualite').checked,
+    notes:          document.getElementById('formNotes').value.trim() || null,
+  });
+  if (error) { alert('Erreur : ' + error.message); return; }
+  fermerModalFormation();
+  await chargerFormations(_agentActif);
+}
+
+async function supprimerFormation(id) {
+  if (!confirm('Supprimer cette formation ?')) return;
+  await supabaseClient.from('formations').delete().eq('id', id);
+  await chargerFormations(_agentActif);
 }
 
 // ══ CONGÉS ══
