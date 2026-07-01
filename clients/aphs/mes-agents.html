@@ -363,9 +363,12 @@ async function chargerListe(session) {
     const init = ((agent.prenom?.[0]||'') + (agent.nom?.[0]||'')).toUpperCase();
     const actif = _agentActif?.id === agent.id;
     const tel = agent.telephone || '—';
+    const avatarContent = agent.photo_url
+      ? `<img src="${agent.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+      : init;
 
     return `<div class="agent-ligne${actif?' actif':''}" onclick="ouvrirFiche('${agent.id}')">
-      <div class="agent-ligne-avatar">${init}</div>
+      <div class="agent-ligne-avatar">${avatarContent}</div>
       <div class="agent-ligne-info">
         <div class="agent-ligne-nom">${agent.prenom} ${agent.nom}</div>
         <div class="agent-ligne-site">${agent.sites?.nom || '—'}</div>
@@ -461,29 +464,33 @@ function afficherSitesEtCarte(plans) {
   }).addTo(_carteLeaflet);
 
   const markers = [];
-  let pending = sites.length;
 
-  sites.forEach(async s => {
-    if (!s.adresse) { pending--; if (!pending) fitMap(markers); return; }
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(s.adresse + ', France')}&format=json&limit=1`);
-      const data = await r.json();
-      if (data[0]) {
-        const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
-        const m = L.marker([lat, lng]).addTo(_carteLeaflet)
-          .bindPopup(`<b>${s.nom}</b><br>${s.adresse}`);
-        markers.push(m);
-      }
-    } catch(e) {}
-    pending--;
-    if (!pending) fitMap(markers);
-  });
-
-  function fitMap(ms) {
-    if (!ms.length) return;
-    const group = L.featureGroup(ms);
-    _carteLeaflet.fitBounds(group.getBounds().pad(0.3));
+  async function geocodeSequentiel(liste) {
+    for (const s of liste) {
+      if (!s.adresse) continue;
+      try {
+        await new Promise(r => setTimeout(r, 300)); // délai anti-rate-limit
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(s.adresse + ', France')}&format=json&limit=1`,
+          { headers: { 'Accept-Language': 'fr', 'User-Agent': 'APO-SAAS/1.0' } }
+        );
+        const data = await r.json();
+        if (data[0]) {
+          const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+          const m = L.marker([lat, lng]).addTo(_carteLeaflet)
+            .bindPopup(`<b>${s.nom}</b><br><small>${s.adresse}</small>`);
+          m.openPopup();
+          markers.push(m);
+        }
+      } catch(e) { console.warn('Géocodage échoué pour', s.nom, e); }
+    }
+    if (markers.length) {
+      const group = L.featureGroup(markers);
+      _carteLeaflet.fitBounds(group.getBounds().pad(0.3));
+    }
   }
+
+  geocodeSequentiel(sites);
 }
 
 async function chargerHistorique(agent) {
