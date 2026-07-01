@@ -367,17 +367,11 @@
       <div class="onglet-contenu" id="ongletQualite">
         <div class="kpi-grille" style="padding:16px 18px; border-bottom:1px solid var(--bordure);">
           <div class="kpi-box"><div class="kpi-val kpi-vert" id="kpiCqTotal">—</div><div class="kpi-label">Contrôles réalisés</div></div>
-          <div class="kpi-box"><div class="kpi-val kpi-teal" id="kpiCqMoyenne">—</div><div class="kpi-label">Note moyenne /20</div></div>
-          <div class="kpi-box"><div class="kpi-val kpi-orange" id="kpiCqLitige">—</div><div class="kpi-label">En litige</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-teal" id="kpiCqMoyenne">—</div><div class="kpi-label">Note moyenne /100</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-orange" id="kpiCqSouseSeuil">—</div><div class="kpi-label">Sous le seuil (80)</div></div>
           <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiCqActions">—</div><div class="kpi-label">Actions correctives</div></div>
         </div>
-        <div style="padding:10px 18px; border-bottom:1px solid var(--bordure); display:flex; gap:8px; align-items:center; justify-content:space-between;">
-          <div style="display:flex; gap:6px;">
-            <button class="pill pill-cq-filtre actif" onclick="filtrerCQ('tous',this)">Tous</button>
-            <button class="pill pill-cq-filtre" onclick="filtrerCQ('nettoyage',this)">🧹 Nettoyage</button>
-            <button class="pill pill-cq-filtre" onclick="filtrerCQ('materiel',this)">🔧 Matériel</button>
-            <button class="pill pill-cq-filtre" onclick="filtrerCQ('protocole',this)">📋 Protocole</button>
-          </div>
+        <div style="padding:10px 18px; border-bottom:1px solid var(--bordure); display:flex; gap:8px; align-items:center; justify-content:flex-end;">
           <button class="btn-export" style="background:var(--teal);" onclick="ouvrirModalCQ()">+ Nouveau contrôle</button>
         </div>
         <div class="table-wrap" id="tableCQ"><div class="vide-msg">Aucun contrôle qualité enregistré.</div></div>
@@ -437,52 +431,54 @@
     </div>
 
     <!-- ══ MODAL CONTRÔLE QUALITÉ ══ -->
-    <div id="modalCQOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; overflow-y:auto;">
-      <div style="background:#fff; border-radius:16px; padding:28px; width:460px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); margin:20px auto;">
-        <div style="font-size:17px; font-weight:800; margin-bottom:20px;">✅ Nouveau contrôle qualité</div>
-        <div style="display:grid; gap:14px;">
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div>
-              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Type de contrôle</label>
-              <select id="cqType" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
-                <option value="nettoyage">🧹 Nettoyage</option>
-                <option value="materiel">🔧 Matériel</option>
-                <option value="protocole">📋 Protocole</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Date</label>
-              <input type="date" id="cqDate" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
-            </div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div>
-              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Note /20</label>
-              <input type="number" id="cqNote" min="0" max="20" step="0.5" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" placeholder="Ex: 16" />
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Statut</label>
-              <select id="cqStatut" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
-                <option value="realise">Réalisé</option>
-                <option value="planifie">Planifié</option>
-                <option value="litige">En litige</option>
-              </select>
-            </div>
+    <div id="modalCQOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 0;">
+      <div style="background:#fff; border-radius:16px; padding:28px; width:660px; max-width:96vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); margin:auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <div style="font-size:17px; font-weight:800;">✅ Nouveau contrôle qualité</div>
+          <button onclick="fermerModalCQ()" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--gris-doux);">×</button>
+        </div>
+        <!-- Ligne date + site + statut -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
+          <div>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Date *</label>
+            <input type="date" id="cqDate" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;" />
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Points forts</label>
-            <textarea id="cqPointsForts" rows="2" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Ce qui a bien été fait..."></textarea>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Site</label>
+            <select id="cqSite" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+              <option value="">— Tous les sites —</option>
+            </select>
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Points à améliorer</label>
-            <textarea id="cqPointsAmeliorer" rows="2" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Ce qui doit être amélioré..."></textarea>
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Actions correctives</label>
-            <textarea id="cqActions" rows="2" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Mesures à mettre en place..."></textarea>
+            <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Statut</label>
+            <select id="cqStatut" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px;">
+              <option value="realise">Réalisé</option>
+              <option value="planifie">Planifié</option>
+              <option value="litige">⚠️ En litige</option>
+            </select>
           </div>
         </div>
-        <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+        <!-- Zones contrôlées -->
+        <div style="border:1.5px solid var(--bordure); border-radius:10px; padding:14px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <div style="font-size:13px; font-weight:700; color:var(--gris-texte);">Zones contrôlées</div>
+            <button onclick="cqAjouterZone()" style="padding:5px 12px; background:var(--teal); color:#fff; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">+ Zone</button>
+          </div>
+          <div id="cqZonesContainer"></div>
+          <div id="cqZonesVide" style="text-align:center; color:var(--gris-doux); font-size:12px; padding:12px 0;">Aucune zone ajoutée. Cliquez sur "+ Zone" pour commencer.</div>
+        </div>
+        <!-- Note globale calculée -->
+        <div id="cqNoteGlobaleWrap" style="display:none; border-radius:10px; padding:14px 18px; margin-bottom:16px; text-align:center; border:2px solid var(--bordure);">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux); margin-bottom:4px;">Note globale calculée</div>
+          <div id="cqNoteGlobaleVal" style="font-size:32px; font-weight:900;"></div>
+          <div id="cqNoteSeuilMsg" style="font-size:11px; margin-top:4px;"></div>
+        </div>
+        <!-- Observations générales -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--gris-doux);">Observations générales</label>
+          <textarea id="cqObservations" rows="3" style="width:100%; margin-top:4px; padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Remarques générales sur le contrôle..."></textarea>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
           <button onclick="fermerModalCQ()" style="padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer;">Annuler</button>
           <button onclick="enregistrerCQ()" style="padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Enregistrer</button>
         </div>
@@ -719,6 +715,7 @@ function afficherSitesEtCarte(plans) {
     }
   });
   const sites = Object.values(sitesMap);
+  _sitesFicheAgent = sites;
 
   const wrap = document.getElementById('sitesSectionWrap');
   const listeEl = document.getElementById('sitesListe');
@@ -886,6 +883,188 @@ function majTotalAbsence() {
 // ══ CONTRÔLES QUALITÉ ══
 let _tousLesCQ = [];
 
+// ══ CONTRÔLES QUALITÉ — CONFIGURATION PAR ZONE ══
+const ZONES_CONFIG = {
+  sanitaires: { label:'🚻 Sanitaires', items:[
+    {id:'porte',    label:'Porte',                       coeff:1},
+    {id:'miroirs',  label:'Miroirs',                     coeff:1.5},
+    {id:'vasques',  label:'Vasques',                     coeff:2},
+    {id:'cuvettes', label:'Cuvettes / WC',               coeff:2},
+    {id:'papier',   label:'Papier toilette approvisionné',coeff:1},
+    {id:'corbeille',label:'Corbeille & poubelle hyg.',   coeff:2},
+    {id:'sol',      label:'Sol',                         coeff:1},
+    {id:'murs',     label:'Murs',                        coeff:1},
+    {id:'plafond',  label:'Plafond',                     coeff:1},
+    {id:'fenetres', label:'Fenêtres',                    coeff:1},
+    {id:'plinthes', label:'Plinthes',                    coeff:1},
+  ]},
+  bureau: { label:'🖥️ Bureau', items:[
+    {id:'sol',      label:'Sol (aspiration / lavage)',   coeff:2},
+    {id:'surfaces', label:'Surfaces de bureau',          coeff:2},
+    {id:'mobilier', label:'Mobilier dépoussiéré',        coeff:1.5},
+    {id:'poubelles',label:'Poubelles vidées',            coeff:2},
+    {id:'portes',   label:'Portes et poignées',          coeff:1.5},
+    {id:'vitres',   label:'Vitres et miroirs',           coeff:1},
+    {id:'plinthes', label:'Plinthes',                    coeff:1},
+  ]},
+  cafeteria: { label:'☕ Cafétaria', items:[
+    {id:'plan',     label:'Plan de travail',             coeff:2},
+    {id:'evier',    label:'Évier',                       coeff:2},
+    {id:'micro',    label:'Micro-ondes (intérieur)',     coeff:1.5},
+    {id:'frigo',    label:'Réfrigérateur extérieur',     coeff:1},
+    {id:'tables',   label:'Tables et chaises',           coeff:2},
+    {id:'sol',      label:'Sol',                         coeff:2},
+    {id:'poubelles',label:'Poubelles vidées',            coeff:2},
+  ]},
+  couloirs: { label:'🚶 Couloirs / Circulations', items:[
+    {id:'sol',      label:'Sol (aspiration / lavage)',   coeff:2},
+    {id:'portes',   label:'Portes et poignées',          coeff:1.5},
+    {id:'murs',     label:'Murs (traces)',               coeff:1},
+    {id:'vitres',   label:'Vitres / parois',             coeff:1},
+    {id:'plinthes', label:'Plinthes',                    coeff:1},
+  ]},
+  escaliers: { label:'🪜 Escaliers', items:[
+    {id:'marches',  label:'Marches (balayage / lavage)', coeff:2},
+    {id:'rampes',   label:'Rampes et rambardes',         coeff:2},
+    {id:'paliers',  label:'Paliers',                     coeff:1.5},
+    {id:'murs',     label:'Murs (traces)',               coeff:1},
+  ]},
+  accueil: { label:'🏛️ Zone accueil', items:[
+    {id:'sol',      label:'Sol',                         coeff:2},
+    {id:'comptoir', label:'Comptoir d\'accueil',         coeff:2},
+    {id:'vitrines', label:'Vitrines / parois vitrées',   coeff:1.5},
+    {id:'mobilier', label:'Mobilier (fauteuils, tables)',coeff:1.5},
+    {id:'poubelles',label:'Poubelles',                   coeff:1},
+  ]},
+  vestiaire: { label:'👕 Vestiaire', items:[
+    {id:'sol',      label:'Sol',                         coeff:2},
+    {id:'douches',  label:'Douches',                     coeff:2},
+    {id:'wc',       label:'WC',                          coeff:2},
+    {id:'bancs',    label:'Bancs',                       coeff:1.5},
+    {id:'casiers',  label:'Casiers (extérieur)',         coeff:1},
+    {id:'poubelles',label:'Poubelles',                   coeff:1},
+  ]},
+};
+
+const SCORES_OPTIONS = [
+  {val:null,  label:'—'},
+  {val:0,     label:'0 — Insuffisant'},
+  {val:25,    label:'25 — Faible'},
+  {val:50,    label:'50 — Moyen'},
+  {val:75,    label:'75 — Bien'},
+  {val:100,   label:'100 — Excellent'},
+];
+
+let _cqZones = [];        // [{type, obs, items:{id:score}}]
+let _sitesFicheAgent = []; // sites de l'agent courant
+
+function cqCalculerNote() {
+  if (!_cqZones.length) return null;
+  const notesZones = _cqZones.map(z => {
+    const cfg = ZONES_CONFIG[z.type];
+    if (!cfg) return null;
+    let sommeNumerateur = 0, sommePoids = 0;
+    cfg.items.forEach(item => {
+      const sc = z.items[item.id];
+      if (sc != null) { sommeNumerateur += sc * item.coeff; sommePoids += item.coeff; }
+    });
+    return sommePoids > 0 ? sommeNumerateur / sommePoids : null;
+  }).filter(n => n != null);
+  if (!notesZones.length) return null;
+  return Math.round(notesZones.reduce((a,b) => a+b, 0) / notesZones.length);
+}
+
+function cqMajNoteGlobale() {
+  const note = cqCalculerNote();
+  const wrap = document.getElementById('cqNoteGlobaleWrap');
+  const valEl = document.getElementById('cqNoteGlobaleVal');
+  const msgEl = document.getElementById('cqNoteSeuilMsg');
+  if (note == null) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const color = note >= 90 ? 'var(--vert)' : note >= 80 ? 'var(--orange)' : 'var(--rouge)';
+  wrap.style.borderColor = color;
+  valEl.style.color = color;
+  valEl.textContent = note + '/100';
+  if (note < 80) {
+    msgEl.style.color = 'var(--rouge)';
+    msgEl.textContent = '⚠️ En dessous du seuil minimum requis (80/100)';
+  } else {
+    msgEl.style.color = 'var(--vert)';
+    msgEl.textContent = '✅ Conforme au seuil minimum requis';
+  }
+}
+
+function cqRendreZones() {
+  const container = document.getElementById('cqZonesContainer');
+  const vide = document.getElementById('cqZonesVide');
+  if (!_cqZones.length) { container.innerHTML = ''; vide.style.display = 'block'; cqMajNoteGlobale(); return; }
+  vide.style.display = 'none';
+
+  container.innerHTML = _cqZones.map((z, zi) => {
+    const cfg = ZONES_CONFIG[z.type];
+    const optionsType = Object.entries(ZONES_CONFIG).map(([k,v]) =>
+      `<option value="${k}"${z.type===k?' selected':''}>${v.label}</option>`).join('');
+    const itemsHtml = cfg ? cfg.items.map(item => {
+      const optsSc = SCORES_OPTIONS.map(o =>
+        `<option value="${o.val===null?'':o.val}"${z.items[item.id]===o.val?' selected':''}>${o.label}</option>`
+      ).join('');
+      const sc = z.items[item.id];
+      const scColor = sc==null?'':sc>=75?'color:var(--vert)':sc>=50?'color:var(--orange)':'color:var(--rouge)';
+      return `<div style="display:grid; grid-template-columns:1fr 140px; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #f0f0f0;">
+        <div style="font-size:12px; color:var(--gris-texte);">${item.label} <span style="font-size:10px; color:var(--gris-doux);">×${item.coeff}</span></div>
+        <select onchange="cqSetScore(${zi},'${item.id}',this.value)"
+          style="padding:4px 6px; border:1.5px solid var(--bordure); border-radius:6px; font-size:12px; ${scColor}">
+          ${optsSc}
+        </select>
+      </div>`;
+    }).join('') : '';
+
+    return `<div style="border:1.5px solid var(--bordure); border-radius:8px; padding:12px; margin-bottom:10px;">
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+        <select onchange="cqChangerTypeZone(${zi},this.value)"
+          style="flex:1; padding:6px 8px; border:1.5px solid var(--bordure); border-radius:7px; font-size:13px; font-weight:700;">
+          ${optionsType}
+        </select>
+        <button onclick="cqSupprimerZone(${zi})" style="padding:5px 10px; background:var(--rouge-light); color:var(--rouge); border:none; border-radius:6px; cursor:pointer; font-size:13px;">✕</button>
+      </div>
+      ${itemsHtml}
+      <div style="margin-top:8px;">
+        <input type="text" placeholder="Observations (optionnel)" value="${z.obs||''}"
+          oninput="cqSetObs(${zi},this.value)"
+          style="width:100%; padding:6px 8px; border:1.5px solid var(--bordure); border-radius:6px; font-size:12px;" />
+      </div>
+    </div>`;
+  }).join('');
+
+  cqMajNoteGlobale();
+}
+
+function cqAjouterZone() {
+  const type = Object.keys(ZONES_CONFIG)[0];
+  _cqZones.push({ type, obs:'', items:{} });
+  cqRendreZones();
+}
+
+function cqSupprimerZone(i) {
+  _cqZones.splice(i, 1);
+  cqRendreZones();
+}
+
+function cqChangerTypeZone(i, type) {
+  _cqZones[i].type = type;
+  _cqZones[i].items = {};
+  cqRendreZones();
+}
+
+function cqSetScore(zi, itemId, val) {
+  _cqZones[zi].items[itemId] = val === '' ? null : parseInt(val);
+  cqMajNoteGlobale();
+}
+
+function cqSetObs(zi, val) {
+  _cqZones[zi].obs = val;
+}
+
 async function chargerCQ(agent) {
   const { data, error } = await supabaseClient.from('controles_qualite')
     .select('*, sites(nom)').eq('agent_id', agent.id).order('date_controle', { ascending: false });
@@ -894,41 +1073,55 @@ async function chargerCQ(agent) {
   afficherCQ(_tousLesCQ);
 }
 
-function filtrerCQ(type, el) {
-  document.querySelectorAll('.pill-cq-filtre').forEach(b => b.classList.remove('actif'));
-  el.classList.add('actif');
-  afficherCQ(type === 'tous' ? _tousLesCQ : _tousLesCQ.filter(c => c.type_controle === type));
-}
-
 function afficherCQ(liste) {
   const total   = liste.length;
-  const moyenne = total ? (liste.reduce((s,c) => s + (c.note_globale||0), 0) / total).toFixed(1) : '—';
-  const litiges = liste.filter(c => c.statut === 'litige').length;
-  const actions = liste.filter(c => c.actions_correctives).length;
-  document.getElementById('kpiCqTotal').textContent   = total;
-  document.getElementById('kpiCqMoyenne').textContent = moyenne !== '—' ? moyenne + '/20' : '—';
-  document.getElementById('kpiCqLitige').textContent  = litiges;
-  document.getElementById('kpiCqActions').textContent = actions;
+  const notes   = liste.map(c => c.note_globale).filter(n => n != null);
+  const moyenne = notes.length ? Math.round(notes.reduce((a,b) => a+b,0) / notes.length) : null;
+  const sousSeuil = liste.filter(c => c.note_globale != null && c.note_globale < 80).length;
+  const actions   = liste.filter(c => c.actions_correctives).length;
+  document.getElementById('kpiCqTotal').textContent     = total;
+  document.getElementById('kpiCqMoyenne').textContent   = moyenne != null ? moyenne + '/100' : '—';
+  document.getElementById('kpiCqSouseSeuil').textContent = sousSeuil;
+  document.getElementById('kpiCqActions').textContent   = actions;
 
   const el = document.getElementById('tableCQ');
   if (!liste.length) { el.innerHTML = '<div class="vide-msg">Aucun contrôle qualité enregistré.</div>'; return; }
 
-  const typeLabel = { nettoyage:'🧹 Nettoyage', materiel:'🔧 Matériel', protocole:'📋 Protocole' };
   const statutLabel = { realise:'Réalisé', planifie:'Planifié', litige:'⚠️ Litige' };
 
   el.innerHTML = liste.map(c => {
     const note = c.note_globale;
-    const noteCls = note >= 15 ? 'cq-note-vert' : note >= 10 ? 'cq-note-orange' : 'cq-note-rouge';
+    const noteCls = note >= 90 ? 'cq-note-vert' : note >= 80 ? 'cq-note-orange' : 'cq-note-rouge';
+    const zones = Array.isArray(c.zones_detail) ? c.zones_detail : [];
+    const zonesBadges = zones.map(z => {
+      const cfg = ZONES_CONFIG[z.type];
+      return cfg ? `<span style="font-size:10px; background:#f0f4f8; padding:2px 7px; border-radius:5px; margin-right:4px;">${cfg.label}</span>` : '';
+    }).join('');
     return `<div class="cq-card">
       <div class="cq-card-header">
-        <span class="cq-type-badge cq-type-${c.type_controle}">${typeLabel[c.type_controle]}</span>
-        <span class="cq-date">📅 ${fmtDate(c.date_controle)}${c.sites ? ' · 🏢 ' + c.sites.nom : ''}</span>
-        <span class="pill pill-gris" style="margin-left:4px;">${statutLabel[c.statut]}</span>
-        <span class="cq-note ${noteCls}">${note != null ? note + '/20' : '—'}</span>
+        <div style="flex:1;">
+          <div><span class="cq-date">📅 ${fmtDate(c.date_controle)}${c.sites ? ' · 🏢 ' + c.sites.nom : ''}</span>
+            <span class="pill pill-gris" style="margin-left:6px; font-size:10px;">${statutLabel[c.statut]||c.statut}</span>
+          </div>
+          ${zonesBadges ? `<div style="margin-top:5px;">${zonesBadges}</div>` : ''}
+        </div>
+        <span class="cq-note ${noteCls}" style="font-size:24px;">${note != null ? note + '/100' : '—'}</span>
         <button class="conge-del" onclick="supprimerCQ('${c.id}')">🗑</button>
       </div>
-      ${c.points_forts ? `<div class="cq-section"><div class="cq-section-titre">✅ Points forts</div><div class="cq-section-val">${c.points_forts}</div></div>` : ''}
-      ${c.points_ameliorer ? `<div class="cq-section"><div class="cq-section-titre">⚠️ Points à améliorer</div><div class="cq-section-val">${c.points_ameliorer}</div></div>` : ''}
+      ${zones.map(z => {
+        const cfg = ZONES_CONFIG[z.type];
+        if (!cfg || !z.items || !Object.keys(z.items).length) return '';
+        const itemDetails = cfg.items.filter(it => z.items[it.id] != null).map(it => {
+          const sc = z.items[it.id];
+          const col = sc>=75?'var(--vert)':sc>=50?'var(--orange)':'var(--rouge)';
+          return `<span style="font-size:11px;">${it.label}: <b style="color:${col};">${sc}</b></span>`;
+        }).join(' · ');
+        return `<div class="cq-section" style="margin-top:8px;">
+          <div class="cq-section-titre">${cfg.label}</div>
+          <div class="cq-section-val" style="font-size:11px; line-height:1.8;">${itemDetails}</div>
+          ${z.obs ? `<div style="font-size:11px; color:var(--gris-doux); margin-top:3px; font-style:italic;">${z.obs}</div>` : ''}
+        </div>`;
+      }).join('')}
       ${c.actions_correctives ? `<div class="cq-section"><div class="cq-section-titre">🔧 Actions correctives</div><div class="cq-actions-val">${c.actions_correctives}</div></div>` : ''}
     </div>`;
   }).join('');
@@ -936,12 +1129,15 @@ function afficherCQ(liste) {
 
 function ouvrirModalCQ() {
   if (!_agentActif) return;
-  ['cqType','cqDate','cqNote','cqStatut','cqPointsForts','cqPointsAmeliorer','cqActions'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el.tagName === 'SELECT') el.selectedIndex = 0;
-    else el.value = '';
-  });
+  _cqZones = [];
   document.getElementById('cqDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('cqStatut').selectedIndex = 0;
+  document.getElementById('cqObservations').value = '';
+  // Remplir dropdown sites
+  const siteSelect = document.getElementById('cqSite');
+  siteSelect.innerHTML = '<option value="">— Tous les sites —</option>' +
+    _sitesFicheAgent.map(s => `<option value="${s.id}">${s.nom}</option>`).join('');
+  cqRendreZones();
   document.getElementById('modalCQOverlay').style.display = 'flex';
 }
 
@@ -951,19 +1147,21 @@ function fermerModalCQ() {
 
 async function enregistrerCQ() {
   const date = document.getElementById('cqDate').value;
-  const note = document.getElementById('cqNote').value;
   if (!date) { alert('Veuillez indiquer la date du contrôle.'); return; }
+  const note = cqCalculerNote();
+  const siteId = document.getElementById('cqSite').value || null;
+  const obs = document.getElementById('cqObservations').value.trim();
 
   const { error } = await supabaseClient.from('controles_qualite').insert({
     tenant_id:          'aaaaaaaa-0000-0000-0000-000000000001',
     agent_id:           _agentActif.id,
-    type_controle:      document.getElementById('cqType').value,
+    site_id:            siteId,
+    type_controle:      'nettoyage',
     date_controle:      date,
-    note_globale:       note ? parseFloat(note) : null,
+    note_globale:       note,
     statut:             document.getElementById('cqStatut').value,
-    points_forts:       document.getElementById('cqPointsForts').value.trim() || null,
-    points_ameliorer:   document.getElementById('cqPointsAmeliorer').value.trim() || null,
-    actions_correctives:document.getElementById('cqActions').value.trim() || null,
+    zones_detail:       _cqZones.length ? _cqZones : null,
+    actions_correctives: obs || null,
   });
   if (error) { alert('Erreur : ' + error.message); return; }
   fermerModalCQ();
