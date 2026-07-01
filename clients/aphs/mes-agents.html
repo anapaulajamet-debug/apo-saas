@@ -311,7 +311,6 @@ async function chargerListe(session) {
   const { data: agents } = await supabaseClient.from('agents')
     .select('id, nom, prenom, email, telephone, date_naissance, date_entree, type_contrat, volume_horaire, taux_horaire, coefficient, photo_url, site_principal_id, sites(nom, adresse)')
     .eq('agent_maitrise_id', session.user.id)
-    .eq('actif', true)
     .order('nom');
 
   _agents = agents || [];
