@@ -450,19 +450,38 @@
 
     <div class="map-container">
       <div class="map-toolbar">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span class="map-zone-badge">📍 13190 ALLAUCH — Bouches-du-Rhône</span>
-          <span style="font-size:12px;color:var(--gray);" id="mapProspectCount">Chargement…</span>
+          <span style="font-size:12px;color:var(--gray);" id="mapProspectCount"></span>
         </div>
-        <div class="map-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#2D6A3F"></div>À contacter</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>RDV / Visite</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Chiffrage</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Gagné</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Perdu</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="rechercheTypeSelect" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:Arial,sans-serif;outline:none;background:#F8FAFC;">
+            <option value="pharmacy">💊 Pharmacies</option>
+            <option value="lawyer">⚖️ Offices Notariaux / Avocats</option>
+            <option value="doctor">🏥 Cabinets Médicaux</option>
+            <option value="office">🏗️ Bureaux / Tertiaire</option>
+            <option value="store">🛍️ Commerces</option>
+            <option value="restaurant">🍽️ Restauration</option>
+            <option value="school">🏫 Établissements Scolaires</option>
+            <option value="storage">🏭 Industrie / Entrepôts</option>
+            <option value="real_estate_agency">🏘️ Copropriétés / Agences</option>
+          </select>
+          <button class="btn-primary" onclick="rechercherEtablissements()" id="btnRecherche" style="padding:7px 14px;font-size:12px;">
+            🔍 Rechercher sur Google
+          </button>
+          <button onclick="effacerRecherche()" style="padding:7px 10px;background:#F1F5F9;color:var(--gray);border:none;border-radius:7px;font-size:12px;cursor:pointer;font-weight:700;">✕ Effacer</button>
         </div>
       </div>
+      <div style="padding:6px 16px;background:#FFFBEB;border-bottom:1px solid #FDE68A;font-size:11px;color:#92400E;display:none;" id="mapInfo"></div>
       <div id="googleMap"></div>
+      <div class="map-legend" style="padding:10px 16px;border-top:1px solid var(--border);background:white;gap:16px;">
+        <div class="legend-item"><div class="legend-dot" style="background:#94A3B8"></div>Établissement Google (non contacté)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2D6A3F"></div>À contacter</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>RDV / Visite</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Chiffrage</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Gagné</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Perdu</div>
+      </div>
     </div>
 
     <div style="font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:12px;">Secteurs d'activité à démarcher</div>
@@ -948,6 +967,8 @@ window.initMap = function() {
     ]
   });
 
+  placesService = new google.maps.places.PlacesService(gmap);
+
   // Cercle zone de prospection
   new google.maps.Circle({
     map: gmap,
@@ -976,6 +997,138 @@ window.initMap = function() {
 
   placerMarqueurs();
 };
+
+// ── RECHERCHE GOOGLE PLACES ────────────────────────────────────────────
+let placesService = null;
+let googleMarkers = []; // marqueurs gris des résultats Google
+
+const TYPE_VERS_SECTEUR = {
+  pharmacy: 'pharmacie',
+  lawyer: 'juridique',
+  doctor: 'medical',
+  office: 'tertiaire',
+  store: 'commerce',
+  restaurant: 'restauration',
+  school: 'education',
+  storage: 'industrie',
+  real_estate_agency: 'copropriete',
+};
+
+function rechercherEtablissements() {
+  if (!placesService) { toast('Carte non encore chargée'); return; }
+  const type = document.getElementById('rechercheTypeSelect').value;
+  const btn = document.getElementById('btnRecherche');
+  btn.textContent = '⏳ Recherche…';
+  btn.disabled = true;
+
+  effacerGoogleMarqueurs();
+
+  const request = {
+    location: ALLAUCH_CENTER,
+    radius: 5000,
+    type: type,
+  };
+
+  placesService.nearbySearch(request, (results, status) => {
+    btn.textContent = '🔍 Rechercher sur Google';
+    btn.disabled = false;
+
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+      toast('Aucun résultat trouvé');
+      return;
+    }
+
+    const infoEl = document.getElementById('mapInfo');
+    infoEl.style.display = 'block';
+    infoEl.textContent = `${results.length} établissement${results.length > 1 ? 's' : ''} trouvé${results.length > 1 ? 's' : ''} — Cliquez sur un marqueur pour l'ajouter comme prospect`;
+
+    const dejaProspects = new Set(allProspects.map(p => p.raison_sociale?.toLowerCase().trim()));
+
+    results.forEach(place => {
+      const dejaAjoute = dejaProspects.has(place.name?.toLowerCase().trim());
+      ajouterMarqueurGoogle(place, type, dejaAjoute);
+    });
+
+    document.getElementById('mapProspectCount').textContent =
+      `${results.length} établissements Google · ${allProspects.filter(p => p.adresse).length} prospects CRM`;
+  });
+}
+
+function ajouterMarqueurGoogle(place, type, dejaAjoute) {
+  if (!place.geometry?.location) return;
+  const secteur = TYPE_VERS_SECTEUR[type] || 'autre';
+  const sec = SECTEURS[secteur] || { emoji: '📌', label: '' };
+
+  const marker = new google.maps.Marker({
+    position: place.geometry.location,
+    map: gmap,
+    title: place.name,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: dejaAjoute ? '#2D6A3F' : '#94A3B8',
+      fillOpacity: 1,
+      strokeColor: '#fff',
+      strokeWeight: 2,
+      scale: 8,
+    },
+  });
+
+  const adresse = place.vicinity || '';
+  const tel = place.formatted_phone_number || '';
+
+  const infoWindow = new google.maps.InfoWindow({
+    content: `
+      <div style="font-family:Arial,sans-serif;padding:4px;min-width:200px;">
+        <div style="font-weight:700;font-size:13px;color:#1A3D28;">${sec.emoji} ${place.name}</div>
+        <div style="font-size:11px;color:#64748B;margin:3px 0;">${sec.label}</div>
+        <div style="font-size:11px;color:#475569;">${adresse}</div>
+        ${place.rating ? `<div style="font-size:11px;color:#92400E;margin-top:3px;">⭐ ${place.rating}/5 (${place.user_ratings_total || 0} avis)</div>` : ''}
+        <div style="margin-top:10px;">
+          ${dejaAjoute
+            ? '<span style="color:#2D6A3F;font-size:11px;font-weight:700;">✅ Déjà dans votre CRM</span>'
+            : `<button onclick="ajouterDepuisGoogle('${place.name.replace(/'/g,"\\'")}','${adresse.replace(/'/g,"\\'")}','${secteur}')"
+                style="background:#2D6A3F;color:white;border:none;padding:6px 14px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:700;width:100%;">
+                + Ajouter comme prospect
+              </button>`
+          }
+        </div>
+      </div>`,
+  });
+
+  marker.addListener('click', () => {
+    googleMarkers.forEach(m => m._iw && m._iw.close());
+    mapMarkers.forEach(m => m._iw && m._iw.close());
+    infoWindow.open(gmap, marker);
+  });
+  marker._iw = infoWindow;
+  googleMarkers.push(marker);
+}
+
+window.ajouterDepuisGoogle = function(nom, adresse, secteur) {
+  document.getElementById('pRaisonSociale').value = nom;
+  document.getElementById('pAdresse').value = adresse;
+  document.getElementById('pSecteur').value = secteur;
+  document.getElementById('pStatut').value = 'a_contacter';
+  document.getElementById('pContact').value = '';
+  document.getElementById('pTelephone').value = '';
+  document.getElementById('pEmail').value = '';
+  document.getElementById('pNotes').value = '';
+  document.getElementById('pId').value = '';
+  document.getElementById('modalProspectTitre').textContent = 'Ajouter le prospect';
+  document.getElementById('modalNouveauProspect').classList.add('open');
+};
+
+function effacerGoogleMarqueurs() {
+  googleMarkers.forEach(m => { m._iw && m._iw.close(); m.setMap(null); });
+  googleMarkers = [];
+  document.getElementById('mapInfo').style.display = 'none';
+}
+
+function effacerRecherche() {
+  effacerGoogleMarqueurs();
+  document.getElementById('mapProspectCount').textContent =
+    `${allProspects.filter(p => p.adresse).length} prospect${allProspects.filter(p=>p.adresse).length>1?'s':''} CRM`;
+}
 
 function placerMarqueurs() {
   mapMarkers.forEach(m => m.setMap(null));
