@@ -1,12 +1,12 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/clients/aphs/login.html" },
-    { "source": "/dashboard", "destination": "/clients/aphs/dashboard.html" },
-    { "source": "/dashboard.html", "destination": "/clients/aphs/dashboard.html" },
-    { "source": "/dashboard-am", "destination": "/clients/aphs/dashboard-am.html" },
-    { "source": "/creer-profil", "destination": "/clients/aphs/creer-profil.html" },
-    { "source": "/pointage", "destination": "/clients/aphs/pointage-agent.html" },
-    { "source": "/documents", "destination": "/clients/aphs/documents.html" },
-    { "source": "/mes-agents", "destination": "/clients/aphs/mes-agents.html" }
+    { "source": "/", "destination": "/clients/cappolia/login.html" },
+    { "source": "/dashboard", "destination": "/clients/cappolia/dashboard.html" },
+    { "source": "/dashboard.html", "destination": "/clients/cappolia/dashboard.html" },
+    { "source": "/dashboard-am", "destination": "/clients/cappolia/dashboard-am.html" },
+    { "source": "/creer-profil", "destination": "/clients/cappolia/creer-profil.html" },
+    { "source": "/pointage", "destination": "/clients/cappolia/pointage-agent.html" },
+    { "source": "/documents", "destination": "/clients/cappolia/documents.html" },
+    { "source": "/mes-agents", "destination": "/clients/cappolia/mes-agents.html" }
   ]
 }
