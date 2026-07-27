@@ -217,28 +217,30 @@
     .card-btn-gray { background: #F1F5F9; color: var(--gray); }
     .card-btn-gray:hover { background: #E2E8F0; }
 
-    /* ── ZONE MAP PLACEHOLDER ── */
-    .map-placeholder {
+    /* ── CARTE GOOGLE MAPS ── */
+    .map-container {
       background: white;
       border-radius: 12px;
-      border: 2px dashed var(--border);
-      padding: 40px;
-      text-align: center;
+      border: 1px solid var(--border);
+      overflow: hidden;
       margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     }
-    .map-icon { font-size: 48px; margin-bottom: 12px; }
-    .map-title { font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 8px; }
-    .map-sub { font-size: 13px; color: var(--gray); margin-bottom: 16px; }
+    .map-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: white;
+    }
     .map-zone-badge {
-      display: inline-block;
-      background: var(--green-light);
-      color: var(--green);
-      font-weight: 700;
-      font-size: 13px;
-      padding: 6px 16px;
-      border-radius: 20px;
-      margin-bottom: 8px;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-light); color: var(--green);
+      font-weight: 700; font-size: 12px;
+      padding: 5px 14px; border-radius: 20px;
     }
+    .map-legend { display: flex; gap: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gray); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    #googleMap { width: 100%; height: 420px; }
 
     /* ── SECTEURS LIST ── */
     .secteurs-grid {
@@ -446,12 +448,21 @@
   <!-- SECTION ZONES & SECTEURS -->
   <div id="section-zones" class="section-hidden">
 
-    <div class="map-placeholder">
-      <div class="map-icon">🗺️</div>
-      <div class="map-title">Carte de prospection</div>
-      <div class="map-sub">Zone de démarrage définie par le directeur</div>
-      <div class="map-zone-badge">📍 13190 ALLAUCH — Bouches-du-Rhône</div>
-      <p style="font-size:12px;color:#94A3B8;margin-top:10px;">Google Maps sera intégré prochainement pour visualiser les prospects sur la carte et planifier les tournées de prospection.</p>
+    <div class="map-container">
+      <div class="map-toolbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="map-zone-badge">📍 13190 ALLAUCH — Bouches-du-Rhône</span>
+          <span style="font-size:12px;color:var(--gray);" id="mapProspectCount">Chargement…</span>
+        </div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2D6A3F"></div>À contacter</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>RDV / Visite</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Chiffrage</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Gagné</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Perdu</div>
+        </div>
+      </div>
+      <div id="googleMap"></div>
     </div>
 
     <div style="font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:12px;">Secteurs d'activité à démarcher</div>
@@ -658,6 +669,7 @@ async function chargerProspects() {
   allProspects = data || [];
   majKPIs();
   renderKanban();
+  if (gmap) placerMarqueurs();
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────
@@ -803,6 +815,9 @@ async function enregistrerProspect() {
     updated_at: new Date().toISOString(),
   };
 
+  const inputAdresse = document.getElementById('pAdresse');
+  if (inputAdresse._lat) { payload.lat = inputAdresse._lat; payload.lng = inputAdresse._lng; }
+
   const id = document.getElementById('pId').value;
   if (id) {
     await sb.from('prospects').update(payload).eq('id', id);
@@ -893,6 +908,140 @@ function allerChiffrage() {
   toast('🔜 Module chiffrage — disponible Phase 2');
 }
 
+// ── GOOGLE MAPS ────────────────────────────────────────────────────────
+const MAPS_KEY = 'AIzaSyBEVZrTPhdMuxzgkUJi9v-7jU-oVvLdpRc';
+const ALLAUCH_CENTER = { lat: 43.3356, lng: 5.4836 };
+let gmap = null;
+let geocoder = null;
+let mapMarkers = [];
+let autocomplete = null;
+
+const STATUT_COULEUR = {
+  a_contacter:  '#2D6A3F',
+  contacte:     '#2D6A3F',
+  rdv_planifie: '#D97706',
+  visite_site:  '#D97706',
+  chiffrage:    '#2563EB',
+  offre_envoyee:'#2563EB',
+  gagne:        '#16A34A',
+  perdu:        '#DC2626',
+};
+
+function chargerGoogleMaps() {
+  if (window.google) { initMap(); return; }
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places&callback=initMap`;
+  script.async = true;
+  document.head.appendChild(script);
+}
+
+window.initMap = function() {
+  geocoder = new google.maps.Geocoder();
+  gmap = new google.maps.Map(document.getElementById('googleMap'), {
+    center: ALLAUCH_CENTER,
+    zoom: 13,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
+    styles: [
+      { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+    ]
+  });
+
+  // Cercle zone de prospection
+  new google.maps.Circle({
+    map: gmap,
+    center: ALLAUCH_CENTER,
+    radius: 5000,
+    strokeColor: '#2D6A3F',
+    strokeOpacity: 0.4,
+    strokeWeight: 2,
+    fillColor: '#2D6A3F',
+    fillOpacity: 0.06,
+  });
+
+  // Autocomplétion adresse dans le formulaire
+  const inputAdresse = document.getElementById('pAdresse');
+  autocomplete = new google.maps.places.Autocomplete(inputAdresse, {
+    componentRestrictions: { country: 'fr' },
+    fields: ['formatted_address', 'geometry'],
+  });
+  autocomplete.addListener('place_changed', () => {
+    const place = autocomplete.getPlace();
+    if (place.geometry) {
+      inputAdresse._lat = place.geometry.location.lat();
+      inputAdresse._lng = place.geometry.location.lng();
+    }
+  });
+
+  placerMarqueurs();
+};
+
+function placerMarqueurs() {
+  mapMarkers.forEach(m => m.setMap(null));
+  mapMarkers = [];
+
+  const prospects = allProspects.filter(p => p.adresse);
+  document.getElementById('mapProspectCount').textContent =
+    `${prospects.length} prospect${prospects.length > 1 ? 's' : ''} géolocalisé${prospects.length > 1 ? 's' : ''}`;
+
+  prospects.forEach(p => {
+    if (p.lat && p.lng) {
+      ajouterMarqueur(p, { lat: parseFloat(p.lat), lng: parseFloat(p.lng) });
+    } else if (p.adresse) {
+      geocoder.geocode({ address: p.adresse + ', France' }, (results, status) => {
+        if (status === 'OK') {
+          const loc = results[0].geometry.location;
+          sb.from('prospects').update({ lat: loc.lat(), lng: loc.lng() }).eq('id', p.id);
+          ajouterMarqueur(p, { lat: loc.lat(), lng: loc.lng() });
+        }
+      });
+    }
+  });
+}
+
+function ajouterMarqueur(p, position) {
+  const sec = SECTEURS[p.secteur] || { emoji: '📌', label: '' };
+  const couleur = STATUT_COULEUR[p.statut] || '#2D6A3F';
+
+  const marker = new google.maps.Marker({
+    position,
+    map: gmap,
+    title: p.raison_sociale,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: couleur,
+      fillOpacity: 1,
+      strokeColor: '#fff',
+      strokeWeight: 2,
+      scale: 9,
+    },
+  });
+
+  const infoWindow = new google.maps.InfoWindow({
+    content: `
+      <div style="font-family:Arial,sans-serif;padding:4px;min-width:180px;">
+        <div style="font-weight:700;font-size:13px;color:#1A3D28;">${sec.emoji} ${p.raison_sociale}</div>
+        <div style="font-size:11px;color:#64748B;margin:3px 0;">${sec.label}</div>
+        <div style="font-size:11px;color:#475569;">${p.contact || ''}</div>
+        <div style="font-size:11px;color:#475569;">${p.telephone || ''}</div>
+        <div style="margin-top:8px;">
+          <button onclick="ouvrirFicheProspect('${p.id}')"
+            style="background:#2D6A3F;color:white;border:none;padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:700;">
+            Ouvrir la fiche
+          </button>
+        </div>
+      </div>`,
+  });
+
+  marker.addListener('click', () => {
+    mapMarkers.forEach(m => m._iw && m._iw.close());
+    infoWindow.open(gmap, marker);
+  });
+  marker._iw = infoWindow;
+  mapMarkers.push(marker);
+}
+
 // ── ZONES & SECTEURS ───────────────────────────────────────────────────
 function afficherSecteurs() {
   const grid = document.getElementById('secteursGrid');
@@ -923,7 +1072,7 @@ function afficherOnglet(id, el) {
   ['pipeline','zones'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('section-hidden', s !== id);
   });
-  if (id === 'zones') afficherSecteurs();
+  if (id === 'zones') { afficherSecteurs(); chargerGoogleMaps(); }
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────
