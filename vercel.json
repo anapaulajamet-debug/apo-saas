@@ -8,6 +8,7 @@
     { "source": "/pointage", "destination": "/clients/cappolia/pointage-agent.html" },
     { "source": "/documents", "destination": "/clients/cappolia/documents.html" },
     { "source": "/mes-agents", "destination": "/clients/cappolia/mes-agents.html" },
-    { "source": "/commercial", "destination": "/clients/cappolia/commercial.html" }
+    { "source": "/commercial", "destination": "/clients/cappolia/commercial.html" },
+    { "source": "/chiffrage", "destination": "/clients/cappolia/chiffrage.html" }
   ]
 }

@@ -921,10 +921,8 @@ async function ajouterActivite() {
 }
 
 function allerChiffrage() {
-  const p = allProspects.find(x => x.id === currentProspectId);
-  if (!p) return;
-  // Phase 2 — chiffrage non encore construit
-  toast('🔜 Module chiffrage — disponible Phase 2');
+  if (!currentProspectId) return;
+  window.location.href = '/chiffrage?prospect=' + currentProspectId;
 }
 
 // ── GOOGLE MAPS ────────────────────────────────────────────────────────

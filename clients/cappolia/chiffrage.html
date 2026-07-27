@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CAPPOLIA — Outil de Chiffrage</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #2D6A3F; --green-dark: #1A3D28; --green-light: #E8F5ED;
+      --orange: #D97706; --red: #DC2626; --gray: #64748B;
+      --border: #E2E8F0; --bg: #F1F5F9;
+    }
+    body { font-family: Arial, sans-serif; background: var(--bg); min-height: 100vh; color: #1e293b; }
+
+    header {
+      background: var(--green-dark); color: white; padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-left img { width: 36px; height: 36px; object-fit: contain; }
+    .header-brand { font-size: 13px; font-weight: 900; letter-spacing: 2px; }
+    .header-module { font-size: 11px; color: rgba(255,255,255,0.6); }
+    .btn-header { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: Arial; }
+    .btn-header:hover { background: rgba(255,255,255,0.25); }
+
+    /* LAYOUT */
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 56px); }
+
+    /* STEPPER */
+    .stepper {
+      background: white; border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;
+    }
+    .stepper-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray); padding: 0 20px; margin-bottom: 16px; }
+    .step-item {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 20px;
+      cursor: pointer; transition: background 0.15s; position: relative;
+    }
+    .step-item:hover { background: var(--green-light); }
+    .step-item.active { background: var(--green-light); }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;
+      background: var(--border); color: var(--gray);
+    }
+    .step-item.active .step-num { background: var(--green); color: white; }
+    .step-item.done .step-num { background: var(--green-light); color: var(--green); }
+    .step-label { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+    .step-sub { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .step-connector { width: 2px; height: 16px; background: var(--border); margin: 0 20px 0 33px; }
+
+    /* MAIN */
+    .main-content { padding: 28px 32px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-title { font-size: 18px; font-weight: 900; color: var(--green-dark); margin-bottom: 6px; }
+    .section-sub { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+
+    /* CARD */
+    .card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--green-dark); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* FORM */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.cols1 { grid-template-columns: 1fr; }
+    .field { }
+    .field label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--green-dark); margin-bottom: 5px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: 13px; font-family: Arial; outline: none; background: #F8FAFC; transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); background: white; }
+    .field input[readonly] { background: var(--green-light); color: var(--green-dark); font-weight: 700; }
+
+    /* TABLEAU TEMPS */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: var(--green-dark); color: white; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+    td { padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: #FAFAFA; }
+    td input, td select {
+      width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px;
+      font-size: 12px; font-family: Arial; outline: none; background: white;
+    }
+    td input:focus, td select:focus { border-color: var(--green); }
+    td input[readonly] { background: var(--green-light); color: var(--green-dark); font-weight: 700; border-color: transparent; }
+    .tr-total td { background: var(--green-light); font-weight: 700; color: var(--green-dark); }
+    .btn-add-row {
+      margin-top: 12px; padding: 7px 16px; background: #F8FAFC; border: 1.5px dashed var(--border);
+      border-radius: 7px; font-size: 12px; color: var(--gray); cursor: pointer; font-family: Arial;
+      transition: all 0.15s;
+    }
+    .btn-add-row:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+    .btn-del { background: none; border: none; cursor: pointer; color: #DC2626; font-size: 16px; padding: 0 4px; }
+
+    /* PRIX DE VENTE */
+    .prix-block { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .calcul-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .calcul-label { font-size: 13px; color: #475569; }
+    .calcul-val { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+    .calcul-row.total { border-top: 2px solid var(--green-dark); border-bottom: none; padding-top: 14px; margin-top: 4px; }
+    .calcul-row.total .calcul-label { font-weight: 700; color: var(--green-dark); font-size: 14px; }
+    .calcul-row.total .calcul-val { font-size: 18px; color: var(--green); }
+    .taux-badge {
+      font-size: 10px; font-weight: 700; background: var(--green-light); color: var(--green);
+      padding: 2px 7px; border-radius: 10px; margin-left: 8px;
+    }
+    .info-box {
+      background: #FFF7E6; border: 1px solid #FDE68A; border-radius: 8px;
+      padding: 10px 14px; font-size: 12px; color: #92400E; margin-top: 12px;
+    }
+    .prix-final-box {
+      background: var(--green-dark); color: white; border-radius: 12px;
+      padding: 24px; text-align: center;
+    }
+    .prix-final-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .prix-final-ht { font-size: 36px; font-weight: 900; margin-bottom: 4px; }
+    .prix-final-ttc { font-size: 14px; opacity: 0.8; }
+    .prix-forfait-badge {
+      display: inline-block; background: var(--orange); color: white;
+      font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 10px; margin-top: 8px;
+    }
+
+    /* DEVIS PREVIEW */
+    .devis-preview {
+      background: white; border: 1px solid var(--border); border-radius: 12px;
+      padding: 40px; max-width: 760px; margin: 0 auto; font-size: 13px;
+    }
+    .devis-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+    .devis-logo { font-size: 20px; font-weight: 900; letter-spacing: 3px; color: var(--green-dark); }
+    .devis-num { text-align: right; }
+    .devis-num .num { font-size: 16px; font-weight: 900; color: var(--green-dark); }
+    .devis-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+    .partie-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray); margin-bottom: 6px; }
+    .partie-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .devis-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .devis-table th { background: var(--green-dark); color: white; padding: 10px 14px; font-size: 12px; }
+    .devis-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .devis-totaux { margin-left: auto; width: 280px; margin-top: 16px; }
+    .devis-total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .devis-total-row.grand-total { font-weight: 900; font-size: 15px; color: var(--green-dark); border-top: 2px solid var(--green-dark); border-bottom: none; padding-top: 12px; }
+    .devis-footer { margin-top: 32px; font-size: 11px; color: var(--gray); border-top: 1px solid var(--border); padding-top: 16px; }
+
+    /* NAV BUTTONS */
+    .nav-btns { display: flex; justify-content: space-between; margin-top: 28px; }
+    .btn-primary {
+      background: var(--green); color: white; border: none; padding: 11px 24px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: Arial; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: var(--green-dark); }
+    .btn-secondary {
+      background: white; color: var(--gray); border: 1.5px solid var(--border); padding: 11px 24px;
+      border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: Arial;
+    }
+    .btn-secondary:hover { border-color: var(--green); color: var(--green); }
+
+    /* KPI mini */
+    .kpi-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .kpi-mini-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+    .kpi-mini-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray); }
+    .kpi-mini-val { font-size: 22px; font-weight: 900; color: var(--green-dark); margin-top: 4px; }
+    .kpi-mini-unit { font-size: 11px; color: var(--gray); }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--green-dark); color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,0.25); transform: translateY(80px); opacity: 0; transition: transform 0.3s, opacity 0.3s; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    @media print {
+      header, .stepper, .nav-btns, .step-item, #btnPrint, #btnSave { display: none !important; }
+      .layout { grid-template-columns: 1fr; }
+      .section { display: block !important; }
+      .section:not(#section-devis) { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <img src="/clients/cappolia/assets/logo.png" alt="" onerror="this.style.display='none'"/>
+    <div>
+      <div class="header-brand">CAPPOLIA PROPRETÉ</div>
+      <div class="header-module">Outil de Chiffrage — CCN Propreté 2026</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <span id="numeroDevis" style="font-size:12px;color:rgba(255,255,255,0.7);"></span>
+    <button class="btn-header" id="btnSave" onclick="sauvegarder()">💾 Enregistrer</button>
+    <button class="btn-header" onclick="window.location.href='/commercial'">← CRM</button>
+    <button class="btn-header" onclick="deconnexion()">Déconnexion</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- STEPPER -->
+  <aside class="stepper">
+    <div class="stepper-title">Étapes du chiffrage</div>
+
+    <div class="step-item active" onclick="allerEtape(1)" id="step1">
+      <div class="step-num">1</div>
+      <div><div class="step-label">Fiche client</div><div class="step-sub">Identification du site</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(2)" id="step2">
+      <div class="step-num">2</div>
+      <div><div class="step-label">Entretien courant</div><div class="step-sub">Surfaces & cadences</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(3)" id="step3">
+      <div class="step-num">3</div>
+      <div><div class="step-label">Remise en état</div><div class="step-sub">Prestations ponctuelles</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(4)" id="step4">
+      <div class="step-num">4</div>
+      <div><div class="step-label">Prix de vente</div><div class="step-sub">Calcul automatique</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(5)" id="step5">
+      <div class="step-num">5</div>
+      <div><div class="step-label">Devis client</div><div class="step-sub">Génération & envoi</div></div>
+    </div>
+
+    <!-- Résumé prix -->
+    <div style="margin:24px 16px 0;background:var(--green-light);border-radius:10px;padding:16px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray);margin-bottom:8px;">Prix calculé</div>
+      <div style="font-size:22px;font-weight:900;color:var(--green-dark);" id="sidebarPrixHT">— €</div>
+      <div style="font-size:11px;color:var(--gray);">HT / mois</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);margin-top:4px;" id="sidebarPrixTTC">— €</div>
+      <div style="font-size:11px;color:var(--gray);">TTC / mois</div>
+    </div>
+  </aside>
+
+  <!-- CONTENU PRINCIPAL -->
+  <div class="main-content">
+
+    <!-- ÉTAPE 1 : FICHE CLIENT -->
+    <div class="section active" id="section-1">
+      <div class="section-title">Fiche client — Cahier des charges</div>
+      <div class="section-sub">Informations sur le prospect et le site à nettoyer</div>
+
+      <div class="card">
+        <div class="card-title">Identification</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Prospect / Client *</label>
+            <select id="fcProspect" onchange="remplirDepuisProspect()">
+              <option value="">— Sélectionner un prospect —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Raison sociale *</label>
+            <input type="text" id="fcRaisonSociale" placeholder="Cabinet Dupont…"/>
+          </div>
+          <div class="field">
+            <label>Contact</label>
+            <input type="text" id="fcContact" placeholder="Marie Martin"/>
+          </div>
+          <div class="field">
+            <label>Téléphone</label>
+            <input type="tel" id="fcTelephone" placeholder="06 XX XX XX XX"/>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Email</label>
+            <input type="email" id="fcEmail" placeholder="contact@cabinet.fr"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Site d'intervention</div>
+        <div class="form-grid cols1">
+          <div class="field">
+            <label>Adresse du site *</label>
+            <input type="text" id="fcAdresse" placeholder="12 rue de la République, 13190 ALLAUCH"/>
+          </div>
+        </div>
+        <div class="form-grid cols3" style="margin-top:14px;">
+          <div class="field">
+            <label>Type de site *</label>
+            <select id="fcTypeSite">
+              <option value="">— Choisir —</option>
+              <option value="Bureau">Bureau / Tertiaire</option>
+              <option value="Copropriété">Copropriété</option>
+              <option value="Industrie">Industrie</option>
+              <option value="Locaux professionnels">Locaux professionnels</option>
+              <option value="Cabinet médical">Cabinet médical</option>
+              <option value="Commerce">Commerce / Retail</option>
+              <option value="Restauration">Restauration</option>
+              <option value="Établissement scolaire">Établissement scolaire</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Surface totale (m²) *</label>
+            <input type="number" id="fcSurface" placeholder="350" min="0"/>
+          </div>
+          <div class="field">
+            <label>Nombre de niveaux</label>
+            <input type="number" id="fcNiveaux" placeholder="1" min="1" value="1"/>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-top:14px;">
+          <div class="field">
+            <label>Fréquence d'intervention (jours / semaine) *</label>
+            <select id="fcFrequence">
+              <option value="1">1 jour / semaine</option>
+              <option value="2">2 jours / semaine</option>
+              <option value="3">3 jours / semaine</option>
+              <option value="4">4 jours / semaine</option>
+              <option value="5" selected>5 jours / semaine</option>
+              <option value="6">6 jours / semaine</option>
+              <option value="7">7 jours / semaine</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Horaires souhaités</label>
+            <input type="text" id="fcHoraires" placeholder="06h00 - 08h00"/>
+          </div>
+          <div class="field">
+            <label>Accès / Particularités</label>
+            <input type="text" id="fcAcces" placeholder="Digicode, badge…"/>
+          </div>
+          <div class="field">
+            <label>Date de visite de site</label>
+            <input type="date" id="fcDateVisite"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <div></div>
+        <button class="btn-primary" onclick="allerEtape(2)">Étape suivante →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 2 : ENTRETIEN COURANT -->
+    <div class="section" id="section-2">
+      <div class="section-title">Temps de prestation — Entretien courant</div>
+      <div class="section-sub">Cadences CCN Propreté — Plancher 1h minimum par passage</div>
+
+      <div class="kpi-mini" id="kpiEntretien">
+        <div class="kpi-mini-card"><div class="kpi-mini-label">Temps / passage</div><div class="kpi-mini-val" id="kpiTpsPassage">0,00</div><div class="kpi-mini-unit">heures</div></div>
+        <div class="kpi-mini-card"><div class="kpi-mini-label">Fréquence mensuelle</div><div class="kpi-mini-val" id="kpiFreqMois">0</div><div class="kpi-mini-unit">passages / mois</div></div>
+        <div class="kpi-mini-card"><div class="kpi-mini-label">Temps mensuel total</div><div class="kpi-mini-val" id="kpiTpsMois">0,00</div><div class="kpi-mini-unit">heures / mois</div></div>
+        <div class="kpi-mini-card"><div class="kpi-mini-label">Nb agents nécessaires</div><div class="kpi-mini-val" id="kpiNbAgents">—</div><div class="kpi-mini-unit">ASC (entretien)</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Détail des surfaces — Entretien courant</div>
+        <div class="table-wrap">
+          <table id="tableEC">
+            <thead>
+              <tr>
+                <th>Locaux</th>
+                <th>Prestation</th>
+                <th>Type de sol</th>
+                <th style="width:90px;">Surface (m²)</th>
+                <th style="width:100px;">Cadence (m²/h)</th>
+                <th style="width:90px;">Tps/passage (h)</th>
+                <th style="width:110px;">Fréq. mensuelle</th>
+                <th style="width:90px;">Tps mensuel (h)</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyEC"></tbody>
+            <tfoot>
+              <tr class="tr-total">
+                <td colspan="5" style="text-align:right;">TOTAL</td>
+                <td id="totalTpsPassage">0,00</td>
+                <td></td>
+                <td id="totalTpsMensuel">0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button class="btn-add-row" onclick="ajouterLigneEC()">+ Ajouter une ligne</button>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(1)">← Retour</button>
+        <button class="btn-primary" onclick="allerEtape(3)">Étape suivante →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3 : REMISE EN ÉTAT -->
+    <div class="section" id="section-3">
+      <div class="section-title">Temps de prestation — Remise en état</div>
+      <div class="section-sub">Prestations ponctuelles — fréquence saisie librement</div>
+
+      <div class="card">
+        <div class="card-title">Détail des surfaces — Remise en état</div>
+        <div class="table-wrap">
+          <table id="tableREE">
+            <thead>
+              <tr>
+                <th>Locaux</th>
+                <th>Prestation</th>
+                <th style="width:90px;">Surface (m²)</th>
+                <th style="width:100px;">Cadence (m²/h)</th>
+                <th style="width:90px;">Tps/presta (h)</th>
+                <th style="width:110px;">Fréq. mensuelle</th>
+                <th style="width:90px;">Tps mensuel (h)</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyREE"></tbody>
+            <tfoot>
+              <tr class="tr-total">
+                <td colspan="4" style="text-align:right;">TOTAL MENSUEL</td>
+                <td></td>
+                <td></td>
+                <td id="totalREE">0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button class="btn-add-row" onclick="ajouterLigneREE()">+ Ajouter une ligne</button>
+        <div class="info-box" style="margin-top:16px;">ℹ️ Section optionnelle. Si aucune remise en état n'est prévue, passez directement à l'étape suivante.</div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(2)">← Retour</button>
+        <button class="btn-primary" onclick="allerEtape(4)">Étape suivante →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 4 : PRIX DE VENTE -->
+    <div class="section" id="section-4">
+      <div class="section-title">Prix de vente mensuel</div>
+      <div class="section-sub">Calcul automatique — CCN Propreté 2026 — Forfait minimum 250 € HT</div>
+
+      <div class="prix-block">
+        <div>
+          <!-- Effectifs -->
+          <div class="card">
+            <div class="card-title">Effectifs & Masse salariale</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Niveau agent — Entretien courant</label>
+                <select id="pvNiveauEC" onchange="calculerPrix()">
+                  <option value="12.57">ASC — 12,57 €/h</option>
+                  <option value="12.64">ASCS — 12,64 €/h</option>
+                  <option value="12.70">AQS1 — 12,70 €/h</option>
+                  <option value="12.81">AQS2 — 12,81 €/h</option>
+                  <option value="12.92">AQS3 — 12,92 €/h</option>
+                  <option value="13.17">ATQS1 — 13,17 €/h</option>
+                  <option value="13.91">ATQS2 — 13,91 €/h</option>
+                  <option value="14.95">ATQS3 — 14,95 €/h</option>
+                  <option value="14.43">CE1 — 14,43 €/h</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Niveau agent — Remise en état</label>
+                <select id="pvNiveauREE" onchange="calculerPrix()">
+                  <option value="13.17" selected>ATQS1 — 13,17 €/h</option>
+                  <option value="13.91">ATQS2 — 13,91 €/h</option>
+                  <option value="14.95">ATQS3 — 14,95 €/h</option>
+                  <option value="14.43">CE1 — 14,43 €/h</option>
+                  <option value="15.27">CE2 — 15,27 €/h</option>
+                  <option value="15.44">CE3 — 15,44 €/h</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Heures mensuel — EC (auto)</label>
+                <input type="number" id="pvHeuresEC" readonly/>
+              </div>
+              <div class="field">
+                <label>Heures mensuel — REE (auto)</label>
+                <input type="number" id="pvHeuresREE" readonly/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Paramètres ajustables -->
+          <div class="card">
+            <div class="card-title">Paramètres de coût (modifiables)</div>
+            <div class="form-grid cols3">
+              <div class="field">
+                <label>Charges patronales (%)</label>
+                <input type="number" id="pvCharges" value="54" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+              </div>
+              <div class="field">
+                <label>Coût produits nettoyage (%)</label>
+                <input type="number" id="pvProduits" value="15" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+              </div>
+              <div class="field">
+                <label>Autres fournitures (%)</label>
+                <input type="number" id="pvFournitures" value="5" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+              </div>
+              <div class="field">
+                <label>Amortissement matériel (€)</label>
+                <input type="number" id="pvAmortissement" value="0" min="0" step="1" onchange="calculerPrix()"/>
+              </div>
+              <div class="field">
+                <label>Frais de structure (%)</label>
+                <input type="number" id="pvStructure" value="12" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+              </div>
+              <div class="field">
+                <label>Marge (%)</label>
+                <input type="number" id="pvMarge" value="30" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Calcul détaillé -->
+          <div class="card">
+            <div class="card-title">Détail du calcul</div>
+            <div class="calcul-row"><span class="calcul-label">Masse salariale brute</span><span class="calcul-val" id="cMasseSalariale">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Charges patronales <span class="taux-badge" id="badgeCharges">54%</span></span><span class="calcul-val" id="cCharges">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Coût produits nettoyage <span class="taux-badge" id="badgeProduits">15%</span></span><span class="calcul-val" id="cProduits">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Autres fournitures <span class="taux-badge" id="badgeFournitures">5%</span></span><span class="calcul-val" id="cFournitures">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Amortissement matériel</span><span class="calcul-val" id="cAmortissement">—</span></div>
+            <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (hors structure)</span><span class="calcul-val" id="cCoutChantier">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Frais de structure <span class="taux-badge" id="badgeStructure">12%</span></span><span class="calcul-val" id="cStructure">—</span></div>
+            <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (avec structure)</span><span class="calcul-val" id="cCoutTotal">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Marge <span class="taux-badge" id="badgeMarge">30%</span></span><span class="calcul-val" id="cMarge">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">TVA (20%)</span><span class="calcul-val" id="cTVA">—</span></div>
+            <div class="calcul-row total">
+              <span class="calcul-label">PRIX DE VENTE HT</span>
+              <span class="calcul-val" id="cPrixHT">—</span>
+            </div>
+            <div id="forfaitMsg" class="info-box" style="display:none;">⚠️ Forfait minimum de 250 € HT appliqué</div>
+          </div>
+
+          <div class="prix-final-box">
+            <div class="prix-final-label">Prix de vente mensuel</div>
+            <div class="prix-final-ht" id="finalHT">— €</div>
+            <div class="prix-final-ttc" id="finalTTC">— € TTC</div>
+            <div id="finalForfait" class="prix-forfait-badge" style="display:none;">Forfait minimum appliqué</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
+        <button class="btn-primary" onclick="allerEtape(5)">Générer le devis →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 5 : DEVIS -->
+    <div class="section" id="section-5" id="section-devis">
+      <div class="section-title">Devis client</div>
+      <div class="section-sub">Aperçu du devis — prêt à envoyer</div>
+
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button>
+        <button class="btn-secondary" id="btnSaveDevis" onclick="sauvegarder()">💾 Enregistrer le devis</button>
+        <div class="field" style="flex:1;min-width:200px;">
+          <input type="text" id="devisCommentaires" placeholder="Commentaires libres (conditions particulières…)" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;width:100%;font-family:Arial;outline:none;"/>
+        </div>
+      </div>
+
+      <div class="devis-preview" id="devisPreview">
+        <div class="devis-header">
+          <div>
+            <div class="devis-logo">CAPPOLIA PROPRETÉ</div>
+            <div style="font-size:11px;color:var(--gray);margin-top:4px;">Humaine · Sociale · Écologique</div>
+          </div>
+          <div class="devis-num">
+            <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;">Devis</div>
+            <div class="num" id="dNumero">N° —</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:4px;" id="dDate">—</div>
+          </div>
+        </div>
+
+        <div class="devis-parties">
+          <div>
+            <div class="partie-label">Émetteur</div>
+            <div class="partie-name">CAPPOLIA PROPRETÉ</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:4px;">Fos-sur-Mer — Bouches-du-Rhône<br/>contact@cappolia.fr</div>
+          </div>
+          <div>
+            <div class="partie-label">Client / Prospect</div>
+            <div class="partie-name" id="dClient">—</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:4px;" id="dClientDetails">—</div>
+          </div>
+        </div>
+
+        <div style="background:var(--green-light);border-radius:8px;padding:12px 16px;margin-bottom:20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Site d'intervention</div>
+          <div style="font-size:13px;color:var(--green-dark);" id="dSite">—</div>
+        </div>
+
+        <table class="devis-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Désignation</th>
+              <th style="text-align:center;">Fréquence</th>
+              <th style="text-align:right;">Prix HT / mois</th>
+            </tr>
+          </thead>
+          <tbody id="dLignes">
+          </tbody>
+        </table>
+
+        <div class="devis-totaux">
+          <div class="devis-total-row"><span>Total HT</span><span id="dTotalHT">—</span></div>
+          <div class="devis-total-row"><span>TVA 20%</span><span id="dTVA">—</span></div>
+          <div class="devis-total-row grand-total"><span>TOTAL TTC / MOIS</span><span id="dTotalTTC">—</span></div>
+        </div>
+
+        <div id="dCommentaires" style="margin-top:20px;background:#F8FAFC;border-radius:8px;padding:12px 16px;font-size:12px;color:#475569;display:none;"></div>
+
+        <div class="devis-footer">
+          Devis valable 30 jours à compter de la date d'émission.<br/>
+          Prestation mensuelle, hors prestations exceptionnelles.<br/>
+          <strong>CAPPOLIA PROPRETÉ</strong> — Humaine · Sociale · Écologique.
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(4)">← Retour</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+const CADENCES = {
+  'Aspiration du sol': 200,
+  'Balayage humide': 250,
+  'Balayage, lavage désinfection des sols': 150,
+  'Désinfection des surfaces': 70,
+  'Lavage manuel du sol + finitions': 100,
+  'Lavage mécanisé à l\'autolaveuse + finitions': 600,
+  'Nettoyage des surfaces verticales': 100,
+  'Nettoyage désinfection, détartrage': 40,
+  'Nettoyage du mobilier': 150,
+  'Vidage des corbeilles': 800,
+};
+
+const LOCAUX_OPTIONS = ['Bureaux','Sanitaires / WC','Couloirs / Circulations','Accueil / Hall','Cafétéria / Salle de pause','Escaliers','Salles de réunion','Espace open space','Archives','Local technique','Vestiaires','Parking intérieur'];
+
+let currentChiffrageId = null;
+let numeroDevis = null;
+
+// ── INIT ────────────────────────────────────────────────────────────────
+async function init() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { window.location.href = '/'; return; }
+
+  // Charger prospects
+  const { data: prospects } = await sb.from('prospects').select('id,raison_sociale,contact,telephone,email,adresse').eq('tenant_id', TENANT).order('raison_sociale');
+  const sel = document.getElementById('fcProspect');
+  (prospects || []).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.raison_sociale;
+    opt.dataset.contact = p.contact || '';
+    opt.dataset.telephone = p.telephone || '';
+    opt.dataset.email = p.email || '';
+    opt.dataset.adresse = p.adresse || '';
+    sel.appendChild(opt);
+  });
+
+  // Lire prospect depuis URL
+  const params = new URLSearchParams(window.location.search);
+  const pid = params.get('prospect');
+  if (pid) { sel.value = pid; remplirDepuisProspect(); }
+
+  // Lire chiffrage existant depuis URL
+  const cid = params.get('chiffrage');
+  if (cid) { await chargerChiffrage(cid); }
+
+  // Numéro de devis
+  numeroDevis = 'DEV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4);
+  document.getElementById('numeroDevis').textContent = numeroDevis;
+  document.getElementById('dNumero').textContent = numeroDevis;
+  document.getElementById('dDate').textContent = 'Date : ' + new Date().toLocaleDateString('fr-FR');
+
+  // Lignes initiales
+  ajouterLigneEC();
+  calculerEC();
+}
+
+// ── PROSPECT AUTO-FILL ───────────────────────────────────────────────────
+function remplirDepuisProspect() {
+  const sel = document.getElementById('fcProspect');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+  document.getElementById('fcRaisonSociale').value = opt.textContent;
+  document.getElementById('fcContact').value = opt.dataset.contact;
+  document.getElementById('fcTelephone').value = opt.dataset.telephone;
+  document.getElementById('fcEmail').value = opt.dataset.email;
+  document.getElementById('fcAdresse').value = opt.dataset.adresse;
+}
+
+// ── NAVIGATION ÉTAPES ────────────────────────────────────────────────────
+function allerEtape(n) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + n).classList.add('active');
+  document.getElementById('step' + n).classList.add('active');
+  if (n === 4) { syncHeuresVersCalc(); calculerPrix(); }
+  if (n === 5) { genererDevis(); }
+  window.scrollTo(0, 0);
+}
+
+// ── TABLEAU ENTRETIEN COURANT ────────────────────────────────────────────
+let lignesEC = 0;
+function ajouterLigneEC() {
+  lignesEC++;
+  const id = 'ec' + lignesEC;
+  const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  const freqMois = (freq * 4.33).toFixed(1);
+  const tr = document.createElement('tr');
+  tr.id = id;
+  tr.innerHTML = `
+    <td><select onchange="calculerEC()" style="min-width:130px;">
+      ${LOCAUX_OPTIONS.map(l => `<option>${l}</option>`).join('')}
+      <option value="Autre">Autre…</option>
+    </select></td>
+    <td><select onchange="majCadenceEC('${id}'); calculerEC()" style="min-width:200px;">
+      ${Object.keys(CADENCES).map(c => `<option>${c}</option>`).join('')}
+    </select></td>
+    <td><select style="min-width:80px;">
+      <option>Carrelage</option><option>Moquette</option><option>Parquet</option>
+      <option>Béton</option><option>Vinyle</option><option>Marbre</option>
+    </select></td>
+    <td><input type="number" min="0" step="0.5" placeholder="0" onchange="calculerEC()" class="surf-ec"/></td>
+    <td><input type="number" id="${id}_cadence" value="${Object.values(CADENCES)[0]}" readonly/></td>
+    <td><input type="number" id="${id}_tps" readonly/></td>
+    <td><input type="number" id="${id}_freq" value="${freqMois}" readonly/></td>
+    <td><input type="number" id="${id}_mensuel" readonly/></td>
+    <td><button class="btn-del" onclick="supprimerLigne('${id}', 'tbodyEC'); calculerEC()">✕</button></td>`;
+  document.getElementById('tbodyEC').appendChild(tr);
+  majCadenceEC(id);
+}
+
+function majCadenceEC(id) {
+  const tr = document.getElementById(id);
+  const sel = tr.querySelectorAll('select')[1];
+  const cadence = CADENCES[sel.value] || 200;
+  document.getElementById(id + '_cadence').value = cadence;
+  calculerEC();
+}
+
+function calculerEC() {
+  const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  const freqMois = parseFloat((freq * 4.33).toFixed(2));
+  let totalTpsPassage = 0;
+  let totalMensuel = 0;
+
+  document.querySelectorAll('#tbodyEC tr').forEach(tr => {
+    const id = tr.id;
+    const surf = parseFloat(tr.querySelector('.surf-ec')?.value || 0);
+    const cadence = parseFloat(document.getElementById(id + '_cadence')?.value || 200);
+    const freqEl = document.getElementById(id + '_freq');
+    if (freqEl) freqEl.value = freqMois.toFixed(1);
+    const tpsPassage = surf > 0 ? Math.max(surf / cadence, 1) : 0;
+    const tpsMensuel = parseFloat((tpsPassage * freqMois).toFixed(2));
+    if (document.getElementById(id + '_tps')) document.getElementById(id + '_tps').value = tpsPassage.toFixed(2);
+    if (document.getElementById(id + '_mensuel')) document.getElementById(id + '_mensuel').value = tpsMensuel.toFixed(2);
+    totalTpsPassage += tpsPassage;
+    totalMensuel += tpsMensuel;
+  });
+
+  document.getElementById('totalTpsPassage').textContent = totalTpsPassage.toFixed(2);
+  document.getElementById('totalTpsMensuel').textContent = totalMensuel.toFixed(2);
+  document.getElementById('kpiTpsPassage').textContent = totalTpsPassage.toFixed(2);
+  document.getElementById('kpiFreqMois').textContent = freqMois.toFixed(1);
+  document.getElementById('kpiTpsMois').textContent = totalMensuel.toFixed(2);
+  const nbAgents = totalMensuel > 0 ? Math.ceil(totalMensuel / (3 * 22)) : 0;
+  document.getElementById('kpiNbAgents').textContent = nbAgents || '—';
+  syncHeuresVersCalc();
+  calculerPrix();
+}
+
+// ── TABLEAU REMISE EN ÉTAT ───────────────────────────────────────────────
+let lignesREE = 0;
+function ajouterLigneREE() {
+  lignesREE++;
+  const id = 'ree' + lignesREE;
+  const tr = document.createElement('tr');
+  tr.id = id;
+  tr.innerHTML = `
+    <td><select style="min-width:130px;">
+      ${LOCAUX_OPTIONS.map(l => `<option>${l}</option>`).join('')}
+    </select></td>
+    <td><select onchange="majCadenceREE('${id}'); calculerREE()" style="min-width:200px;">
+      ${Object.keys(CADENCES).map(c => `<option>${c}</option>`).join('')}
+    </select></td>
+    <td><input type="number" min="0" step="0.5" placeholder="0" onchange="calculerREE()" class="surf-ree"/></td>
+    <td><input type="number" id="${id}_cadence" value="${Object.values(CADENCES)[0]}" readonly/></td>
+    <td><input type="number" id="${id}_tps" readonly/></td>
+    <td><input type="number" id="${id}_freq" value="1" min="0" step="0.5" onchange="calculerREE()"/></td>
+    <td><input type="number" id="${id}_mensuel" readonly/></td>
+    <td><button class="btn-del" onclick="supprimerLigne('${id}', 'tbodyREE'); calculerREE()">✕</button></td>`;
+  document.getElementById('tbodyREE').appendChild(tr);
+  majCadenceREE(id);
+}
+
+function majCadenceREE(id) {
+  const tr = document.getElementById(id);
+  const sel = tr.querySelectorAll('select')[1];
+  const cadence = CADENCES[sel.value] || 200;
+  document.getElementById(id + '_cadence').value = cadence;
+  calculerREE();
+}
+
+function calculerREE() {
+  let total = 0;
+  document.querySelectorAll('#tbodyREE tr').forEach(tr => {
+    const id = tr.id;
+    const surf = parseFloat(tr.querySelector('.surf-ree')?.value || 0);
+    const cadence = parseFloat(document.getElementById(id + '_cadence')?.value || 200);
+    const freq = parseFloat(document.getElementById(id + '_freq')?.value || 1);
+    const tps = surf > 0 ? surf / cadence : 0;
+    if (document.getElementById(id + '_tps')) document.getElementById(id + '_tps').value = tps.toFixed(2);
+    const mensuel = parseFloat((tps * freq).toFixed(2));
+    if (document.getElementById(id + '_mensuel')) document.getElementById(id + '_mensuel').value = mensuel.toFixed(2);
+    total += mensuel;
+  });
+  document.getElementById('totalREE').textContent = total.toFixed(2);
+  syncHeuresVersCalc();
+  calculerPrix();
+}
+
+function supprimerLigne(id, tbody) {
+  const tr = document.getElementById(id);
+  if (tr) tr.remove();
+}
+
+// ── CALCUL PRIX ──────────────────────────────────────────────────────────
+function syncHeuresVersCalc() {
+  const hEC = parseFloat(document.getElementById('totalTpsMensuel')?.textContent || 0);
+  const hREE = parseFloat(document.getElementById('totalREE')?.textContent || 0);
+  const elEC = document.getElementById('pvHeuresEC');
+  const elREE = document.getElementById('pvHeuresREE');
+  if (elEC) elEC.value = hEC.toFixed(2);
+  if (elREE) elREE.value = hREE.toFixed(2);
+}
+
+function calculerPrix() {
+  const hEC = parseFloat(document.getElementById('pvHeuresEC')?.value || 0);
+  const hREE = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
+  const tauxEC = parseFloat(document.getElementById('pvNiveauEC')?.value || 12.57);
+  const tauxREE = parseFloat(document.getElementById('pvNiveauREE')?.value || 13.17);
+
+  const masseSalariale = (hEC * tauxEC) + (hREE * tauxREE);
+  const tauxCharges = parseFloat(document.getElementById('pvCharges')?.value || 54) / 100;
+  const tauxProduits = parseFloat(document.getElementById('pvProduits')?.value || 15) / 100;
+  const tauxFournitures = parseFloat(document.getElementById('pvFournitures')?.value || 5) / 100;
+  const amortissement = parseFloat(document.getElementById('pvAmortissement')?.value || 0);
+  const tauxStructure = parseFloat(document.getElementById('pvStructure')?.value || 12) / 100;
+  const tauxMarge = parseFloat(document.getElementById('pvMarge')?.value || 30) / 100;
+
+  const charges = masseSalariale * tauxCharges;
+  const produits = masseSalariale * tauxProduits;
+  const fournitures = masseSalariale * tauxFournitures;
+  const coutChantier = masseSalariale + charges + produits + fournitures + amortissement;
+  const structure = coutChantier * tauxStructure;
+  const coutTotal = coutChantier + structure;
+  const marge = coutTotal * (tauxMarge / (1 - tauxMarge));
+  const prixHTCalc = coutTotal + marge;
+  const forfaitApplique = prixHTCalc < 250;
+  const prixHT = Math.max(prixHTCalc, 250);
+  const tva = prixHT * 0.20;
+  const prixTTC = prixHT + tva;
+
+  const fmt = v => v.toFixed(2).replace('.', ',') + ' €';
+
+  // Mise à jour affichage
+  document.getElementById('cMasseSalariale').textContent = fmt(masseSalariale);
+  document.getElementById('cCharges').textContent = fmt(charges);
+  document.getElementById('cProduits').textContent = fmt(produits);
+  document.getElementById('cFournitures').textContent = fmt(fournitures);
+  document.getElementById('cAmortissement').textContent = fmt(amortissement);
+  document.getElementById('cCoutChantier').textContent = fmt(coutChantier);
+  document.getElementById('cStructure').textContent = fmt(structure);
+  document.getElementById('cCoutTotal').textContent = fmt(coutTotal);
+  document.getElementById('cMarge').textContent = fmt(marge);
+  document.getElementById('cTVA').textContent = fmt(tva);
+  document.getElementById('cPrixHT').textContent = fmt(prixHT);
+
+  document.getElementById('badgeCharges').textContent = (tauxCharges * 100).toFixed(0) + '%';
+  document.getElementById('badgeProduits').textContent = (tauxProduits * 100).toFixed(0) + '%';
+  document.getElementById('badgeFournitures').textContent = (tauxFournitures * 100).toFixed(0) + '%';
+  document.getElementById('badgeStructure').textContent = (tauxStructure * 100).toFixed(0) + '%';
+  document.getElementById('badgeMarge').textContent = (tauxMarge * 100).toFixed(0) + '%';
+
+  document.getElementById('finalHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
+  document.getElementById('finalTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
+  document.getElementById('forfaitMsg').style.display = forfaitApplique ? 'block' : 'none';
+  document.getElementById('finalForfait').style.display = forfaitApplique ? 'block' : 'none';
+
+  document.getElementById('sidebarPrixHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
+  document.getElementById('sidebarPrixTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
+
+  return { masseSalariale, charges, produits, fournitures, amortissement, coutChantier, structure, coutTotal, marge, prixHT, tva, prixTTC, forfaitApplique };
+}
+
+// ── GÉNÉRATION DEVIS ─────────────────────────────────────────────────────
+function genererDevis() {
+  const prix = calculerPrix();
+  const fmt = v => v.toFixed(2).replace('.', ',') + ' €';
+
+  document.getElementById('dClient').textContent = document.getElementById('fcRaisonSociale').value || '—';
+  document.getElementById('dClientDetails').innerHTML =
+    [document.getElementById('fcContact').value, document.getElementById('fcTelephone').value, document.getElementById('fcEmail').value]
+    .filter(Boolean).join('<br/>');
+
+  const typeSite = document.getElementById('fcTypeSite').value;
+  const adresse = document.getElementById('fcAdresse').value;
+  const surface = document.getElementById('fcSurface').value;
+  const freq = document.getElementById('fcFrequence').value;
+  document.getElementById('dSite').textContent =
+    [typeSite, adresse, surface ? surface + ' m²' : ''].filter(Boolean).join(' — ');
+
+  const freqLabel = freq + ' jour' + (parseInt(freq) > 1 ? 's' : '') + '/semaine';
+  const tpsMois = document.getElementById('totalTpsMensuel')?.textContent || '0';
+  const tpsREE = document.getElementById('totalREE')?.textContent || '0';
+
+  let lignes = '';
+  if (parseFloat(tpsMois) > 0) {
+    lignes += `<tr>
+      <td>Entretien courant — nettoyage régulier des locaux</td>
+      <td style="text-align:center;">${freqLabel}</td>
+      <td style="text-align:right;">${fmt(prix.prixHT)}</td>
+    </tr>`;
+  }
+  if (parseFloat(tpsREE) > 0) {
+    lignes += `<tr>
+      <td>Remise en état / Prestations ponctuelles</td>
+      <td style="text-align:center;">Selon planification</td>
+      <td style="text-align:right;">Inclus</td>
+    </tr>`;
+  }
+  document.getElementById('dLignes').innerHTML = lignes || '<tr><td colspan="3" style="color:#94A3B8;text-align:center;">Aucune prestation définie</td></tr>';
+
+  document.getElementById('dTotalHT').textContent = fmt(prix.prixHT);
+  document.getElementById('dTVA').textContent = fmt(prix.tva);
+  document.getElementById('dTotalTTC').textContent = fmt(prix.prixTTC);
+
+  const commentaires = document.getElementById('devisCommentaires').value.trim();
+  const comEl = document.getElementById('dCommentaires');
+  if (commentaires) { comEl.textContent = commentaires; comEl.style.display = 'block'; }
+  else { comEl.style.display = 'none'; }
+}
+
+// ── SAUVEGARDE SUPABASE ──────────────────────────────────────────────────
+async function sauvegarder() {
+  const prix = calculerPrix();
+  const prospectId = document.getElementById('fcProspect').value || null;
+
+  const surfaces_ec = [];
+  document.querySelectorAll('#tbodyEC tr').forEach(tr => {
+    const sels = tr.querySelectorAll('select');
+    const surf = tr.querySelector('.surf-ec')?.value;
+    surfaces_ec.push({ locaux: sels[0]?.value, prestation: sels[1]?.value, surface: parseFloat(surf || 0) });
+  });
+
+  const payload = {
+    tenant_id: TENANT,
+    prospect_id: prospectId,
+    numero_devis: numeroDevis,
+    statut: 'brouillon',
+    raison_sociale: document.getElementById('fcRaisonSociale').value,
+    contact: document.getElementById('fcContact').value,
+    adresse_site: document.getElementById('fcAdresse').value,
+    type_site: document.getElementById('fcTypeSite').value,
+    surface_totale: parseFloat(document.getElementById('fcSurface').value || 0),
+    frequence_semaine: parseFloat(document.getElementById('fcFrequence').value || 5),
+    horaires: document.getElementById('fcHoraires').value,
+    surfaces: surfaces_ec,
+    heures_mensuel_ec: parseFloat(document.getElementById('pvHeuresEC').value || 0),
+    heures_mensuel_ree: parseFloat(document.getElementById('pvHeuresREE').value || 0),
+    masse_salariale: prix.masseSalariale,
+    prix_ht: prix.prixHT,
+    tva: prix.tva,
+    prix_ttc: prix.prixTTC,
+    commentaires: document.getElementById('devisCommentaires').value,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (currentChiffrageId) {
+    await sb.from('chiffrages').update(payload).eq('id', currentChiffrageId);
+  } else {
+    const { data } = await sb.from('chiffrages').insert(payload).select().single();
+    if (data) currentChiffrageId = data.id;
+  }
+
+  // Mettre à jour statut prospect
+  if (prospectId) {
+    await sb.from('prospects').update({ statut: 'chiffrage', updated_at: new Date().toISOString() }).eq('id', prospectId);
+  }
+
+  toast('Chiffrage enregistré ✓');
+}
+
+async function chargerChiffrage(id) {
+  const { data } = await sb.from('chiffrages').select('*').eq('id', id).single();
+  if (!data) return;
+  currentChiffrageId = id;
+  numeroDevis = data.numero_devis;
+  document.getElementById('fcRaisonSociale').value = data.raison_sociale || '';
+  document.getElementById('fcContact').value = data.contact || '';
+  document.getElementById('fcAdresse').value = data.adresse_site || '';
+  document.getElementById('fcTypeSite').value = data.type_site || '';
+  document.getElementById('fcSurface').value = data.surface_totale || '';
+  document.getElementById('fcFrequence').value = data.frequence_semaine || 5;
+  document.getElementById('fcHoraires').value = data.horaires || '';
+  if (data.prospect_id) document.getElementById('fcProspect').value = data.prospect_id;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+async function deconnexion() {
+  await sb.auth.signOut();
+  window.location.href = '/';
+}
+
+init();
+</script>
+</body>
+</html>
