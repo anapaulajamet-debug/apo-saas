@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CAPPOLIA — Prospection & CRM</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #2D6A3F;
+      --green-dark: #1A3D28;
+      --green-light: #E8F5ED;
+      --green-mid: #4A9460;
+      --orange: #D97706;
+      --red: #DC2626;
+      --gray: #64748B;
+      --border: #E2E8F0;
+      --bg: #F1F5F9;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: #1e293b;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--green-dark);
+      color: white;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-left img { width: 36px; height: 36px; object-fit: contain; }
+    .header-brand { font-size: 13px; font-weight: 900; letter-spacing: 2px; }
+    .header-module { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .btn-header { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: Arial, sans-serif; }
+    .btn-header:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── TABS ── */
+    .tabs {
+      background: white;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      padding: 0 24px;
+      gap: 0;
+    }
+    .tab {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.active { color: var(--green); border-color: var(--green); }
+    .tab:hover:not(.active) { color: var(--green-dark); }
+
+    /* ── MAIN ── */
+    main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* ── KPI BAR ── */
+    .kpi-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .kpi {
+      background: white;
+      border-radius: 10px;
+      padding: 16px 20px;
+      border: 1px solid var(--border);
+    }
+    .kpi-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray); margin-bottom: 6px; }
+    .kpi-val { font-size: 28px; font-weight: 900; color: var(--green-dark); }
+    .kpi-sub { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .kpi.orange .kpi-val { color: var(--orange); }
+    .kpi.green .kpi-val { color: var(--green); }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+    .toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      background: white;
+      cursor: pointer;
+      color: var(--gray);
+      transition: all 0.15s;
+    }
+    .filter-btn.active, .filter-btn:hover { background: var(--green); color: white; border-color: var(--green); }
+    .search-box {
+      padding: 8px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: Arial, sans-serif;
+      outline: none;
+      width: 220px;
+    }
+    .search-box:focus { border-color: var(--green); }
+    .btn-primary {
+      background: var(--green);
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: var(--green-dark); }
+
+    /* ── KANBAN ── */
+    .kanban {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 16px;
+    }
+    .kanban-col {
+      min-width: 210px;
+      flex-shrink: 0;
+    }
+    .col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 0 4px;
+    }
+    .col-title { font-size: 12px; font-weight: 700; color: var(--green-dark); text-transform: uppercase; letter-spacing: 0.5px; }
+    .col-count {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--green-light);
+      color: var(--green);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .col-body {
+      background: #F8FAFC;
+      border-radius: 10px;
+      min-height: 120px;
+      padding: 8px;
+      border: 1.5px dashed var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .col-body.drag-over { border-color: var(--green); background: var(--green-light); }
+
+    /* ── PROSPECT CARD ── */
+    .prospect-card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.1s;
+      draggable: true;
+    }
+    .prospect-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-1px); }
+    .prospect-card.dragging { opacity: 0.4; }
+    .card-name { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .card-contact { font-size: 11px; color: var(--gray); }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+    .tag-secteur {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--green-light);
+      color: var(--green);
+    }
+    .card-date { font-size: 10px; color: #94A3B8; }
+    .card-actions { display: flex; gap: 4px; margin-top: 8px; }
+    .card-btn {
+      flex: 1;
+      padding: 5px 0;
+      font-size: 10px;
+      font-weight: 700;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+    .card-btn-green { background: var(--green-light); color: var(--green); }
+    .card-btn-green:hover { background: var(--green); color: white; }
+    .card-btn-gray { background: #F1F5F9; color: var(--gray); }
+    .card-btn-gray:hover { background: #E2E8F0; }
+
+    /* ── ZONE MAP PLACEHOLDER ── */
+    .map-placeholder {
+      background: white;
+      border-radius: 12px;
+      border: 2px dashed var(--border);
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .map-icon { font-size: 48px; margin-bottom: 12px; }
+    .map-title { font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 8px; }
+    .map-sub { font-size: 13px; color: var(--gray); margin-bottom: 16px; }
+    .map-zone-badge {
+      display: inline-block;
+      background: var(--green-light);
+      color: var(--green);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+
+    /* ── SECTEURS LIST ── */
+    .secteurs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .secteur-card {
+      background: white;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .secteur-card:hover, .secteur-card.active { border-color: var(--green); background: var(--green-light); }
+    .secteur-icon { font-size: 24px; margin-bottom: 6px; }
+    .secteur-name { font-size: 12px; font-weight: 700; color: var(--green-dark); }
+    .secteur-count { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-title { font-size: 18px; font-weight: 900; color: var(--green-dark); margin-bottom: 24px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .field label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--green-dark); margin-bottom: 5px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: 13px; font-family: Arial, sans-serif; outline: none; background: #F8FAFC;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); background: white; }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .btn-cancel { background: #F1F5F9; color: var(--gray); border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: Arial, sans-serif; }
+    .btn-cancel:hover { background: #E2E8F0; }
+
+    /* ── FICHE PROSPECT MODAL ── */
+    .fiche-header {
+      display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px;
+      padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    }
+    .fiche-avatar {
+      width: 52px; height: 52px; border-radius: 10px; background: var(--green-light);
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+      flex-shrink: 0;
+    }
+    .fiche-name { font-size: 18px; font-weight: 900; color: var(--green-dark); }
+    .fiche-sub { font-size: 12px; color: var(--gray); margin-top: 2px; }
+    .fiche-status { margin-top: 6px; }
+    .status-select {
+      padding: 4px 10px; border: 1.5px solid var(--green); border-radius: 6px;
+      font-size: 12px; font-weight: 700; color: var(--green); background: var(--green-light);
+      cursor: pointer; font-family: Arial, sans-serif;
+    }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .info-item label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray); }
+    .info-item span { display: block; font-size: 13px; color: #1e293b; margin-top: 2px; }
+    .activites-title { font-size: 13px; font-weight: 700; color: var(--green-dark); margin-bottom: 10px; }
+    .activite-item {
+      display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 12px; color: #475569;
+    }
+    .activite-icon { font-size: 16px; flex-shrink: 0; }
+    .activite-date { color: #94A3B8; font-size: 11px; }
+    .add-activite {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .add-activite select {
+      padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: 12px; font-family: Arial, sans-serif; outline: none; background: #F8FAFC;
+    }
+    .add-activite input {
+      flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: 12px; font-family: Arial, sans-serif; outline: none; background: #F8FAFC;
+    }
+    .add-activite input:focus, .add-activite select:focus { border-color: var(--green); background: white; }
+    .btn-sm {
+      padding: 8px 14px; background: var(--green); color: white; border: none;
+      border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+    .btn-sm:hover { background: var(--green-dark); }
+
+    .section-hidden { display: none; }
+
+    /* ── EMPTY STATE ── */
+    .empty-col {
+      text-align: center; padding: 20px 10px; color: #CBD5E1; font-size: 11px;
+    }
+    .empty-col .empty-icon { font-size: 24px; margin-bottom: 6px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      background: var(--green-dark); color: white; padding: 12px 20px;
+      border-radius: 8px; font-size: 13px; font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      transform: translateY(80px); opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <img src="/clients/cappolia/assets/logo.png" alt="Cappolia" onerror="this.style.display='none'"/>
+    <div>
+      <div class="header-brand">CAPPOLIA PROPRETÉ</div>
+      <div class="header-module">Commercial — Prospection & CRM</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span style="font-size:12px;color:rgba(255,255,255,0.7);" id="userEmail"></span>
+    <button class="btn-header" onclick="window.location.href='/dashboard'">Tableau de bord</button>
+    <button class="btn-header" onclick="deconnexion()">Déconnexion</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="afficherOnglet('pipeline', this)">Pipeline prospects</div>
+  <div class="tab" onclick="afficherOnglet('zones', this)">Zones & Secteurs</div>
+</div>
+
+<main>
+
+  <!-- KPI BAR -->
+  <div class="kpi-bar">
+    <div class="kpi">
+      <div class="kpi-label">Total prospects</div>
+      <div class="kpi-val" id="kpiTotal">—</div>
+      <div class="kpi-sub">cette zone</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-label">RDV planifiés</div>
+      <div class="kpi-val" id="kpiRdv">—</div>
+      <div class="kpi-sub">à venir</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Chiffrages en cours</div>
+      <div class="kpi-val" id="kpiChiffrage">—</div>
+      <div class="kpi-sub">à finaliser</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Gagnés ce mois</div>
+      <div class="kpi-val" id="kpiGagne">—</div>
+      <div class="kpi-sub" id="kpiGagneMois"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Taux transformation</div>
+      <div class="kpi-val" id="kpiTaux">—</div>
+      <div class="kpi-sub">prospects → clients</div>
+    </div>
+  </div>
+
+  <!-- SECTION PIPELINE -->
+  <div id="section-pipeline">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="filter-btn active" onclick="filtrerSecteur('tous', this)">Tous</button>
+        <button class="filter-btn" onclick="filtrerSecteur('notarial', this)">Office Notarial</button>
+        <button class="filter-btn" onclick="filtrerSecteur('pharmacie', this)">Pharmacie</button>
+        <button class="filter-btn" onclick="filtrerSecteur('tertiaire', this)">Tertiaire</button>
+        <button class="filter-btn" onclick="filtrerSecteur('copropriete', this)">Copropriété</button>
+        <button class="filter-btn" onclick="filtrerSecteur('medical', this)">Médical</button>
+        <input class="search-box" type="text" placeholder="Rechercher un prospect…" oninput="rechercher(this.value)"/>
+      </div>
+      <button class="btn-primary" onclick="ouvrirModalNouveauProspect()">+ Nouveau prospect</button>
+    </div>
+
+    <!-- KANBAN -->
+    <div class="kanban" id="kanban">
+      <!-- columns rendered by JS -->
+    </div>
+
+  </div>
+
+  <!-- SECTION ZONES & SECTEURS -->
+  <div id="section-zones" class="section-hidden">
+
+    <div class="map-placeholder">
+      <div class="map-icon">🗺️</div>
+      <div class="map-title">Carte de prospection</div>
+      <div class="map-sub">Zone de démarrage définie par le directeur</div>
+      <div class="map-zone-badge">📍 13190 ALLAUCH — Bouches-du-Rhône</div>
+      <p style="font-size:12px;color:#94A3B8;margin-top:10px;">Google Maps sera intégré prochainement pour visualiser les prospects sur la carte et planifier les tournées de prospection.</p>
+    </div>
+
+    <div style="font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:12px;">Secteurs d'activité à démarcher</div>
+    <div class="secteurs-grid" id="secteursGrid">
+      <!-- rendered by JS -->
+    </div>
+
+  </div>
+
+</main>
+
+<!-- MODAL NOUVEAU PROSPECT -->
+<div class="modal-overlay" id="modalNouveauProspect">
+  <div class="modal">
+    <div class="modal-title" id="modalProspectTitre">Nouveau prospect</div>
+    <div class="form-row">
+      <div class="field">
+        <label>Raison sociale *</label>
+        <input type="text" id="pRaisonSociale" placeholder="Cabinet Dupont…"/>
+      </div>
+      <div class="field">
+        <label>Secteur d'activité *</label>
+        <select id="pSecteur">
+          <option value="">— Choisir —</option>
+          <option value="notarial">Office Notarial</option>
+          <option value="pharmacie">Pharmacie</option>
+          <option value="tertiaire">Bureaux / Tertiaire</option>
+          <option value="copropriete">Copropriété</option>
+          <option value="industrie">Industrie</option>
+          <option value="medical">Cabinet Médical / Paramédical</option>
+          <option value="juridique">Cabinet Avocat / Expertise</option>
+          <option value="commerce">Commerce / Retail</option>
+          <option value="restauration">Restauration</option>
+          <option value="education">Établissement Scolaire</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Contact (nom prénom)</label>
+        <input type="text" id="pContact" placeholder="Marie Martin"/>
+      </div>
+      <div class="field">
+        <label>Téléphone</label>
+        <input type="tel" id="pTelephone" placeholder="06 XX XX XX XX"/>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="pEmail" placeholder="contact@cabinet.fr"/>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field">
+        <label>Adresse du site</label>
+        <input type="text" id="pAdresse" placeholder="12 rue de la République, 13190 ALLAUCH"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Statut initial</label>
+        <select id="pStatut">
+          <option value="a_contacter">À contacter</option>
+          <option value="contacte">Contacté</option>
+          <option value="rdv_planifie">RDV planifié</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date prochain contact</label>
+        <input type="date" id="pDateContact"/>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field">
+        <label>Notes / Observations</label>
+        <textarea id="pNotes" placeholder="Informations utiles pour la prise de contact…"></textarea>
+      </div>
+    </div>
+    <input type="hidden" id="pId"/>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fermerModalProspect()">Annuler</button>
+      <button class="btn-primary" onclick="enregistrerProspect()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHE PROSPECT -->
+<div class="modal-overlay" id="modalFicheProspect">
+  <div class="modal" style="max-width:620px;">
+    <div class="fiche-header">
+      <div class="fiche-avatar" id="ficheAvatar">🏢</div>
+      <div style="flex:1;">
+        <div class="fiche-name" id="ficheName">—</div>
+        <div class="fiche-sub" id="ficheSub">—</div>
+        <div class="fiche-status">
+          <select class="status-select" id="ficheStatus" onchange="changerStatut(this.value)">
+            <option value="a_contacter">À contacter</option>
+            <option value="contacte">Contacté</option>
+            <option value="rdv_planifie">RDV planifié</option>
+            <option value="visite_site">Visite site</option>
+            <option value="chiffrage">Chiffrage en cours</option>
+            <option value="offre_envoyee">Offre envoyée</option>
+            <option value="gagne">Gagné 🏆</option>
+            <option value="perdu">Perdu</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm" onclick="ouvrirModificationProspect()" style="background:#F1F5F9;color:var(--gray);">✏️ Modifier</button>
+        <button class="btn-cancel" onclick="fermerFicheProspect()">✕</button>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-item"><label>Secteur</label><span id="ficheSecteur">—</span></div>
+      <div class="info-item"><label>Contact</label><span id="ficheContact">—</span></div>
+      <div class="info-item"><label>Téléphone</label><span id="ficheTel">—</span></div>
+      <div class="info-item"><label>Email</label><span id="ficheEmail">—</span></div>
+      <div class="info-item" style="grid-column:1/-1;"><label>Adresse</label><span id="ficheAdresse">—</span></div>
+      <div class="info-item"><label>Prochain contact</label><span id="ficheProchainContact">—</span></div>
+      <div class="info-item"><label>Créé le</label><span id="ficheCreeLe">—</span></div>
+    </div>
+
+    <div id="ficheNotes" style="background:#F8FAFC;border-radius:8px;padding:10px 12px;font-size:13px;color:#475569;margin-bottom:16px;display:none;"></div>
+
+    <div class="activites-title">Historique des activités</div>
+    <div id="ficheActivites" style="max-height:180px;overflow-y:auto;"></div>
+
+    <div class="add-activite">
+      <select id="newActiviteType">
+        <option value="appel">📞 Appel</option>
+        <option value="email">✉️ Email</option>
+        <option value="rdv">📅 RDV</option>
+        <option value="visite">🏢 Visite</option>
+        <option value="note">📝 Note</option>
+      </select>
+      <input type="text" id="newActiviteDesc" placeholder="Ajouter une note ou activité…"/>
+      <button class="btn-sm" onclick="ajouterActivite()">Ajouter</button>
+    </div>
+
+    <div class="modal-footer" style="margin-top:16px;">
+      <button class="btn-primary" onclick="allerChiffrage()" style="background:var(--orange);">📊 Lancer le chiffrage</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+const STATUTS = [
+  { key: 'a_contacter',  label: 'À contacter',      emoji: '📋' },
+  { key: 'contacte',     label: 'Contacté',          emoji: '📞' },
+  { key: 'rdv_planifie', label: 'RDV planifié',      emoji: '📅' },
+  { key: 'visite_site',  label: 'Visite site',       emoji: '🏢' },
+  { key: 'chiffrage',    label: 'Chiffrage en cours', emoji: '📊' },
+  { key: 'offre_envoyee',label: 'Offre envoyée',     emoji: '📨' },
+  { key: 'gagne',        label: 'Gagné 🏆',          emoji: '✅' },
+  { key: 'perdu',        label: 'Perdu',             emoji: '❌' },
+];
+
+const SECTEURS = {
+  notarial:    { label: 'Office Notarial',           emoji: '⚖️' },
+  pharmacie:   { label: 'Pharmacie',                 emoji: '💊' },
+  tertiaire:   { label: 'Bureaux / Tertiaire',       emoji: '🏗️' },
+  copropriete: { label: 'Copropriété',               emoji: '🏘️' },
+  industrie:   { label: 'Industrie',                 emoji: '🏭' },
+  medical:     { label: 'Cabinet Médical',           emoji: '🏥' },
+  juridique:   { label: 'Cabinet Avocat',            emoji: '📜' },
+  commerce:    { label: 'Commerce / Retail',         emoji: '🛍️' },
+  restauration:{ label: 'Restauration',              emoji: '🍽️' },
+  education:   { label: 'Établissement Scolaire',    emoji: '🏫' },
+  autre:       { label: 'Autre',                     emoji: '📌' },
+};
+
+const ACTIVITE_ICONS = { appel:'📞', email:'✉️', rdv:'📅', visite:'🏢', note:'📝' };
+
+let allProspects = [];
+let activitesByProspect = {};
+let currentProspectId = null;
+let filtreStatut = 'tous';
+let filtreRecherche = '';
+
+// ── INIT ──────────────────────────────────────────────────────────────
+async function init() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { window.location.href = '/'; return; }
+  document.getElementById('userEmail').textContent = user.email;
+  await chargerProspects();
+  afficherSecteurs();
+  const mois = new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+  document.getElementById('kpiGagneMois').textContent = mois;
+}
+
+async function chargerProspects() {
+  const { data } = await sb.from('prospects').select('*').eq('tenant_id', TENANT).order('created_at', { ascending: false });
+  allProspects = data || [];
+  majKPIs();
+  renderKanban();
+}
+
+// ── KPIs ───────────────────────────────────────────────────────────────
+function majKPIs() {
+  document.getElementById('kpiTotal').textContent = allProspects.length;
+  document.getElementById('kpiRdv').textContent = allProspects.filter(p => p.statut === 'rdv_planifie').length;
+  document.getElementById('kpiChiffrage').textContent = allProspects.filter(p => p.statut === 'chiffrage').length;
+  const maintenant = new Date();
+  const debut = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
+  const gagnes = allProspects.filter(p => p.statut === 'gagne' && new Date(p.updated_at) >= debut).length;
+  document.getElementById('kpiGagne').textContent = gagnes;
+  const total = allProspects.length;
+  const taux = total > 0 ? Math.round((allProspects.filter(p => p.statut === 'gagne').length / total) * 100) : 0;
+  document.getElementById('kpiTaux').textContent = taux + '%';
+}
+
+// ── KANBAN ─────────────────────────────────────────────────────────────
+function renderKanban() {
+  const kanban = document.getElementById('kanban');
+  kanban.innerHTML = '';
+  const filtres = STATUTS.filter(s => s.key !== 'perdu');
+  filtres.push(STATUTS.find(s => s.key === 'perdu'));
+
+  for (const s of filtres) {
+    let prospects = allProspects.filter(p => p.statut === s.key);
+    if (filtreStatut !== 'tous') prospects = prospects.filter(p => p.secteur === filtreStatut);
+    if (filtreRecherche) prospects = prospects.filter(p => p.raison_sociale.toLowerCase().includes(filtreRecherche.toLowerCase()));
+
+    const col = document.createElement('div');
+    col.className = 'kanban-col';
+    col.innerHTML = `
+      <div class="col-header">
+        <span class="col-title">${s.emoji} ${s.label}</span>
+        <span class="col-count">${prospects.length}</span>
+      </div>
+      <div class="col-body" data-statut="${s.key}"
+        ondragover="event.preventDefault(); this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="dropProspect(event, '${s.key}')">
+        ${prospects.length === 0 ? '<div class="empty-col"><div class="empty-icon">·</div>Aucun</div>' : ''}
+        ${prospects.map(p => carteHTML(p)).join('')}
+      </div>`;
+    kanban.appendChild(col);
+  }
+}
+
+function carteHTML(p) {
+  const sec = SECTEURS[p.secteur] || { label: p.secteur || '', emoji: '📌' };
+  const date = p.date_prochain_contact ? new Date(p.date_prochain_contact).toLocaleDateString('fr-FR') : '';
+  return `
+    <div class="prospect-card" draggable="true"
+      ondragstart="dragStart(event, '${p.id}')"
+      ondragend="event.target.classList.remove('dragging')"
+      onclick="ouvrirFicheProspect('${p.id}')">
+      <div class="card-name">${p.raison_sociale}</div>
+      <div class="card-contact">${p.contact || '—'}</div>
+      <div class="card-meta">
+        <span class="tag-secteur">${sec.emoji} ${sec.label}</span>
+        <span class="card-date">${date}</span>
+      </div>
+      <div class="card-actions">
+        <button class="card-btn card-btn-green" onclick="event.stopPropagation(); ouvrirFicheProspect('${p.id}')">Voir</button>
+        <button class="card-btn card-btn-gray" onclick="event.stopPropagation(); ouvrirModifDirect('${p.id}')">✏️</button>
+      </div>
+    </div>`;
+}
+
+// ── DRAG & DROP ─────────────────────────────────────────────────────────
+let draggedId = null;
+function dragStart(e, id) {
+  draggedId = id;
+  e.target.classList.add('dragging');
+}
+async function dropProspect(e, nouveauStatut) {
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedId) return;
+  await sb.from('prospects').update({ statut: nouveauStatut, updated_at: new Date().toISOString() }).eq('id', draggedId);
+  draggedId = null;
+  await chargerProspects();
+  toast('Statut mis à jour ✓');
+}
+
+// ── FILTRES ─────────────────────────────────────────────────────────────
+function filtrerSecteur(secteur, btn) {
+  filtreStatut = secteur;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderKanban();
+}
+function rechercher(val) {
+  filtreRecherche = val;
+  renderKanban();
+}
+
+// ── MODAL NOUVEAU PROSPECT ─────────────────────────────────────────────
+function ouvrirModalNouveauProspect() {
+  document.getElementById('modalProspectTitre').textContent = 'Nouveau prospect';
+  document.getElementById('pId').value = '';
+  ['pRaisonSociale','pContact','pTelephone','pEmail','pAdresse','pNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pSecteur').value = '';
+  document.getElementById('pStatut').value = 'a_contacter';
+  document.getElementById('pDateContact').value = '';
+  document.getElementById('modalNouveauProspect').classList.add('open');
+}
+
+function ouvrirModifDirect(id) {
+  const p = allProspects.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modalProspectTitre').textContent = 'Modifier le prospect';
+  document.getElementById('pId').value = p.id;
+  document.getElementById('pRaisonSociale').value = p.raison_sociale || '';
+  document.getElementById('pContact').value = p.contact || '';
+  document.getElementById('pTelephone').value = p.telephone || '';
+  document.getElementById('pEmail').value = p.email || '';
+  document.getElementById('pAdresse').value = p.adresse || '';
+  document.getElementById('pNotes').value = p.notes || '';
+  document.getElementById('pSecteur').value = p.secteur || '';
+  document.getElementById('pStatut').value = p.statut || 'a_contacter';
+  document.getElementById('pDateContact').value = p.date_prochain_contact || '';
+  document.getElementById('modalNouveauProspect').classList.add('open');
+}
+
+function fermerModalProspect() {
+  document.getElementById('modalNouveauProspect').classList.remove('open');
+}
+
+async function enregistrerProspect() {
+  const raisonSociale = document.getElementById('pRaisonSociale').value.trim();
+  const secteur = document.getElementById('pSecteur').value;
+  if (!raisonSociale || !secteur) { toast('Raison sociale et secteur obligatoires'); return; }
+
+  const payload = {
+    tenant_id: TENANT,
+    raison_sociale: raisonSociale,
+    contact: document.getElementById('pContact').value.trim() || null,
+    telephone: document.getElementById('pTelephone').value.trim() || null,
+    email: document.getElementById('pEmail').value.trim() || null,
+    adresse: document.getElementById('pAdresse').value.trim() || null,
+    notes: document.getElementById('pNotes').value.trim() || null,
+    secteur,
+    statut: document.getElementById('pStatut').value,
+    date_prochain_contact: document.getElementById('pDateContact').value || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const id = document.getElementById('pId').value;
+  if (id) {
+    await sb.from('prospects').update(payload).eq('id', id);
+  } else {
+    await sb.from('prospects').insert(payload);
+  }
+
+  fermerModalProspect();
+  await chargerProspects();
+  toast(id ? 'Prospect mis à jour ✓' : 'Prospect ajouté ✓');
+}
+
+// ── FICHE PROSPECT ─────────────────────────────────────────────────────
+async function ouvrirFicheProspect(id) {
+  const p = allProspects.find(x => x.id === id);
+  if (!p) return;
+  currentProspectId = id;
+
+  const sec = SECTEURS[p.secteur] || { label: p.secteur || '', emoji: '📌' };
+  document.getElementById('ficheAvatar').textContent = sec.emoji;
+  document.getElementById('ficheName').textContent = p.raison_sociale;
+  document.getElementById('ficheSub').textContent = (p.contact || '') + (p.adresse ? ' · ' + p.adresse : '');
+  document.getElementById('ficheStatus').value = p.statut || 'a_contacter';
+  document.getElementById('ficheSecteur').textContent = sec.label;
+  document.getElementById('ficheContact').textContent = p.contact || '—';
+  document.getElementById('ficheTel').textContent = p.telephone || '—';
+  document.getElementById('ficheEmail').textContent = p.email || '—';
+  document.getElementById('ficheAdresse').textContent = p.adresse || '—';
+  document.getElementById('ficheProchainContact').textContent = p.date_prochain_contact ? new Date(p.date_prochain_contact).toLocaleDateString('fr-FR') : '—';
+  document.getElementById('ficheCreeLe').textContent = new Date(p.created_at).toLocaleDateString('fr-FR');
+
+  const notesEl = document.getElementById('ficheNotes');
+  if (p.notes) { notesEl.textContent = p.notes; notesEl.style.display = 'block'; }
+  else { notesEl.style.display = 'none'; }
+
+  await chargerActivites(id);
+  document.getElementById('modalFicheProspect').classList.add('open');
+}
+
+function fermerFicheProspect() {
+  document.getElementById('modalFicheProspect').classList.remove('open');
+  currentProspectId = null;
+}
+
+async function changerStatut(val) {
+  if (!currentProspectId) return;
+  await sb.from('prospects').update({ statut: val, updated_at: new Date().toISOString() }).eq('id', currentProspectId);
+  await chargerProspects();
+  toast('Statut mis à jour ✓');
+}
+
+function ouvrirModificationProspect() {
+  fermerFicheProspect();
+  if (currentProspectId) setTimeout(() => ouvrirModifDirect(currentProspectId), 100);
+}
+
+// ── ACTIVITÉS ──────────────────────────────────────────────────────────
+async function chargerActivites(prospectId) {
+  const { data } = await sb.from('activites_crm').select('*').eq('prospect_id', prospectId).order('date_activite', { ascending: false });
+  const list = data || [];
+  const el = document.getElementById('ficheActivites');
+  el.innerHTML = list.length === 0
+    ? '<div style="color:#CBD5E1;font-size:12px;padding:10px 0;">Aucune activité enregistrée.</div>'
+    : list.map(a => `
+        <div class="activite-item">
+          <span class="activite-icon">${ACTIVITE_ICONS[a.type] || '📝'}</span>
+          <div>
+            <div>${a.description}</div>
+            <div class="activite-date">${new Date(a.date_activite).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+          </div>
+        </div>`).join('');
+}
+
+async function ajouterActivite() {
+  const desc = document.getElementById('newActiviteDesc').value.trim();
+  if (!desc || !currentProspectId) return;
+  const type = document.getElementById('newActiviteType').value;
+  await sb.from('activites_crm').insert({ prospect_id: currentProspectId, type, description: desc, date_activite: new Date().toISOString() });
+  document.getElementById('newActiviteDesc').value = '';
+  await chargerActivites(currentProspectId);
+  toast('Activité ajoutée ✓');
+}
+
+function allerChiffrage() {
+  const p = allProspects.find(x => x.id === currentProspectId);
+  if (!p) return;
+  // Phase 2 — chiffrage non encore construit
+  toast('🔜 Module chiffrage — disponible Phase 2');
+}
+
+// ── ZONES & SECTEURS ───────────────────────────────────────────────────
+function afficherSecteurs() {
+  const grid = document.getElementById('secteursGrid');
+  grid.innerHTML = Object.entries(SECTEURS).map(([key, s]) => {
+    const count = allProspects.filter(p => p.secteur === key).length;
+    return `
+      <div class="secteur-card" onclick="filtrerDepuisZones('${key}')">
+        <div class="secteur-icon">${s.emoji}</div>
+        <div class="secteur-name">${s.label}</div>
+        <div class="secteur-count">${count} prospect${count > 1 ? 's' : ''}</div>
+      </div>`;
+  }).join('');
+}
+
+function filtrerDepuisZones(secteur) {
+  afficherOnglet('pipeline', document.querySelector('.tab'));
+  filtreStatut = secteur;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim().toLowerCase().includes(secteur));
+  });
+  renderKanban();
+}
+
+// ── ONGLETS ─────────────────────────────────────────────────────────────
+function afficherOnglet(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['pipeline','zones'].forEach(s => {
+    document.getElementById('section-' + s).classList.toggle('section-hidden', s !== id);
+  });
+  if (id === 'zones') afficherSecteurs();
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+async function deconnexion() {
+  await sb.auth.signOut();
+  window.location.href = '/';
+}
+
+init();
+</script>
+
+</body>
+</html>

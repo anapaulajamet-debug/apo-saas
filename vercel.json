@@ -7,6 +7,7 @@
     { "source": "/creer-profil", "destination": "/clients/cappolia/creer-profil.html" },
     { "source": "/pointage", "destination": "/clients/cappolia/pointage-agent.html" },
     { "source": "/documents", "destination": "/clients/cappolia/documents.html" },
-    { "source": "/mes-agents", "destination": "/clients/cappolia/mes-agents.html" }
+    { "source": "/mes-agents", "destination": "/clients/cappolia/mes-agents.html" },
+    { "source": "/commercial", "destination": "/clients/cappolia/commercial.html" }
   ]
 }
