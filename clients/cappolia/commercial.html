@@ -1073,44 +1073,67 @@ function ajouterMarqueurGoogle(place, type, dejaAjoute) {
     },
   });
 
-  const adresse = place.vicinity || '';
-  const tel = place.formatted_phone_number || '';
-
-  const infoWindow = new google.maps.InfoWindow({
-    content: `
-      <div style="font-family:Arial,sans-serif;padding:4px;min-width:200px;">
-        <div style="font-weight:700;font-size:13px;color:#1A3D28;">${sec.emoji} ${place.name}</div>
-        <div style="font-size:11px;color:#64748B;margin:3px 0;">${sec.label}</div>
-        <div style="font-size:11px;color:#475569;">${adresse}</div>
-        ${place.rating ? `<div style="font-size:11px;color:#92400E;margin-top:3px;">⭐ ${place.rating}/5 (${place.user_ratings_total || 0} avis)</div>` : ''}
-        <div style="margin-top:10px;">
-          ${dejaAjoute
-            ? '<span style="color:#2D6A3F;font-size:11px;font-weight:700;">✅ Déjà dans votre CRM</span>'
-            : `<button onclick="ajouterDepuisGoogle('${place.name.replace(/'/g,"\\'")}','${adresse.replace(/'/g,"\\'")}','${secteur}')"
-                style="background:#2D6A3F;color:white;border:none;padding:6px 14px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:700;width:100%;">
-                + Ajouter comme prospect
-              </button>`
-          }
-        </div>
-      </div>`,
-  });
-
   marker.addListener('click', () => {
     googleMarkers.forEach(m => m._iw && m._iw.close());
     mapMarkers.forEach(m => m._iw && m._iw.close());
-    infoWindow.open(gmap, marker);
+
+    // Popup de chargement
+    const iw = new google.maps.InfoWindow({
+      content: `<div style="font-family:Arial,sans-serif;padding:8px;min-width:200px;color:#64748B;font-size:12px;">⏳ Chargement des détails…</div>`
+    });
+    iw.open(gmap, marker);
+    marker._iw = iw;
+
+    // Récupération des détails (téléphone, adresse complète, site web)
+    placesService.getDetails({
+      placeId: place.place_id,
+      fields: ['name', 'formatted_phone_number', 'formatted_address', 'website', 'rating', 'user_ratings_total', 'opening_hours'],
+    }, (details, status) => {
+      const nom = details?.name || place.name;
+      const adresse = details?.formatted_address || place.vicinity || '';
+      const tel = details?.formatted_phone_number || '';
+      const site = details?.website || '';
+      const rating = details?.rating || place.rating;
+      const nbAvis = details?.user_ratings_total || place.user_ratings_total || 0;
+
+      const nomEnc = nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const adresseEnc = adresse.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const telEnc = tel.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+      iw.setContent(`
+        <div style="font-family:Arial,sans-serif;padding:4px;min-width:220px;">
+          <div style="font-weight:700;font-size:13px;color:#1A3D28;">${sec.emoji} ${nom}</div>
+          <div style="font-size:11px;color:#64748B;margin:2px 0;">${sec.label}</div>
+          ${rating ? `<div style="font-size:11px;color:#92400E;margin:3px 0;">⭐ ${rating}/5 (${nbAvis} avis)</div>` : ''}
+          <div style="border-top:1px solid #E2E8F0;margin:8px 0;padding-top:8px;">
+            ${adresse ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">📍 ${adresse}</div>` : ''}
+            ${tel ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">📞 <a href="tel:${tel}" style="color:#2D6A3F;text-decoration:none;">${tel}</a></div>` : '<div style="font-size:11px;color:#94A3B8;margin-bottom:4px;">📞 Téléphone non disponible</div>'}
+            ${site ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">🌐 <a href="${site}" target="_blank" style="color:#2563EB;text-decoration:none;">Site web</a></div>` : ''}
+          </div>
+          <div style="background:#FFF7E6;border-radius:6px;padding:6px 8px;font-size:10px;color:#92400E;margin-bottom:8px;">
+            ℹ️ Complétez le nom du contact et l'email après ajout
+          </div>
+          ${dejaAjoute
+            ? '<div style="color:#2D6A3F;font-size:11px;font-weight:700;text-align:center;">✅ Déjà dans votre CRM</div>'
+            : `<button onclick="ajouterDepuisGoogle('${nomEnc}','${adresseEnc}','${secteur}','${telEnc}')"
+                style="background:#2D6A3F;color:white;border:none;padding:7px 14px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:700;width:100%;">
+                + Ajouter comme prospect
+              </button>`
+          }
+        </div>`);
+    });
   });
-  marker._iw = infoWindow;
+
   googleMarkers.push(marker);
 }
 
-window.ajouterDepuisGoogle = function(nom, adresse, secteur) {
+window.ajouterDepuisGoogle = function(nom, adresse, secteur, tel) {
   document.getElementById('pRaisonSociale').value = nom;
   document.getElementById('pAdresse').value = adresse;
   document.getElementById('pSecteur').value = secteur;
   document.getElementById('pStatut').value = 'a_contacter';
   document.getElementById('pContact').value = '';
-  document.getElementById('pTelephone').value = '';
+  document.getElementById('pTelephone').value = tel || '';
   document.getElementById('pEmail').value = '';
   document.getElementById('pNotes').value = '';
   document.getElementById('pId').value = '';
