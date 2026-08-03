@@ -718,6 +718,8 @@ const CADENCES_DEFAULT = {
   'Nettoyage désinfection, détartrage': 40,
   'Nettoyage du mobilier': 150,
   'Picking': 500,
+  'Rentrée de conteneurs': 200,
+  'Nettoyage des conteneurs': 80,
   'Sortie de conteneurs': 200,
   'Vidage des corbeilles': 800,
 };
@@ -817,8 +819,8 @@ const PRESTATION_MATRIX = {
   'Cave':                 { dur:['Balayage humide'], souple:['Balayage humide'] },
   'Parking intérieur':    { dur:['Balayage, lavage désinfection des sols'], souple:['Aspiration du sol'] },
   'Parking extérieur':    { dur:['Picking','Balayage humide'], souple:['Picking','Balayage humide'] },
-  'Abords extérieurs':    { dur:['Picking','Balayage humide'], souple:['Picking','Balayage humide'] },
-  'Sortie de conteneurs': { dur:['Sortie de conteneurs'], souple:['Sortie de conteneurs'] },
+  'Abords extérieurs':    { dur:['Picking'], souple:['Picking'] },
+  'Sortie de conteneurs': { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'], souple:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
 };
 
 function getPrestations(typeLocal, typeSol) {
