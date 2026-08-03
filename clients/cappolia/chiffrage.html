@@ -836,7 +836,8 @@ function confirmerLocal() {
   if (!tl || !ts || !surf || surf <= 0) { showToast('Veuillez remplir tous les champs'); return; }
   groupeIdCounter++;
   const gid = 'g' + groupeIdCounter;
-  groupesEC.push({ id: gid, local: tl, sol: ts, surface: surf, prestations: getPrestations(tl, ts) });
+  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  groupesEC.push({ id: gid, local: tl, sol: ts, surface: surf, prestations: getPrestations(tl, ts), freq: freqGlobale });
   fermerModalLocal();
   rendreGroupes();
   calculerEC();
@@ -862,11 +863,21 @@ function rendreGroupes() {
   wrapEl.style.display = 'block';
   const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
   const freqMois = (freq * 4.33).toFixed(1);
+  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
   groupesEC.forEach(g => {
+    const freqGroupe = g.freq != null ? g.freq : freqGlobale;
+    const freqMoisGroupe = (freqGroupe * 4.33).toFixed(1);
     const trHead = document.createElement('tr');
-    trHead.innerHTML = `<td colspan="8" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;">
-      🏢 ${g.local} — ${g.sol} — ${g.surface} m²
-      <button onclick="supprimerGroupe('${g.id}')" style="float:right;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer</button>
+    trHead.innerHTML = `<td colspan="8" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span>🏢 ${g.local} — ${g.sol} — ${g.surface} m²</span>
+      <span style="font-weight:400;font-size:11px;color:var(--green-dark);margin-left:8px;">Fréquence :
+        <input type="number" id="${g.id}_freqInput" value="${freqGroupe}" min="1" max="7" step="1"
+          oninput="sauverFreqGroupe('${g.id}',this.value);calculerEC()"
+          style="width:42px;text-align:center;border:1.5px solid var(--green-dark);border-radius:4px;padding:1px 4px;font-size:12px;font-weight:700;background:#DBEAFE;color:#1D4ED8;"
+          title="Fréquence globale : ${freqGlobale} j/sem"/>
+        j/sem → <span id="${g.id}_freqMoisAff">${freqMoisGroupe}</span> pass/mois
+      </span>
+      <button onclick="supprimerGroupe('${g.id}')" style="margin-left:auto;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer</button>
     </td>`;
     tbody.appendChild(trHead);
     g.prestations.forEach((p, idx) => {
@@ -876,6 +887,7 @@ function rendreGroupes() {
       const tr = document.createElement('tr');
       tr.id = 'row_' + rid;
       tr.dataset.surface = g.surface;
+      tr.dataset.gid = g.id;
       tr.innerHTML = `
         <td style="color:var(--gray);font-size:11px;padding-left:18px;">${g.local}</td>
         <td style="font-size:12px;">${p}</td>
@@ -883,7 +895,7 @@ function rendreGroupes() {
         <td style="text-align:right;">${g.surface}</td>
         <td style="text-align:right;"><input type="number" id="${rid}_cadence" value="${cadenceSauvee}" min="1" step="1" oninput="sauverCadence('${g.id}',${idx},this.value);calculerEC()" style="width:68px;text-align:right;border:1.5px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;background:#FFFBEB;" title="CCN par défaut : ${cadenceDefaut} m²/h"/></td>
         <td style="text-align:right;" id="${rid}_tps">—</td>
-        <td style="text-align:right;" id="${rid}_freq">${freqMois}</td>
+        <td style="text-align:right;" id="${rid}_freq">—</td>
         <td style="text-align:right;" id="${rid}_mensuel">—</td>`;
       tbody.appendChild(tr);
     });
@@ -897,22 +909,35 @@ function sauverCadence(gid, idx, val) {
   g.cadences[idx] = parseFloat(val) || 1;
 }
 
+function sauverFreqGroupe(gid, val) {
+  const g = groupesEC.find(x => x.id === gid);
+  if (!g) return;
+  g.freq = parseFloat(val) || 1;
+  const freqMoisAff = document.getElementById(gid + '_freqMoisAff');
+  if (freqMoisAff) freqMoisAff.textContent = (g.freq * 4.33).toFixed(1);
+}
+
 function calculerEC() {
-  const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
-  const freqMois = parseFloat((freq * 4.33).toFixed(2));
+  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
   let rawTps = 0;
+  let totalMensuel = 0;
   const surfacesTotales = groupesEC.reduce((sum, g) => sum + (parseFloat(g.surface) || 0), 0);
 
   document.querySelectorAll('#tbodyEC tr[data-surface]').forEach(tr => {
     const rid = tr.id.replace('row_', '');
+    const gid = tr.dataset.gid;
     const surf = parseFloat(tr.dataset.surface || 0);
     const cadenceInput = document.getElementById(rid + '_cadence');
     const cadence = cadenceInput ? parseFloat(cadenceInput.value) || 1 : 200;
+    const freqInput = document.getElementById(gid + '_freqInput');
+    const freqSem = freqInput ? parseFloat(freqInput.value) || freqGlobale : freqGlobale;
+    const freqMoisGroupe = parseFloat((freqSem * 4.33).toFixed(2));
     const tpsPresta = surf > 0 ? surf / cadence : 0;
     if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = tpsPresta.toFixed(2);
-    if (document.getElementById(rid + '_freq')) document.getElementById(rid + '_freq').textContent = freqMois.toFixed(1);
-    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMois).toFixed(2);
+    if (document.getElementById(rid + '_freq')) document.getElementById(rid + '_freq').textContent = freqMoisGroupe.toFixed(1);
+    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMoisGroupe).toFixed(2);
     rawTps += tpsPresta;
+    totalMensuel += tpsPresta * freqMoisGroupe;
   });
 
   const elSurf = document.getElementById('totalSurfaces');
@@ -921,14 +946,14 @@ function calculerEC() {
   if (elRatio) elRatio.textContent = rawTps > 0 ? (surfacesTotales / rawTps).toFixed(0) + ' m²/h' : '—';
 
   const totalTpsPassage = rawTps > 0 ? Math.max(rawTps, 1) : 0;
-  const totalMensuel = parseFloat((totalTpsPassage * freqMois).toFixed(2));
+  const totalMensuelFinal = parseFloat(totalMensuel.toFixed(2));
 
   document.getElementById('totalTpsPassage').textContent = totalTpsPassage.toFixed(2);
-  document.getElementById('totalTpsMensuel').textContent = totalMensuel.toFixed(2);
+  document.getElementById('totalTpsMensuel').textContent = totalMensuelFinal.toFixed(2);
   document.getElementById('kpiTpsPassage').textContent = totalTpsPassage.toFixed(2);
-  document.getElementById('kpiFreqMois').textContent = freqMois.toFixed(1);
-  document.getElementById('kpiTpsMois').textContent = totalMensuel.toFixed(2);
-  const nbAgents = totalMensuel > 0 ? Math.ceil(totalMensuel / (3 * 22)) : 0;
+  document.getElementById('kpiFreqMois').textContent = (freqGlobale * 4.33).toFixed(1);
+  document.getElementById('kpiTpsMois').textContent = totalMensuelFinal.toFixed(2);
+  const nbAgents = totalMensuelFinal > 0 ? Math.ceil(totalMensuelFinal / (3 * 22)) : 0;
   document.getElementById('kpiNbAgents').textContent = nbAgents || '—';
   syncHeuresVersCalc();
   calculerPrix();
