@@ -235,7 +235,7 @@
     <div class="step-connector"></div>
     <div class="step-item" onclick="allerEtape(3)" id="step3">
       <div class="step-num">3</div>
-      <div><div class="step-label">Remise en état</div><div class="step-sub">Prestations ponctuelles</div></div>
+      <div><div class="step-label">Prestations ponctuelles</div><div class="step-sub">Hors entretien courant</div></div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" onclick="allerEtape(4)" id="step4">
@@ -423,11 +423,11 @@
 
     <!-- ÉTAPE 3 : REMISE EN ÉTAT -->
     <div class="section" id="section-3">
-      <div class="section-title">Temps de prestation — Remise en état</div>
-      <div class="section-sub">Prestations ponctuelles — fréquence saisie librement</div>
+      <div class="section-title">Temps de prestation — Prestations ponctuelles</div>
+      <div class="section-sub">Hors entretien courant — fréquence saisie librement</div>
 
       <div class="card">
-        <div class="card-title">Détail des surfaces — Remise en état</div>
+        <div class="card-title">Détail des surfaces — Prestations ponctuelles</div>
         <div class="table-wrap">
           <table id="tableREE">
             <thead>
@@ -455,7 +455,7 @@
           </table>
         </div>
         <button class="btn-add-row" onclick="ajouterLigneREE()">+ Ajouter une ligne</button>
-        <div class="info-box" style="margin-top:16px;">ℹ️ Section optionnelle. Si aucune remise en état n'est prévue, passez directement à l'étape suivante.</div>
+        <div class="info-box" style="margin-top:16px;">ℹ️ Section optionnelle. Si aucune prestation ponctuelle n'est prévue, passez directement à l'étape suivante.</div>
       </div>
 
       <div class="nav-btns">
@@ -490,7 +490,7 @@
                 </select>
               </div>
               <div class="field">
-                <label>Niveau agent — Remise en état</label>
+                <label>Niveau agent — Prestations ponctuelles</label>
                 <select id="pvNiveauREE" onchange="calculerPrix()">
                   <option value="13.17" selected>ATQS1 — 13,17 €/h</option>
                   <option value="13.91">ATQS2 — 13,91 €/h</option>
@@ -665,7 +665,7 @@
     <div class="form-grid" style="gap:14px;">
       <div class="field">
         <label>Type de local *</label>
-        <select id="modalTypeLocal" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;" onchange="previewModal()">
+        <select id="modalTypeLocal" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;" onchange="previewModal(); toggleVitrerie()">
           <option value="">— Choisir —</option>
           <option>Bureaux</option>
           <option>Accueil / Hall</option>
@@ -686,9 +686,10 @@
           <option>Abords extérieurs</option>
           <option>Conteneurs</option>
           <option>Local poubelle</option>
+          <option>Vitrerie</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" id="fieldTypeSol">
         <label>Type de sol *</label>
         <select id="modalTypeSol" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;" onchange="previewModal()">
           <option value="">— Choisir —</option>
@@ -701,9 +702,18 @@
           <option>Marbre</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" id="fieldSurface">
         <label>Surface (m²) *</label>
         <input type="number" id="modalSurface" min="1" step="0.5" placeholder="ex : 150" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;box-sizing:border-box;"/>
+      </div>
+      <div class="field" id="fieldVitrerie" style="display:none;">
+        <label>Fenêtres *</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="number" id="modalNbFenetres" min="1" step="1" placeholder="Nb de fenêtres" style="flex:1;font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;box-sizing:border-box;" oninput="previewModal()"/>
+          <span style="color:var(--gray);font-weight:700;font-size:16px;">×</span>
+          <input type="number" id="modalTailleFenetre" min="0.1" step="0.1" placeholder="m² / fenêtre" style="flex:1;font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;box-sizing:border-box;" oninput="previewModal()"/>
+        </div>
+        <div style="font-size:11px;color:var(--gray);margin-top:4px;">Exemple : 10 fenêtres × 1,5 m² = 15 m² de vitrerie</div>
       </div>
       <div id="modalPreviewBox" style="display:none;background:var(--green-light);border-radius:8px;padding:12px 14px;">
         <div style="font-size:11px;font-weight:700;color:var(--green-dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Prestations générées :</div>
@@ -743,6 +753,7 @@ const CADENCES_DEFAULT = {
   'Nettoyage des conteneurs': 80,
   'Sortie de conteneurs': 200,
   'Vidage des corbeilles': 800,
+  'Nettoyage des vitres': 40,
 };
 // Fusion avec les valeurs personnalisées par le directeur (localStorage)
 function chargerCadences() {
@@ -753,7 +764,7 @@ function chargerCadences() {
 }
 const CADENCES = chargerCadences();
 
-const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Conteneurs','Local poubelle'];
+const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Conteneurs','Local poubelle','Vitrerie'];
 
 let currentChiffrageId = null;
 let numeroDevis = null;
@@ -843,6 +854,7 @@ const PRESTATION_MATRIX = {
   'Abords extérieurs':    { dur:['Picking'] },
   'Conteneurs':           { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
   'Local poubelle':       { dur:['Nettoyage / Désinfection des surfaces'] },
+  'Vitrerie':             { dur:['Nettoyage des vitres'] },
 };
 
 function getPrestations(typeLocal, typeSol) {
@@ -866,12 +878,32 @@ function ouvrirModalLocal() {
   document.getElementById('modalTypeLocal').value = '';
   document.getElementById('modalTypeSol').value = '';
   document.getElementById('modalSurface').value = '';
+  document.getElementById('modalNbFenetres').value = '';
+  document.getElementById('modalTailleFenetre').value = '';
   document.getElementById('modalPreviewBox').style.display = 'none';
+  document.getElementById('fieldTypeSol').style.display = '';
+  document.getElementById('fieldSurface').style.display = '';
+  document.getElementById('fieldVitrerie').style.display = 'none';
   document.getElementById('modalLocal').style.display = 'flex';
+}
+
+function toggleVitrerie() {
+  const isVitrerie = document.getElementById('modalTypeLocal').value === 'Vitrerie';
+  document.getElementById('fieldTypeSol').style.display = isVitrerie ? 'none' : '';
+  document.getElementById('fieldSurface').style.display = isVitrerie ? 'none' : '';
+  document.getElementById('fieldVitrerie').style.display = isVitrerie ? '' : 'none';
 }
 
 function previewModal() {
   const tl = document.getElementById('modalTypeLocal').value;
+  toggleVitrerie();
+  if (tl === 'Vitrerie') {
+    const nb = parseFloat(document.getElementById('modalNbFenetres').value);
+    const taille = parseFloat(document.getElementById('modalTailleFenetre').value);
+    document.getElementById('modalPreviewList').innerHTML = '<li>Nettoyage des vitres</li>';
+    document.getElementById('modalPreviewBox').style.display = (nb > 0 && taille > 0) ? 'block' : 'none';
+    return;
+  }
   const ts = document.getElementById('modalTypeSol').value;
   if (!tl || !ts) { document.getElementById('modalPreviewBox').style.display = 'none'; return; }
   const prestations = getPrestations(tl, ts);
@@ -885,9 +917,18 @@ function fermerModalLocal() {
 
 function confirmerLocal() {
   const tl = document.getElementById('modalTypeLocal').value;
-  const ts = document.getElementById('modalTypeSol').value;
-  const surf = parseFloat(document.getElementById('modalSurface').value);
-  if (!tl || !ts || !surf || surf <= 0) { showToast('Veuillez remplir tous les champs'); return; }
+  let ts, surf;
+  if (tl === 'Vitrerie') {
+    const nb = parseFloat(document.getElementById('modalNbFenetres').value);
+    const taille = parseFloat(document.getElementById('modalTailleFenetre').value);
+    if (!tl || !nb || !taille || nb <= 0 || taille <= 0) { showToast('Veuillez remplir tous les champs'); return; }
+    ts = 'Vitrerie';
+    surf = Math.round(nb * taille * 100) / 100;
+  } else {
+    ts = document.getElementById('modalTypeSol').value;
+    surf = parseFloat(document.getElementById('modalSurface').value);
+    if (!tl || !ts || !surf || surf <= 0) { showToast('Veuillez remplir tous les champs'); return; }
+  }
   groupeIdCounter++;
   const gid = 'g' + groupeIdCounter;
   const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
@@ -1168,7 +1209,7 @@ function genererDevis() {
   }
   if (parseFloat(tpsREE) > 0) {
     lignes += `<tr>
-      <td>Remise en état / Prestations ponctuelles</td>
+      <td>Prestations ponctuelles</td>
       <td style="text-align:center;">Selon planification</td>
       <td style="text-align:right;">Inclus</td>
     </tr>`;
