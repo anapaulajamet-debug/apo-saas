@@ -415,6 +415,7 @@
   <div class="tab active" onclick="afficherOnglet('pipeline', this)">Pipeline prospects</div>
   <div class="tab" onclick="afficherOnglet('zones', this)">Zones & Secteurs</div>
   <div class="tab" onclick="afficherOnglet('cadences', this)">⚙️ Cadences internes</div>
+  <div class="tab" onclick="afficherOnglet('salaires', this)">💶 Grille salariale CCN</div>
 </div>
 
 <main>
@@ -690,6 +691,121 @@
     </thead>
     <tbody id="tableCadences"></tbody>
   </table>
+</div>
+
+<!-- SECTION GRILLE SALARIALE CCN -->
+<div id="section-salaires" class="section-hidden" style="max-width:900px;margin:24px auto;padding:0 16px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:var(--green-dark);">💶 Grille salariale — CCN Propreté 2026</div>
+      <div style="font-size:12px;color:var(--gray);margin-top:3px;">Convention collective IDCC 3043 — Applicable au 1er avril 2026. Taux modifiables par le directeur.</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="reinitialiserSalaires()" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-size:12px;cursor:pointer;color:var(--gray);">↺ Réinitialiser CCN</button>
+      <button onclick="sauvegarderSalaires()" style="padding:8px 16px;border:none;border-radius:7px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💾 Enregistrer</button>
+    </div>
+  </div>
+
+  <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:24px;font-size:12px;color:#1E40AF;">
+    ℹ️ Ces taux sont utilisés pour calculer le coût horaire chargé dans les devis. Modifiez uniquement si la convention collective est mise à jour ou si vous négociez des taux spécifiques.
+  </div>
+
+  <!-- FILIÈRE EXPLOITATION -->
+  <div style="font-size:13px;font-weight:800;color:var(--green-dark);margin-bottom:10px;padding:8px 14px;background:var(--green-light);border-radius:8px;">📋 Filière exploitation</div>
+  <div style="overflow-x:auto;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>
+      <tr style="background:var(--green-dark);color:#fff;">
+        <th style="padding:9px 12px;text-align:left;">Niveau</th>
+        <th style="padding:9px 12px;text-align:left;">Échelon</th>
+        <th style="padding:9px 12px;text-align:center;width:160px;">Taux horaire brut A (€)</th>
+        <th style="padding:9px 12px;text-align:center;width:160px;">Taux horaire brut B (€)</th>
+      </tr>
+    </thead>
+    <tbody id="tableExploitation"></tbody>
+  </table>
+  </div>
+
+  <!-- FILIÈRE ADMINISTRATIVE -->
+  <div style="font-size:13px;font-weight:800;color:var(--green-dark);margin-bottom:10px;padding:8px 14px;background:var(--green-light);border-radius:8px;">📋 Filière administrative</div>
+  <div style="overflow-x:auto;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>
+      <tr style="background:var(--green-dark);color:#fff;">
+        <th style="padding:9px 12px;text-align:left;">Niveau</th>
+        <th style="padding:9px 12px;text-align:left;">Échelon</th>
+        <th style="padding:9px 12px;text-align:center;width:200px;">Taux horaire brut (€)</th>
+      </tr>
+    </thead>
+    <tbody id="tableAdministratif"></tbody>
+  </table>
+  </div>
+
+  <!-- CHARGES PATRONALES -->
+  <div style="font-size:13px;font-weight:800;color:var(--green-dark);margin-bottom:10px;padding:8px 14px;background:var(--green-light);border-radius:8px;">⚖️ Charges patronales 2026</div>
+  <div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400E;">
+    ⚠️ Source : URSSAF / RGDU en vigueur depuis le 1er janvier 2026. Taux arrondis à titre indicatif.
+  </div>
+  <div style="overflow-x:auto;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>
+      <tr style="background:var(--green-dark);color:#fff;">
+        <th style="padding:9px 12px;text-align:left;">Catégorie</th>
+        <th style="padding:9px 12px;text-align:center;width:180px;">Taux de charges (%)</th>
+        <th style="padding:9px 12px;text-align:left;">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="tableCharges"></tbody>
+  </table>
+  </div>
+
+  <!-- SMIC REFERENCE -->
+  <div style="font-size:13px;font-weight:800;color:var(--green-dark);margin-bottom:10px;padding:8px 14px;background:var(--green-light);border-radius:8px;">📌 SMIC de référence (1er juin 2026)</div>
+  <div style="overflow-x:auto;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>
+      <tr style="background:var(--green-dark);color:#fff;">
+        <th style="padding:9px 12px;text-align:left;">Indicateur</th>
+        <th style="padding:9px 12px;text-align:center;width:200px;">Valeur (€)</th>
+      </tr>
+    </thead>
+    <tbody id="tableSmic"></tbody>
+  </table>
+  </div>
+
+  <!-- RÉFORME 2026 -->
+  <div style="font-size:13px;font-weight:800;color:var(--green-dark);margin-bottom:10px;padding:8px 14px;background:var(--green-light);border-radius:8px;">📰 Réforme allègements 2026</div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;">
+    <thead>
+      <tr style="background:#6B7280;color:#fff;">
+        <th style="padding:9px 12px;text-align:left;">Mesure</th>
+        <th style="padding:9px 12px;text-align:left;">Détail</th>
+        <th style="padding:9px 12px;text-align:center;width:130px;">Date d'effet</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background:#F9FAFB;">
+        <td style="padding:9px 12px;font-weight:700;">RGDU — Réduction Générale Dégressive Unique</td>
+        <td style="padding:9px 12px;color:#374151;">Fusionne la réduction générale (ex-Fillon) et les anciens taux réduits en un dispositif unique. Réduction maximale au SMIC, dégressive jusqu'à 3 SMIC, nulle au-delà.</td>
+        <td style="padding:9px 12px;text-align:center;font-weight:700;color:var(--green-dark);">1er jan. 2026</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 12px;font-weight:700;">Décret n°2025-887</td>
+        <td style="padding:9px 12px;color:#374151;">Fixe les paramètres définitifs de la RGDU. Selon la FEP, les intérêts du secteur propreté sont globalement préservés.</td>
+        <td style="padding:9px 12px;text-align:center;font-weight:700;color:var(--green-dark);">4 sep. 2025</td>
+      </tr>
+      <tr style="background:#FFF7ED;">
+        <td style="padding:9px 12px;font-weight:700;">Art. 20 LFSS 2026 — conditionnalité</td>
+        <td style="padding:9px 12px;color:#374151;">Réduit les allègements dans les branches dont le minimum conventionnel est inférieur au SMIC. Incitation à revaloriser les grilles.</td>
+        <td style="padding:9px 12px;text-align:center;font-weight:700;color:#D97706;">Fin 2025/2026</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="font-size:10px;color:var(--gray);text-align:center;margin-bottom:24px;">
+    Sources : Avenant n°27 du 18 déc. 2025, étendu par arrêté du 24 fév. 2026 — URSSAF — FEP — Décret n°2025-887
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -1307,11 +1423,12 @@ function filtrerDepuisZones(secteur) {
 function afficherOnglet(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['pipeline','zones','cadences'].forEach(s => {
+  ['pipeline','zones','cadences','salaires'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('section-hidden', s !== id);
   });
   if (id === 'zones') { afficherSecteurs(); chargerGoogleMaps(); }
   if (id === 'cadences') { afficherCadences(); }
+  if (id === 'salaires') { afficherSalaires(); }
 }
 
 // ── CADENCES CCN ─────────────────────────────────────────────────────────
@@ -1375,6 +1492,123 @@ function reinitialiserCadences() {
   localStorage.removeItem('cappolia_cadences');
   afficherCadences();
   toast('Cadences réinitialisées aux valeurs par défaut');
+}
+
+// ── GRILLE SALARIALE CCN PROPRETÉ 2026 ────────────────────────────────
+const SALAIRES_DEFAULT = {
+  exploitation: [
+    { niveau:'Maîtrise - MP', echelon:'MP5 *', tauxA:21.90, tauxB:null },
+    { niveau:'Maîtrise - MP', echelon:'MP4 *', tauxA:20.25, tauxB:null },
+    { niveau:'Maîtrise - MP', echelon:'MP3',   tauxA:18.18, tauxB:null },
+    { niveau:'Maîtrise - MP', echelon:'MP2',   tauxA:16.39, tauxB:null },
+    { niveau:'Maîtrise - MP', echelon:'MP1',   tauxA:15.52, tauxB:null },
+    { niveau:"Chef d'équipe - CE", echelon:'3', tauxA:15.44, tauxB:null },
+    { niveau:"Chef d'équipe - CE", echelon:'2', tauxA:15.27, tauxB:null },
+    { niveau:"Chef d'équipe - CE", echelon:'1', tauxA:14.43, tauxB:null },
+    { niveau:'ATQS', echelon:'3', tauxA:14.95, tauxB:15.27 },
+    { niveau:'ATQS', echelon:'2', tauxA:13.91, tauxB:14.16 },
+    { niveau:'ATQS', echelon:'1', tauxA:13.17, tauxB:13.39 },
+    { niveau:'AQS',  echelon:'3', tauxA:12.92, tauxB:13.16 },
+    { niveau:'AQS',  echelon:'2', tauxA:12.81, tauxB:13.05 },
+    { niveau:'AQS',  echelon:'1', tauxA:12.70, tauxB:12.91 },
+    { niveau:'AS',   echelon:'ASCS', tauxA:12.64, tauxB:12.86 },
+    { niveau:'AS',   echelon:'ASC',  tauxA:12.57, tauxB:12.79 },
+    { niveau:'AS',   echelon:'ASP',  tauxA:12.52, tauxB:12.71 },
+  ],
+  administratif: [
+    { niveau:'Maîtrise - MA', echelon:'MA3 *', taux:21.68 },
+    { niveau:'Maîtrise - MA', echelon:'MA2',   taux:20.56 },
+    { niveau:'Maîtrise - MA', echelon:'MA1',   taux:18.11 },
+    { niveau:'Employés - EA', echelon:'EA4',   taux:16.29 },
+    { niveau:'Employés - EA', echelon:'EA3',   taux:14.89 },
+    { niveau:'Employés - EA', echelon:'EA2',   taux:13.54 },
+    { niveau:'Employés - EA', echelon:'EA1',   taux:12.63 },
+  ],
+  charges: [
+    { categorie:'Taux brut avant allègement (tous niveaux)', taux:30, note:'Charges patronales brutes théoriques, hors dispositifs d\'allègement' },
+    { categorie:'Coût effectif au SMIC (après RGDU)',         taux:5,  note:'Après application de la Réduction Générale Dégressive Unique (RGDU) depuis jan. 2026' },
+    { categorie:'Non-cadres hors zone d\'allègement (> 3 SMIC)', taux:35, note:'Fourchette 32%–38% selon les sources ; valeur médiane retenue' },
+    { categorie:'Cadres',                                     taux:42.5, note:'Fourchette 40%–45% ; retraite complémentaire plus élevée sur tranches hautes' },
+  ],
+  smic: [
+    { indicateur:'SMIC horaire brut',             valeur:12.31 },
+    { indicateur:'SMIC mensuel brut (151,67 h)',  valeur:1867.02 },
+    { indicateur:'SMIC annuel brut',              valeur:22404.24 },
+  ]
+};
+
+function getSalaires() {
+  try { return JSON.parse(localStorage.getItem('cappolia_salaires') || 'null') || JSON.parse(JSON.stringify(SALAIRES_DEFAULT)); }
+  catch { return JSON.parse(JSON.stringify(SALAIRES_DEFAULT)); }
+}
+
+function afficherSalaires() {
+  const data = getSalaires();
+  const row = (bg) => bg ? `background:${bg}` : '';
+
+  // Exploitation
+  document.getElementById('tableExploitation').innerHTML = data.exploitation.map((r, i) => `
+    <tr style="${i%2===0?'background:#F9FAFB;':''}">
+      <td style="padding:8px 12px;font-weight:600;">${r.niveau}</td>
+      <td style="padding:8px 12px;">${r.echelon}</td>
+      <td style="padding:6px 12px;text-align:center;">
+        <input type="number" step="0.01" value="${r.tauxA}" data-table="exploitation" data-idx="${i}" data-field="tauxA"
+          style="width:100px;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:center;background:#FFFBEB;" />
+      </td>
+      <td style="padding:6px 12px;text-align:center;">
+        ${r.tauxB !== null ? `<input type="number" step="0.01" value="${r.tauxB}" data-table="exploitation" data-idx="${i}" data-field="tauxB"
+          style="width:100px;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:center;background:#FFFBEB;" />` : '<span style="color:#CBD5E1;">—</span>'}
+      </td>
+    </tr>`).join('');
+
+  // Administratif
+  document.getElementById('tableAdministratif').innerHTML = data.administratif.map((r, i) => `
+    <tr style="${i%2===0?'background:#F9FAFB;':''}">
+      <td style="padding:8px 12px;font-weight:600;">${r.niveau}</td>
+      <td style="padding:8px 12px;">${r.echelon}</td>
+      <td style="padding:6px 12px;text-align:center;">
+        <input type="number" step="0.01" value="${r.taux}" data-table="administratif" data-idx="${i}" data-field="taux"
+          style="width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:center;background:#FFFBEB;" />
+      </td>
+    </tr>`).join('');
+
+  // Charges
+  document.getElementById('tableCharges').innerHTML = data.charges.map((r, i) => `
+    <tr style="${i%2===0?'background:#F9FAFB;':''}">
+      <td style="padding:8px 12px;font-weight:600;">${r.categorie}</td>
+      <td style="padding:6px 12px;text-align:center;">
+        <input type="number" step="0.1" value="${r.taux}" data-table="charges" data-idx="${i}" data-field="taux"
+          style="width:90px;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:center;background:#FFFBEB;" /> %
+      </td>
+      <td style="padding:8px 12px;font-size:11px;color:var(--gray);">${r.note}</td>
+    </tr>`).join('');
+
+  // SMIC
+  document.getElementById('tableSmic').innerHTML = data.smic.map((r, i) => `
+    <tr style="${i%2===0?'background:#F9FAFB;':''}">
+      <td style="padding:8px 12px;font-weight:600;">${r.indicateur}</td>
+      <td style="padding:6px 12px;text-align:center;">
+        <input type="number" step="0.01" value="${r.valeur}" data-table="smic" data-idx="${i}" data-field="valeur"
+          style="width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:center;background:#FFFBEB;" />
+      </td>
+    </tr>`).join('');
+}
+
+function sauvegarderSalaires() {
+  const data = getSalaires();
+  document.querySelectorAll('#section-salaires input[data-table]').forEach(inp => {
+    const t = inp.dataset.table, i = parseInt(inp.dataset.idx), f = inp.dataset.field;
+    data[t][i][f] = parseFloat(inp.value) || 0;
+  });
+  localStorage.setItem('cappolia_salaires', JSON.stringify(data));
+  toast('✅ Grille salariale enregistrée');
+}
+
+function reinitialiserSalaires() {
+  if (!confirm('Réinitialiser la grille aux valeurs CCN Propreté 2026 ?')) return;
+  localStorage.removeItem('cappolia_salaires');
+  afficherSalaires();
+  toast('Grille salariale réinitialisée aux valeurs CCN 2026');
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────
