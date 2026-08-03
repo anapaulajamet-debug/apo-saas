@@ -675,6 +675,7 @@
           <option value="a_relancer">À relancer 🔔</option>
           <option value="chiffrage">Chiffrage en cours</option>
           <option value="offre_envoyee">Offre envoyée</option>
+          <option value="relance_offre">Relance offre 🔁</option>
           <option value="gagne">Gagné 🏆</option>
           <option value="perdu">Perdu</option>
         </select>
@@ -715,6 +716,7 @@
             <option value="a_relancer">À relancer 🔔</option>
             <option value="chiffrage">Chiffrage en cours</option>
             <option value="offre_envoyee">Offre envoyée</option>
+            <option value="relance_offre">Relance offre 🔁</option>
             <option value="gagne">Gagné 🏆</option>
             <option value="perdu">Perdu</option>
           </select>
@@ -962,6 +964,7 @@ const STATUTS = [
   { key: 'a_relancer',  label: 'À relancer',         emoji: '🔔' },
   { key: 'chiffrage',    label: 'Chiffrage en cours', emoji: '📊' },
   { key: 'offre_envoyee',label: 'Offre envoyée',     emoji: '📨' },
+  { key: 'relance_offre',label: 'Relance offre',     emoji: '🔁' },
   { key: 'gagne',        label: 'Gagné 🏆',          emoji: '✅' },
   { key: 'perdu',        label: 'Perdu',             emoji: '❌' },
 ];
@@ -1063,7 +1066,14 @@ function renderKanban() {
 
 function carteHTML(p) {
   const sec = SECTEURS[p.secteur] || { label: p.secteur || '', emoji: '📌' };
-  const date = p.date_prochain_contact ? new Date(p.date_prochain_contact).toLocaleDateString('fr-FR') : '';
+  let dateLbl = '';
+  if (p.date_prochain_contact) {
+    const d = new Date(p.date_prochain_contact).toLocaleDateString('fr-FR');
+    if (p.statut === 'offre_envoyee') dateLbl = `⏰ Réponse avant le ${d}`;
+    else if (p.statut === 'relance_offre') dateLbl = `🔁 Relance le ${d}`;
+    else if (p.statut === 'a_relancer') dateLbl = `🔔 Relance le ${d}`;
+    else dateLbl = d;
+  }
   return `
     <div class="prospect-card" draggable="true"
       ondragstart="dragStart(event, '${p.id}')"
@@ -1073,7 +1083,7 @@ function carteHTML(p) {
       <div class="card-contact">${p.contact || '—'}</div>
       <div class="card-meta">
         <span class="tag-secteur">${sec.emoji} ${sec.label}</span>
-        <span class="card-date">${date}</span>
+        <span class="card-date">${dateLbl}</span>
       </div>
       <div class="card-actions">
         <button class="card-btn card-btn-green" onclick="event.stopPropagation(); ouvrirFicheProspect('${p.id}')">Voir</button>
@@ -1088,22 +1098,26 @@ function dragStart(e, id) {
   draggedId = id;
   e.target.classList.add('dragging');
 }
-function dateRelanceDefaut() {
+function dateRelanceDefaut(jours = 7) {
   const d = new Date();
-  d.setDate(d.getDate() + 7);
+  d.setDate(d.getDate() + jours);
   return d.toISOString().split('T')[0];
 }
 
 function autoDateRelance(val) {
   const champ = document.getElementById('pDateContact');
-  if (val === 'a_relancer' && !champ.value) champ.value = dateRelanceDefaut();
+  if (val === 'a_relancer' && !champ.value) champ.value = dateRelanceDefaut(7);
+  if (val === 'offre_envoyee' && !champ.value) champ.value = dateRelanceDefaut(14);
+  if (val === 'relance_offre' && !champ.value) champ.value = dateRelanceDefaut(7);
 }
 
 async function dropProspect(e, nouveauStatut) {
   e.currentTarget.classList.remove('drag-over');
   if (!draggedId) return;
   const payload = { statut: nouveauStatut, updated_at: new Date().toISOString() };
-  if (nouveauStatut === 'a_relancer') payload.date_prochain_contact = dateRelanceDefaut();
+  if (nouveauStatut === 'a_relancer')   payload.date_prochain_contact = dateRelanceDefaut(7);
+  if (nouveauStatut === 'offre_envoyee') payload.date_prochain_contact = dateRelanceDefaut(14);
+  if (nouveauStatut === 'relance_offre') payload.date_prochain_contact = dateRelanceDefaut(7);
   await sb.from('prospects').update(payload).eq('id', draggedId);
   draggedId = null;
   await chargerProspects();
@@ -1223,14 +1237,14 @@ function fermerFicheProspect() {
 async function changerStatut(val) {
   if (!currentProspectId) return;
   const payload = { statut: val, updated_at: new Date().toISOString() };
-  if (val === 'a_relancer') {
-    const p = allProspects.find(x => x.id === currentProspectId);
-    if (!p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut();
-  }
+  const p = allProspects.find(x => x.id === currentProspectId);
+  if (val === 'a_relancer'    && !p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut(7);
+  if (val === 'offre_envoyee' && !p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut(14);
+  if (val === 'relance_offre' && !p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut(7);
   await sb.from('prospects').update(payload).eq('id', currentProspectId);
   await chargerProspects();
-  const p = allProspects.find(x => x.id === currentProspectId);
-  if (p?.date_prochain_contact) document.getElementById('ficheProchainContact').textContent = new Date(p.date_prochain_contact).toLocaleDateString('fr-FR');
+  const updated = allProspects.find(x => x.id === currentProspectId);
+  if (updated?.date_prochain_contact) document.getElementById('ficheProchainContact').textContent = new Date(updated.date_prochain_contact).toLocaleDateString('fr-FR');
   toast('Statut mis à jour ✓');
 }
 
@@ -1287,6 +1301,7 @@ const STATUT_COULEUR = {
   a_relancer:   '#7C3AED',
   chiffrage:    '#2563EB',
   offre_envoyee:'#2563EB',
+  relance_offre:'#B45309',
   gagne:        '#16A34A',
   perdu:        '#DC2626',
 };
