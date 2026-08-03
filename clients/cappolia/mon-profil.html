@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAPPOLIA PROPRETÉ — Mon Profil</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:      #2D6A3F;
+      --teal-dark: #1A3D28;
+      --teal-light:#E8F5ED;
+      --vert:      #1E8449;
+      --rouge:     #C0392B;
+      --gris-fond: #F3F6F8;
+      --bordure:   #DDE3E8;
+      --blanc:     #FFFFFF;
+      --gris-texte:#374151;
+      --gris-doux: #6B7280;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--gris-fond);
+      color: var(--gris-texte);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+    }
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    header a {
+      font-size: 12px;
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    header a:hover { text-decoration: underline; }
+    .titre-page { font-size: 20px; font-weight: 900; color: var(--teal-dark); flex: 1; }
+
+    .carte {
+      background: var(--blanc);
+      border-radius: 14px;
+      border: 1px solid var(--bordure);
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+
+    /* Photo */
+    .photo-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .photo-apercu {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--teal-light);
+      border: 4px solid var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+    .photo-apercu:hover { opacity: 0.85; }
+    .photo-apercu img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-initiales { font-size: 36px; font-weight: 900; color: var(--teal); }
+    .photo-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(26,61,40,0.75);
+      color: #fff;
+      font-size: 11px;
+      text-align: center;
+      padding: 6px 0;
+      font-weight: 700;
+    }
+    .photo-hint { font-size: 12px; color: var(--gris-doux); }
+    #inputPhoto { display: none; }
+
+    /* Champs */
+    .section-titre {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--teal-light);
+    }
+    .champ-groupe {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .champ { margin-bottom: 14px; }
+    .champ label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--teal-dark);
+      margin-bottom: 6px;
+    }
+    .champ input, .champ textarea {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid var(--bordure);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      color: var(--gris-texte);
+      background: #F8FAFC;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      resize: vertical;
+    }
+    .champ input:focus, .champ textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(45,106,63,0.12);
+      background: var(--blanc);
+    }
+    .champ input[readonly] {
+      background: #F0F4F8;
+      color: var(--gris-doux);
+      cursor: not-allowed;
+    }
+    .badge-role {
+      display: inline-block;
+      background: var(--teal-light);
+      color: var(--teal-dark);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-top: 6px;
+    }
+
+    /* Bouton */
+    .btn-sauver {
+      width: 100%;
+      padding: 14px;
+      background: var(--teal);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .btn-sauver:hover { background: var(--teal-dark); }
+    .btn-sauver:disabled { background: #9ecdd8; cursor: not-allowed; }
+
+    .msg {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .msg.succes { background: #E8F5E9; color: var(--vert); border: 1px solid #A8D5B0; }
+    .msg.erreur { background: #FDECEA; color: var(--rouge); border: 1px solid #FECACA; }
+
+    @media (max-width: 600px) {
+      .carte { padding: 24px 18px; }
+      .champ-groupe { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="/dashboard">← Tableau de bord</a>
+    <div class="titre-page">Mon Profil</div>
+  </header>
+
+  <div class="carte">
+
+    <!-- Photo -->
+    <div class="photo-zone">
+      <div class="photo-apercu" id="photoApercu" onclick="document.getElementById('inputPhoto').click()">
+        <div class="photo-initiales" id="photoInitiales">OJ</div>
+        <div class="photo-overlay">Changer la photo</div>
+      </div>
+      <div class="photo-hint">Cliquez pour changer la photo</div>
+      <input type="file" id="inputPhoto" accept="image/*" />
+    </div>
+
+    <!-- Identité -->
+    <div class="section-titre">Identité</div>
+    <div class="champ-groupe">
+      <div class="champ">
+        <label>Prénom</label>
+        <input type="text" id="prenom" placeholder="Olivier" />
+      </div>
+      <div class="champ">
+        <label>Nom</label>
+        <input type="text" id="nom" placeholder="JAMET" />
+      </div>
+    </div>
+    <div class="champ">
+      <label>Rôle</label>
+      <div class="badge-role" id="badgeRole">Directeur</div>
+    </div>
+
+    <!-- Coordonnées -->
+    <div class="section-titre" style="margin-top:24px;">Coordonnées</div>
+    <div class="champ">
+      <label>Adresse e-mail</label>
+      <input type="email" id="email" readonly />
+    </div>
+    <div class="champ">
+      <label>Téléphone</label>
+      <input type="tel" id="telephone" placeholder="06 00 00 00 00" />
+    </div>
+    <div class="champ">
+      <label>Adresse postale</label>
+      <textarea id="adresse" rows="3" placeholder="123 rue de la Propreté&#10;75000 Paris"></textarea>
+    </div>
+
+    <button class="btn-sauver" id="btnSauver" onclick="sauvegarder()">Enregistrer les modifications</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let userId = null;
+    let photoFile = null;
+
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+      userId = session.user.id;
+
+      const { data: profil } = await sb.from('users')
+        .select('prenom, nom, email, telephone, adresse, photo_url, role')
+        .eq('id', userId)
+        .single();
+
+      if (!profil) return;
+
+      document.getElementById('prenom').value    = profil.prenom    || '';
+      document.getElementById('nom').value       = profil.nom       || '';
+      document.getElementById('email').value     = profil.email     || '';
+      document.getElementById('telephone').value = profil.telephone || '';
+      document.getElementById('adresse').value   = profil.adresse   || '';
+
+      const roleLabels = {
+        directeur: 'Directeur',
+        chef_equipe: "Chef d'équipe",
+        agent_maitrise: 'Agent de maîtrise',
+        commercial: 'Commercial',
+        responsable_exploitation: "Responsable d'exploitation"
+      };
+      document.getElementById('badgeRole').textContent = roleLabels[profil.role] || profil.role;
+
+      const p = profil.prenom?.[0] || '';
+      const n = profil.nom?.[0] || '';
+      const initiales = (p + n).toUpperCase() || '?';
+      const avatarEl = document.getElementById('photoApercu');
+      if (profil.photo_url) {
+        avatarEl.innerHTML = `<img src="${profil.photo_url}" alt="Photo" /><div class="photo-overlay">Changer la photo</div>`;
+        avatarEl.onclick = () => document.getElementById('inputPhoto').click();
+      } else {
+        document.getElementById('photoInitiales').textContent = initiales;
+      }
+    })();
+
+    document.getElementById('inputPhoto').addEventListener('change', (e) => {
+      photoFile = e.target.files[0];
+      if (!photoFile) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const apercu = document.getElementById('photoApercu');
+        apercu.innerHTML = `<img src="${ev.target.result}" alt="Photo" /><div class="photo-overlay">Changer la photo</div>`;
+        apercu.onclick = () => document.getElementById('inputPhoto').click();
+      };
+      reader.readAsDataURL(photoFile);
+    });
+
+    async function sauvegarder() {
+      const btn   = document.getElementById('btnSauver');
+      const msgEl = document.getElementById('msg');
+      btn.textContent = 'Enregistrement…';
+      btn.disabled = true;
+      msgEl.style.display = 'none';
+
+      try {
+        let photoUrl = null;
+
+        if (photoFile && userId) {
+          const ext = photoFile.name.split('.').pop();
+          const { error: upErr } = await sb.storage
+            .from('photos-profil')
+            .upload(`${userId}.${ext}`, photoFile, { upsert: true });
+          if (!upErr) {
+            const { data: urlData } = sb.storage.from('photos-profil').getPublicUrl(`${userId}.${ext}`);
+            photoUrl = urlData.publicUrl;
+          }
+        }
+
+        const updates = {
+          prenom:    document.getElementById('prenom').value.trim(),
+          nom:       document.getElementById('nom').value.trim(),
+          telephone: document.getElementById('telephone').value.trim() || null,
+          adresse:   document.getElementById('adresse').value.trim() || null,
+        };
+        if (photoUrl) updates.photo_url = photoUrl;
+
+        const { error } = await sb.from('users').update(updates).eq('id', userId);
+        if (error) throw error;
+
+        msgEl.className = 'msg succes';
+        msgEl.textContent = '✅ Profil mis à jour avec succès !';
+        msgEl.style.display = 'block';
+        photoFile = null;
+      } catch (err) {
+        msgEl.className = 'msg erreur';
+        msgEl.textContent = 'Erreur : ' + (err.message || 'Veuillez réessayer.');
+        msgEl.style.display = 'block';
+      }
+
+      btn.textContent = 'Enregistrer les modifications';
+      btn.disabled = false;
+    }
+  </script>
+
+</body>
+</html>
