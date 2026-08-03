@@ -684,7 +684,8 @@
           <option>Parking intérieur</option>
           <option>Parking extérieur</option>
           <option>Abords extérieurs</option>
-          <option>Sortie de conteneurs</option>
+          <option>Conteneurs</option>
+          <option>Local poubelle</option>
         </select>
       </div>
       <div class="field">
@@ -752,7 +753,7 @@ function chargerCadences() {
 }
 const CADENCES = chargerCadences();
 
-const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Sortie de conteneurs'];
+const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Conteneurs','Local poubelle'];
 
 let currentChiffrageId = null;
 let numeroDevis = null;
@@ -839,8 +840,9 @@ const PRESTATION_MATRIX = {
   'Cave':                 { dur:['Balayage'] },
   'Parking intérieur':    { dur:['Balayage, lavage désinfection des sols'] },
   'Parking extérieur':    { dur:['Picking','Balayage'] },
-  'Abords extérieurs':    { dur:['Picking'], souple:['Picking'] },
-  'Sortie de conteneurs': { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'], souple:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
+  'Abords extérieurs':    { dur:['Picking'] },
+  'Conteneurs':           { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
+  'Local poubelle':       { dur:['Nettoyage / Désinfection des surfaces'] },
 };
 
 function getPrestations(typeLocal, typeSol) {
