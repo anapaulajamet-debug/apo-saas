@@ -342,7 +342,7 @@
     <!-- ÉTAPE 2 : ENTRETIEN COURANT -->
     <div class="section" id="section-2">
       <div class="section-title">Temps de prestation — Entretien courant</div>
-      <div class="section-sub">Cadences CCN Propreté — Plancher 1h minimum par passage</div>
+      <div class="section-sub">Choisissez le type de local et le revêtement — les prestations s'ajoutent automatiquement selon la matrice CCN</div>
 
       <div class="kpi-mini" id="kpiEntretien">
         <div class="kpi-mini-card"><div class="kpi-mini-label">Temps / passage</div><div class="kpi-mini-val" id="kpiTpsPassage">0,00</div><div class="kpi-mini-unit">heures</div></div>
@@ -353,19 +353,23 @@
 
       <div class="card">
         <div class="card-title">Détail des surfaces — Entretien courant</div>
-        <div class="table-wrap">
+
+        <div id="emptyEC" style="text-align:center;padding:32px 16px;color:var(--gray);font-size:13px;">
+          Cliquez sur <strong>Ajouter un local</strong> pour commencer
+        </div>
+
+        <div class="table-wrap" id="tableECWrap" style="display:none;">
           <table id="tableEC">
             <thead>
               <tr>
-                <th>Locaux</th>
+                <th style="width:150px;">Locaux</th>
                 <th>Prestation</th>
-                <th>Type de sol</th>
-                <th style="width:90px;">Surface (m²)</th>
-                <th style="width:100px;">Cadence (m²/h)</th>
-                <th style="width:90px;">Tps/passage (h)</th>
-                <th style="width:110px;">Fréq. mensuelle</th>
-                <th style="width:90px;">Tps mensuel (h)</th>
-                <th style="width:36px;"></th>
+                <th style="width:110px;">Type de sol</th>
+                <th style="width:80px;">Surface (m²)</th>
+                <th style="width:90px;">Cadence (m²/h)</th>
+                <th style="width:80px;">Tps/passage (h)</th>
+                <th style="width:100px;">Fréq. mensuelle</th>
+                <th style="width:80px;">Tps mensuel (h)</th>
               </tr>
             </thead>
             <tbody id="tbodyEC"></tbody>
@@ -375,12 +379,12 @@
                 <td id="totalTpsPassage">0,00</td>
                 <td></td>
                 <td id="totalTpsMensuel">0,00</td>
-                <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
-        <button class="btn-add-row" onclick="ajouterLigneEC()">+ Ajouter une ligne</button>
+
+        <button class="btn-add-row" onclick="ouvrirModalLocal()" style="margin-top:14px;">➕ Ajouter un local</button>
       </div>
 
       <div class="nav-btns">
@@ -626,6 +630,58 @@
   </div>
 </div>
 
+<!-- MODAL AJOUT LOCAL -->
+<div id="modalLocal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px 32px;width:min(500px,92vw);box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:16px;font-weight:700;color:var(--green-dark);margin-bottom:20px;">🏢 Ajouter un local</div>
+    <div class="form-grid" style="gap:14px;">
+      <div class="field">
+        <label>Type de local *</label>
+        <select id="modalTypeLocal" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;" onchange="previewModal()">
+          <option value="">— Choisir —</option>
+          <option>Bureaux</option>
+          <option>Accueil / Hall</option>
+          <option>Salles de réunion</option>
+          <option>Espace open space</option>
+          <option>Cafétéria / Salle de pause</option>
+          <option>Sanitaires / WC</option>
+          <option>Vestiaires</option>
+          <option>Couloirs / Circulations</option>
+          <option>Escaliers</option>
+          <option>Archives</option>
+          <option>Local technique</option>
+          <option>Parking intérieur</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Type de sol *</label>
+        <select id="modalTypeSol" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;" onchange="previewModal()">
+          <option value="">— Choisir —</option>
+          <option>Thermoplastique</option>
+          <option>Carrelage</option>
+          <option>Moquette</option>
+          <option>Parquet</option>
+          <option>Béton</option>
+          <option>Vinyle</option>
+          <option>Marbre</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Surface (m²) *</label>
+        <input type="number" id="modalSurface" min="1" step="0.5" placeholder="ex : 150" style="font-size:14px;padding:10px;border:1.5px solid var(--border);border-radius:7px;width:100%;box-sizing:border-box;"/>
+      </div>
+      <div id="modalPreviewBox" style="display:none;background:var(--green-light);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--green-dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Prestations générées :</div>
+        <ul id="modalPreviewList" style="margin:0;padding:0 0 0 16px;font-size:12px;color:var(--green-dark);line-height:1.8;"></ul>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:22px;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="fermerModalLocal()">Annuler</button>
+      <button class="btn-primary" onclick="confirmerLocal()">Confirmer →</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -687,8 +743,6 @@ async function init() {
   document.getElementById('dNumero').textContent = numeroDevis;
   document.getElementById('dDate').textContent = 'Date : ' + new Date().toLocaleDateString('fr-FR');
 
-  // Lignes initiales
-  ajouterLigneEC();
   calculerEC();
 }
 
@@ -715,64 +769,138 @@ function allerEtape(n) {
   window.scrollTo(0, 0);
 }
 
-// ── TABLEAU ENTRETIEN COURANT ────────────────────────────────────────────
-let lignesEC = 0;
-function ajouterLigneEC() {
-  lignesEC++;
-  const id = 'ec' + lignesEC;
-  const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
-  const freqMois = (freq * 4.33).toFixed(1);
-  const tr = document.createElement('tr');
-  tr.id = id;
-  tr.innerHTML = `
-    <td><select onchange="calculerEC()" style="min-width:130px;">
-      ${LOCAUX_OPTIONS.map(l => `<option>${l}</option>`).join('')}
-      <option value="Autre">Autre…</option>
-    </select></td>
-    <td><select onchange="majCadenceEC('${id}'); calculerEC()" style="min-width:200px;">
-      ${Object.keys(CADENCES).map(c => `<option>${c}</option>`).join('')}
-    </select></td>
-    <td><select style="min-width:80px;">
-      <option>Carrelage</option><option>Moquette</option><option>Parquet</option>
-      <option>Béton</option><option>Vinyle</option><option>Marbre</option>
-    </select></td>
-    <td><input type="number" min="0" step="0.5" placeholder="0" onchange="calculerEC()" class="surf-ec"/></td>
-    <td><input type="number" id="${id}_cadence" value="${Object.values(CADENCES)[0]}" readonly/></td>
-    <td><input type="number" id="${id}_tps" readonly/></td>
-    <td><input type="number" id="${id}_freq" value="${freqMois}" readonly/></td>
-    <td><input type="number" id="${id}_mensuel" readonly/></td>
-    <td><button class="btn-del" onclick="supprimerLigne('${id}', 'tbodyEC'); calculerEC()">✕</button></td>`;
-  document.getElementById('tbodyEC').appendChild(tr);
-  majCadenceEC(id);
+// ── MATRICE PRESTATIONS PAR LOCAL × SOL ─────────────────────────────────
+const PRESTATION_MATRIX = {
+  'Bureaux':              { dur:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol'] },
+  'Accueil / Hall':       { dur:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol'] },
+  'Salles de réunion':    { dur:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol'] },
+  'Espace open space':    { dur:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol'] },
+  'Cafétéria / Salle de pause': {
+    thermoplastique:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Balayage humide','Lavage manuel du sol + finitions'],
+    dur:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Balayage, lavage désinfection des sols'],
+    souple:['Vidage des corbeilles','Nettoyage du mobilier','Désinfection des surfaces','Aspiration du sol'],
+  },
+  'Sanitaires / WC':      { dur:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage des surfaces verticales','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage des surfaces verticales'] },
+  'Vestiaires':           { dur:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage des surfaces verticales','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Couloirs / Circulations': { dur:['Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Aspiration du sol'] },
+  'Escaliers':            { dur:['Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Aspiration du sol'] },
+  'Archives':             { dur:['Vidage des corbeilles','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Local technique':      { dur:['Vidage des corbeilles','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Parking intérieur':    { dur:['Balayage, lavage désinfection des sols'], souple:['Aspiration du sol'] },
+};
+
+function getPrestations(typeLocal, typeSol) {
+  const m = PRESTATION_MATRIX[typeLocal];
+  if (!m) return ['Aspiration du sol'];
+  if (typeSol === 'Moquette') return m.souple || ['Aspiration du sol'];
+  if (typeSol === 'Thermoplastique' && m.thermoplastique) return m.thermoplastique;
+  return m.dur || m.souple || [];
 }
 
-function majCadenceEC(id) {
-  const tr = document.getElementById(id);
-  const sel = tr.querySelectorAll('select')[1];
-  const cadence = CADENCES[sel.value] || 200;
-  document.getElementById(id + '_cadence').value = cadence;
+// ── TABLEAU ENTRETIEN COURANT ────────────────────────────────────────────
+let groupesEC = [];
+let groupeIdCounter = 0;
+
+function ouvrirModalLocal() {
+  document.getElementById('modalTypeLocal').value = '';
+  document.getElementById('modalTypeSol').value = '';
+  document.getElementById('modalSurface').value = '';
+  document.getElementById('modalPreviewBox').style.display = 'none';
+  document.getElementById('modalLocal').style.display = 'flex';
+}
+
+function previewModal() {
+  const tl = document.getElementById('modalTypeLocal').value;
+  const ts = document.getElementById('modalTypeSol').value;
+  if (!tl || !ts) { document.getElementById('modalPreviewBox').style.display = 'none'; return; }
+  const prestations = getPrestations(tl, ts);
+  document.getElementById('modalPreviewList').innerHTML = prestations.map(p => `<li>${p}</li>`).join('');
+  document.getElementById('modalPreviewBox').style.display = 'block';
+}
+
+function fermerModalLocal() {
+  document.getElementById('modalLocal').style.display = 'none';
+}
+
+function confirmerLocal() {
+  const tl = document.getElementById('modalTypeLocal').value;
+  const ts = document.getElementById('modalTypeSol').value;
+  const surf = parseFloat(document.getElementById('modalSurface').value);
+  if (!tl || !ts || !surf || surf <= 0) { showToast('Veuillez remplir tous les champs'); return; }
+  groupeIdCounter++;
+  const gid = 'g' + groupeIdCounter;
+  groupesEC.push({ id: gid, local: tl, sol: ts, surface: surf, prestations: getPrestations(tl, ts) });
+  fermerModalLocal();
+  rendreGroupes();
   calculerEC();
+}
+
+function supprimerGroupe(gid) {
+  groupesEC = groupesEC.filter(g => g.id !== gid);
+  rendreGroupes();
+  calculerEC();
+}
+
+function rendreGroupes() {
+  const tbody = document.getElementById('tbodyEC');
+  tbody.innerHTML = '';
+  const emptyEl = document.getElementById('emptyEC');
+  const wrapEl = document.getElementById('tableECWrap');
+  if (groupesEC.length === 0) {
+    emptyEl.style.display = 'block';
+    wrapEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  wrapEl.style.display = 'block';
+  const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  const freqMois = (freq * 4.33).toFixed(1);
+  groupesEC.forEach(g => {
+    const trHead = document.createElement('tr');
+    trHead.innerHTML = `<td colspan="8" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;">
+      🏢 ${g.local} — ${g.sol} — ${g.surface} m²
+      <button onclick="supprimerGroupe('${g.id}')" style="float:right;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer</button>
+    </td>`;
+    tbody.appendChild(trHead);
+    g.prestations.forEach((p, idx) => {
+      const rid = g.id + '_' + idx;
+      const cadence = CADENCES[p] || 200;
+      const tr = document.createElement('tr');
+      tr.id = 'row_' + rid;
+      tr.dataset.surface = g.surface;
+      tr.dataset.cadence = cadence;
+      tr.innerHTML = `
+        <td style="color:var(--gray);font-size:11px;padding-left:18px;">${g.local}</td>
+        <td style="font-size:12px;">${p}</td>
+        <td style="font-size:12px;">${g.sol}</td>
+        <td style="text-align:right;">${g.surface}</td>
+        <td style="text-align:right;">${cadence}</td>
+        <td style="text-align:right;" id="${rid}_tps">—</td>
+        <td style="text-align:right;" id="${rid}_freq">${freqMois}</td>
+        <td style="text-align:right;" id="${rid}_mensuel">—</td>`;
+      tbody.appendChild(tr);
+    });
+  });
 }
 
 function calculerEC() {
   const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
   const freqMois = parseFloat((freq * 4.33).toFixed(2));
-  let totalTpsPassage = 0;
-  let totalMensuel = 0;
+  let rawTps = 0;
 
-  document.querySelectorAll('#tbodyEC tr').forEach(tr => {
-    const id = tr.id;
-    const surf = parseFloat(tr.querySelector('.surf-ec')?.value || 0);
-    const cadence = parseFloat(document.getElementById(id + '_cadence')?.value || 200);
-    const freqEl = document.getElementById(id + '_freq');
-    if (freqEl) freqEl.value = freqMois.toFixed(1);
-    const tpsPassage = surf > 0 ? Math.max(surf / cadence, 1) : 0;
-    const tpsMensuel = parseFloat((tpsPassage * freqMois).toFixed(2));
-    if (document.getElementById(id + '_tps')) document.getElementById(id + '_tps').value = tpsPassage.toFixed(2);
-    if (document.getElementById(id + '_mensuel')) document.getElementById(id + '_mensuel').value = tpsMensuel.toFixed(2);
-    totalTpsPassage += tpsPassage;
-    totalMensuel += tpsMensuel;
+  document.querySelectorAll('#tbodyEC tr[data-surface]').forEach(tr => {
+    const rid = tr.id.replace('row_', '');
+    const surf = parseFloat(tr.dataset.surface || 0);
+    const cadence = parseFloat(tr.dataset.cadence || 200);
+    const tpsPresta = surf > 0 ? surf / cadence : 0;
+    if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = tpsPresta.toFixed(2);
+    if (document.getElementById(rid + '_freq')) document.getElementById(rid + '_freq').textContent = freqMois.toFixed(1);
+    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMois).toFixed(2);
+    rawTps += tpsPresta;
   });
+
+  const totalTpsPassage = rawTps > 0 ? Math.max(rawTps, 1) : 0;
+  const totalMensuel = parseFloat((totalTpsPassage * freqMois).toFixed(2));
 
   document.getElementById('totalTpsPassage').textContent = totalTpsPassage.toFixed(2);
   document.getElementById('totalTpsMensuel').textContent = totalMensuel.toFixed(2);
