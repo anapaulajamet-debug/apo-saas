@@ -844,7 +844,12 @@ const PRESTATION_MATRIX = {
 };
 
 function getPrestations(typeLocal, typeSol) {
-  const m = PRESTATION_MATRIX[typeLocal];
+  let matrix = PRESTATION_MATRIX;
+  try {
+    const saved = JSON.parse(localStorage.getItem('cappolia_matrix') || 'null');
+    if (saved) matrix = saved;
+  } catch {}
+  const m = matrix[typeLocal];
   if (!m) return ['Aspiration du sol'];
   if (typeSol === 'Moquette') return m.souple || ['Aspiration du sol'];
   if (typeSol === 'Thermoplastique' && m.thermoplastique) return m.thermoplastique;

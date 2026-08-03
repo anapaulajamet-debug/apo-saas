@@ -348,6 +348,88 @@
 
     .section-hidden { display: none; }
 
+    /* ── MATRIX PRESTATIONS ── */
+    .matrix-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .matrix-card-header {
+      background: var(--green-light);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--green-dark);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .matrix-card-header::after { content: '▾'; font-size: 16px; color: var(--green); }
+    .matrix-card-header.collapsed::after { content: '▸'; }
+    .matrix-card-body { padding: 12px 16px; }
+    .sol-row { margin-bottom: 14px; }
+    .sol-row:last-child { margin-bottom: 0; }
+    .sol-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--gray);
+      margin-bottom: 6px;
+    }
+    .chips-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 28px; }
+    .prest-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      border: 1px solid #b2d8be;
+      border-radius: 20px;
+      padding: 4px 10px 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip-del {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #e53e3e;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 0 0 2px;
+      font-weight: 900;
+    }
+    .chip-del:hover { color: #c00; }
+    .add-prest { display: flex; gap: 6px; align-items: center; }
+    .add-prest select {
+      flex: 1;
+      padding: 5px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: Arial, sans-serif;
+      color: #1e293b;
+      background: #F8FAFC;
+      outline: none;
+    }
+    .add-prest select:focus { border-color: var(--green); }
+    .btn-chip-add {
+      padding: 5px 12px;
+      border: none;
+      border-radius: 6px;
+      background: var(--green);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-chip-add:hover { background: var(--green-dark); }
+
     /* ── EMPTY STATE ── */
     .empty-col {
       text-align: center; padding: 20px 10px; color: #CBD5E1; font-size: 11px;
@@ -416,6 +498,7 @@
   <div class="tab" onclick="afficherOnglet('zones', this)">Zones & Secteurs</div>
   <div class="tab" onclick="afficherOnglet('cadences', this)">⚙️ Cadences internes</div>
   <div class="tab" onclick="afficherOnglet('salaires', this)">💶 Grille salariale CCN</div>
+  <div class="tab" onclick="afficherOnglet('prestations', this)">🗂️ Prestations par local</div>
 </div>
 
 <main>
@@ -806,6 +889,28 @@
   <div style="font-size:10px;color:var(--gray);text-align:center;margin-bottom:24px;">
     Sources : Avenant n°27 du 18 déc. 2025, étendu par arrêté du 24 fév. 2026 — URSSAF — FEP — Décret n°2025-887
   </div>
+</div>
+
+<!-- SECTION PRESTATIONS PAR LOCAL -->
+<div id="section-prestations" class="section-hidden" style="max-width:960px;margin:24px auto;padding:0 16px 40px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:var(--green-dark);">🗂️ Prestations par défaut — Locaux</div>
+      <div style="font-size:12px;color:var(--gray);margin-top:3px;">Définissez les prestations attribuées automatiquement à chaque local selon le type de sol lors du chiffrage.</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="reinitialiserMatrix()" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-size:12px;cursor:pointer;color:var(--gray);">↺ Réinitialiser défaut</button>
+      <button onclick="sauvegarderMatrix()" style="padding:8px 16px;border:none;border-radius:7px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💾 Enregistrer</button>
+    </div>
+  </div>
+
+  <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:24px;font-size:12px;color:#1E40AF;">
+    ℹ️ Cliquez sur un local pour le déplier. Ajoutez ou supprimez des prestations par type de sol. Les modifications s'appliquent immédiatement aux nouveaux chiffrages.
+  </div>
+
+  <div id="matrixContainer"></div>
+
 </div>
 
 <div id="toast"></div>
@@ -1423,12 +1528,13 @@ function filtrerDepuisZones(secteur) {
 function afficherOnglet(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['pipeline','zones','cadences','salaires'].forEach(s => {
+  ['pipeline','zones','cadences','salaires','prestations'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('section-hidden', s !== id);
   });
   if (id === 'zones') { afficherSecteurs(); chargerGoogleMaps(); }
   if (id === 'cadences') { afficherCadences(); }
   if (id === 'salaires') { afficherSalaires(); }
+  if (id === 'prestations') { afficherPrestations(); }
 }
 
 // ── CADENCES CCN ─────────────────────────────────────────────────────────
@@ -1607,6 +1713,108 @@ function reinitialiserSalaires() {
   localStorage.removeItem('cappolia_salaires');
   afficherSalaires();
   toast('Grille salariale réinitialisée aux valeurs CCN 2026');
+}
+
+// ── MATRIX PRESTATIONS PAR LOCAL ───────────────────────────────────────
+const PRESTATIONS_DEFAULT = {
+  'Bureaux':              { dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
+  'Accueil / Hall':       { dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
+  'Salles de réunion':    { dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
+  'Espace open space':    { dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
+  'Cafétéria / Salle de pause': { thermoplastique:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Balayage humide','Lavage manuel du sol + finitions'], dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
+  'Sanitaires / WC':      { dur:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage / Désinfection des surfaces','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage / Désinfection des surfaces'] },
+  'Vestiaires':           { dur:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage / Désinfection des surfaces','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Couloirs / Circulations': { dur:['Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Aspiration du sol'] },
+  'Palier':               { dur:['Balayage humide','Lavage manuel du sol + finitions'], souple:['Balayage humide'] },
+  'Escaliers':            { dur:['Balayage humide','Lavage manuel du sol + finitions','Dépoussiérage des marches'], souple:['Balayage humide','Dépoussiérage des marches'] },
+  'Ascenseur':            { dur:['Nettoyage des miroirs','Finitions (plinthes, VMC, ...)','Balayage humide','Lavage manuel du sol + finitions'], souple:['Nettoyage des miroirs','Finitions (plinthes, VMC, ...)','Balayage humide'] },
+  'Archives':             { dur:['Vidage des corbeilles','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Local technique':      { dur:['Vidage des corbeilles','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Cave':                 { dur:['Balayage'], souple:['Balayage'] },
+  'Parking intérieur':    { dur:['Balayage, lavage désinfection des sols'], souple:['Aspiration du sol'] },
+  'Parking extérieur':    { dur:['Picking','Balayage'], souple:['Picking','Balayage'] },
+  'Abords extérieurs':    { dur:['Picking'], souple:['Picking'] },
+  'Sortie de conteneurs': { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'], souple:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
+};
+
+const SOL_LABELS = {
+  dur: 'Carrelage / Pierre / Béton',
+  souple: 'Moquette',
+  thermoplastique: 'Thermoplastique / PVC',
+};
+
+let currentMatrix = null;
+
+function getMatrixPerso() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('cappolia_matrix') || 'null');
+    return saved || JSON.parse(JSON.stringify(PRESTATIONS_DEFAULT));
+  } catch { return JSON.parse(JSON.stringify(PRESTATIONS_DEFAULT)); }
+}
+
+function afficherPrestations() {
+  if (!currentMatrix) currentMatrix = getMatrixPerso();
+  renderMatrix();
+}
+
+function renderMatrix() {
+  const container = document.getElementById('matrixContainer');
+  const allPrests = Object.keys(CADENCES_CCN_DEFAULT);
+  container.innerHTML = Object.entries(currentMatrix).map(([local, sols]) => {
+    const solsHtml = Object.entries(sols).map(([sol, prests]) => {
+      const chips = prests.map((p, i) => {
+        const localEnc = encodeURIComponent(local);
+        return `<span class="prest-chip">${p}<button class="chip-del" title="Supprimer" onclick="supprimerPrestation(decodeURIComponent('${localEnc}'),'${sol}',${i})">×</button></span>`;
+      }).join('');
+      const opts = allPrests.filter(p => !prests.includes(p)).map(p => `<option value="${p}">${p}</option>`).join('');
+      const localEnc = encodeURIComponent(local);
+      return `
+        <div class="sol-row">
+          <div class="sol-label">${SOL_LABELS[sol] || sol}</div>
+          <div class="chips-list">${chips || '<span style="font-size:11px;color:#94A3B8;font-style:italic;">Aucune prestation</span>'}</div>
+          <div class="add-prest">
+            <select id="sel-${localEnc}-${sol}">
+              <option value="">+ Ajouter une prestation…</option>
+              ${opts}
+            </select>
+            <button class="btn-chip-add" onclick="ajouterPrestation(decodeURIComponent('${localEnc}'),'${sol}')">+</button>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="matrix-card">
+        <div class="matrix-card-header" onclick="this.classList.toggle('collapsed'); this.nextElementSibling.style.display = this.classList.contains('collapsed') ? 'none' : 'block';">${local}</div>
+        <div class="matrix-card-body">${solsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function supprimerPrestation(local, sol, idx) {
+  currentMatrix[local][sol].splice(idx, 1);
+  renderMatrix();
+}
+
+function ajouterPrestation(local, sol) {
+  const localEnc = encodeURIComponent(local);
+  const sel = document.getElementById('sel-' + localEnc + '-' + sol);
+  if (!sel || !sel.value) return;
+  if (!currentMatrix[local][sol].includes(sel.value)) {
+    currentMatrix[local][sol].push(sel.value);
+  }
+  renderMatrix();
+}
+
+function sauvegarderMatrix() {
+  localStorage.setItem('cappolia_matrix', JSON.stringify(currentMatrix));
+  toast('✅ Prestations par local enregistrées');
+}
+
+function reinitialiserMatrix() {
+  if (!confirm('Réinitialiser toutes les prestations aux valeurs par défaut ?')) return;
+  localStorage.removeItem('cappolia_matrix');
+  currentMatrix = JSON.parse(JSON.stringify(PRESTATIONS_DEFAULT));
+  renderMatrix();
+  toast('Prestations réinitialisées aux valeurs par défaut');
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────
