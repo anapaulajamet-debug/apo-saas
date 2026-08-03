@@ -388,6 +388,7 @@
 <div class="tabs">
   <div class="tab active" onclick="afficherOnglet('pipeline', this)">Pipeline prospects</div>
   <div class="tab" onclick="afficherOnglet('zones', this)">Zones & Secteurs</div>
+  <div class="tab" onclick="afficherOnglet('cadences', this)">⚙️ Cadences CCN</div>
 </div>
 
 <main>
@@ -628,6 +629,35 @@
       <button class="btn-primary" onclick="allerChiffrage()" style="background:var(--orange);">📊 Lancer le chiffrage</button>
     </div>
   </div>
+</div>
+
+<!-- SECTION CADENCES -->
+<div id="section-cadences" class="section-hidden" style="max-width:800px;margin:24px auto;padding:0 16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:var(--green-dark);">⚙️ Cadences CCN Propreté 2026</div>
+      <div style="font-size:12px;color:var(--gray);margin-top:3px;">Modifiez les cadences de référence utilisées dans les chiffrages. Valeurs en m²/heure.</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="reinitialiserCadences()" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-size:12px;cursor:pointer;color:var(--gray);">↺ Réinitialiser CCN</button>
+      <button onclick="sauvegarderCadences()" style="padding:8px 16px;border:none;border-radius:7px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💾 Enregistrer</button>
+    </div>
+  </div>
+
+  <div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:#92400E;">
+    ⚠️ Ces cadences s'appliquent à tous les nouveaux chiffrages. Le commercial peut toujours ajuster ligne par ligne dans l'outil de chiffrage.
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="background:var(--green-dark);color:#fff;">
+        <th style="padding:10px 14px;text-align:left;border-radius:8px 0 0 0;">Prestation</th>
+        <th style="padding:10px 14px;text-align:center;width:140px;">Cadence CCN (m²/h)</th>
+        <th style="padding:10px 14px;text-align:center;width:140px;border-radius:0 8px 0 0;">Votre valeur</th>
+      </tr>
+    </thead>
+    <tbody id="tableCadences"></tbody>
+  </table>
 </div>
 
 <div id="toast"></div>
@@ -1243,10 +1273,66 @@ function filtrerDepuisZones(secteur) {
 function afficherOnglet(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['pipeline','zones'].forEach(s => {
+  ['pipeline','zones','cadences'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('section-hidden', s !== id);
   });
   if (id === 'zones') { afficherSecteurs(); chargerGoogleMaps(); }
+  if (id === 'cadences') { afficherCadences(); }
+}
+
+// ── CADENCES CCN ─────────────────────────────────────────────────────────
+const CADENCES_CCN_DEFAULT = {
+  'Aspiration du sol': 200,
+  'Balayage humide': 250,
+  'Balayage, lavage désinfection des sols': 150,
+  'Désinfection des surfaces': 70,
+  'Lavage manuel du sol + finitions': 100,
+  'Lavage mécanisé à l\'autolaveuse + finitions': 600,
+  'Nettoyage des surfaces verticales': 100,
+  'Nettoyage désinfection, détartrage': 40,
+  'Nettoyage du mobilier': 150,
+  'Vidage des corbeilles': 800,
+};
+
+function getCadencesPerso() {
+  try { return JSON.parse(localStorage.getItem('cappolia_cadences') || '{}'); } catch { return {}; }
+}
+
+function afficherCadences() {
+  const perso = getCadencesPerso();
+  const tbody = document.getElementById('tableCadences');
+  tbody.innerHTML = Object.entries(CADENCES_CCN_DEFAULT).map(([p, ccn], i) => {
+    const val = perso[p] != null ? perso[p] : ccn;
+    const modifie = perso[p] != null && perso[p] !== ccn;
+    return `<tr style="background:${i % 2 === 0 ? '#fff' : '#F8FAFC'};">
+      <td style="padding:10px 14px;border-bottom:1px solid var(--border);">${p}</td>
+      <td style="padding:10px 14px;text-align:center;color:var(--gray);border-bottom:1px solid var(--border);">${ccn}</td>
+      <td style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border);">
+        <input type="number" data-prestation="${p}" value="${val}" min="1" step="1"
+          style="width:80px;text-align:center;border:1.5px solid ${modifie ? '#F59E0B' : 'var(--border)'};border-radius:6px;padding:4px 6px;font-size:13px;font-weight:${modifie ? '700' : '400'};background:${modifie ? '#FFFBEB' : '#fff'};outline:none;"
+          oninput="this.style.borderColor=this.value!==${ccn}?'#F59E0B':'var(--border)';this.style.fontWeight=this.value!==${ccn}?'700':'400';this.style.background=this.value!==${ccn}?'#FFFBEB':'#fff'"/>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function sauvegarderCadences() {
+  const perso = {};
+  document.querySelectorAll('#tableCadences input[data-prestation]').forEach(input => {
+    const p = input.dataset.prestation;
+    const val = parseFloat(input.value);
+    if (val > 0) perso[p] = val;
+  });
+  localStorage.setItem('cappolia_cadences', JSON.stringify(perso));
+  toast('✅ Cadences enregistrées — applicables aux prochains chiffrages');
+  afficherCadences();
+}
+
+function reinitialiserCadences() {
+  if (!confirm('Réinitialiser toutes les cadences aux valeurs CCN Propreté 2026 ?')) return;
+  localStorage.removeItem('cappolia_cadences');
+  afficherCadences();
+  toast('Cadences réinitialisées aux valeurs CCN');
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────

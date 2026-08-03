@@ -698,7 +698,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
 
-const CADENCES = {
+const CADENCES_DEFAULT = {
   'Aspiration du sol': 200,
   'Balayage humide': 250,
   'Balayage, lavage désinfection des sols': 150,
@@ -710,6 +710,14 @@ const CADENCES = {
   'Nettoyage du mobilier': 150,
   'Vidage des corbeilles': 800,
 };
+// Fusion avec les valeurs personnalisées par le directeur (localStorage)
+function chargerCadences() {
+  try {
+    const perso = JSON.parse(localStorage.getItem('cappolia_cadences') || '{}');
+    return { ...CADENCES_DEFAULT, ...perso };
+  } catch { return { ...CADENCES_DEFAULT }; }
+}
+const CADENCES = chargerCadences();
 
 const LOCAUX_OPTIONS = ['Bureaux','Sanitaires / WC','Couloirs / Circulations','Accueil / Hall','Cafétéria / Salle de pause','Escaliers','Salles de réunion','Espace open space','Archives','Local technique','Vestiaires','Parking intérieur'];
 
