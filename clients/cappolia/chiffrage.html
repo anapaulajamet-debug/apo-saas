@@ -901,7 +901,7 @@ function rendreGroupes() {
         <td style="font-size:12px;">${p}</td>
         <td style="font-size:12px;">${g.sol}</td>
         <td style="text-align:right;">${g.surface}</td>
-        <td style="text-align:right;"><input type="number" id="${rid}_cadence" value="${cadenceSauvee}" min="1" step="1" oninput="sauverCadence('${g.id}',${idx},this.value);calculerEC()" style="width:68px;text-align:right;border:1.5px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;background:#FFFBEB;" title="CCN par défaut : ${cadenceDefaut} m²/h"/></td>
+        <td style="text-align:right;"><input type="number" id="${rid}_cadence" value="${cadenceSauvee}" min="1" step="1" oninput="sauverCadence('${g.id}',${idx},this.value);calculerEC()" style="width:68px;text-align:right;border:1.5px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;background:#FFFBEB;" title="Cadence interne par défaut : ${cadenceDefaut} m²/h"/></td>
         <td style="text-align:right;" id="${rid}_tps">—</td>
         <td style="text-align:right;" id="${rid}_freq">—</td>
         <td style="text-align:right;" id="${rid}_mensuel">—</td>`;
