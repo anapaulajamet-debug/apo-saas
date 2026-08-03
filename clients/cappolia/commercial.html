@@ -551,6 +551,11 @@
       <button class="btn-primary" onclick="ouvrirModalNouveauProspect()">+ Nouveau prospect</button>
     </div>
 
+    <!-- SCROLLBAR HAUT KANBAN -->
+    <div id="kanbanTopScroll" style="overflow-x:auto;overflow-y:hidden;height:12px;margin-bottom:4px;">
+      <div id="kanbanTopScrollInner" style="height:1px;"></div>
+    </div>
+
     <!-- KANBAN -->
     <div class="kanban" id="kanban">
       <!-- columns rendered by JS -->
@@ -1046,6 +1051,14 @@ function renderKanban() {
       </div>`;
     kanban.appendChild(col);
   }
+
+  // Sync scrollbar haut ↔ kanban
+  const topScroll = document.getElementById('kanbanTopScroll');
+  document.getElementById('kanbanTopScrollInner').style.width = kanban.scrollWidth + 'px';
+  topScroll._syncing = false;
+  kanban._syncing = false;
+  topScroll.onscroll = () => { if (!topScroll._syncing) { kanban._syncing = true; kanban.scrollLeft = topScroll.scrollLeft; kanban._syncing = false; } };
+  kanban.onscroll   = () => { if (!kanban._syncing)   { topScroll._syncing = true; topScroll.scrollLeft = kanban.scrollLeft; topScroll._syncing = false; } };
 }
 
 function carteHTML(p) {
