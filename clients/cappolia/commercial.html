@@ -662,10 +662,16 @@
     <div class="form-row">
       <div class="field">
         <label>Statut initial</label>
-        <select id="pStatut">
+        <select id="pStatut" onchange="autoDateRelance(this.value)">
           <option value="a_contacter">À contacter</option>
           <option value="contacte">Contacté</option>
           <option value="rdv_planifie">RDV planifié</option>
+          <option value="visite_site">Visite site</option>
+          <option value="a_relancer">À relancer 🔔</option>
+          <option value="chiffrage">Chiffrage en cours</option>
+          <option value="offre_envoyee">Offre envoyée</option>
+          <option value="gagne">Gagné 🏆</option>
+          <option value="perdu">Perdu</option>
         </select>
       </div>
       <div class="field">
@@ -701,6 +707,7 @@
             <option value="contacte">Contacté</option>
             <option value="rdv_planifie">RDV planifié</option>
             <option value="visite_site">Visite site</option>
+            <option value="a_relancer">À relancer 🔔</option>
             <option value="chiffrage">Chiffrage en cours</option>
             <option value="offre_envoyee">Offre envoyée</option>
             <option value="gagne">Gagné 🏆</option>
@@ -927,6 +934,7 @@ const STATUTS = [
   { key: 'contacte',     label: 'Contacté',          emoji: '📞' },
   { key: 'rdv_planifie', label: 'RDV planifié',      emoji: '📅' },
   { key: 'visite_site',  label: 'Visite site',       emoji: '🏢' },
+  { key: 'a_relancer',  label: 'À relancer',         emoji: '🔔' },
   { key: 'chiffrage',    label: 'Chiffrage en cours', emoji: '📊' },
   { key: 'offre_envoyee',label: 'Offre envoyée',     emoji: '📨' },
   { key: 'gagne',        label: 'Gagné 🏆',          emoji: '✅' },
@@ -1047,10 +1055,23 @@ function dragStart(e, id) {
   draggedId = id;
   e.target.classList.add('dragging');
 }
+function dateRelanceDefaut() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().split('T')[0];
+}
+
+function autoDateRelance(val) {
+  const champ = document.getElementById('pDateContact');
+  if (val === 'a_relancer' && !champ.value) champ.value = dateRelanceDefaut();
+}
+
 async function dropProspect(e, nouveauStatut) {
   e.currentTarget.classList.remove('drag-over');
   if (!draggedId) return;
-  await sb.from('prospects').update({ statut: nouveauStatut, updated_at: new Date().toISOString() }).eq('id', draggedId);
+  const payload = { statut: nouveauStatut, updated_at: new Date().toISOString() };
+  if (nouveauStatut === 'a_relancer') payload.date_prochain_contact = dateRelanceDefaut();
+  await sb.from('prospects').update(payload).eq('id', draggedId);
   draggedId = null;
   await chargerProspects();
   toast('Statut mis à jour ✓');
@@ -1168,8 +1189,15 @@ function fermerFicheProspect() {
 
 async function changerStatut(val) {
   if (!currentProspectId) return;
-  await sb.from('prospects').update({ statut: val, updated_at: new Date().toISOString() }).eq('id', currentProspectId);
+  const payload = { statut: val, updated_at: new Date().toISOString() };
+  if (val === 'a_relancer') {
+    const p = allProspects.find(x => x.id === currentProspectId);
+    if (!p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut();
+  }
+  await sb.from('prospects').update(payload).eq('id', currentProspectId);
   await chargerProspects();
+  const p = allProspects.find(x => x.id === currentProspectId);
+  if (p?.date_prochain_contact) document.getElementById('ficheProchainContact').textContent = new Date(p.date_prochain_contact).toLocaleDateString('fr-FR');
   toast('Statut mis à jour ✓');
 }
 
@@ -1223,6 +1251,7 @@ const STATUT_COULEUR = {
   contacte:     '#2D6A3F',
   rdv_planifie: '#D97706',
   visite_site:  '#D97706',
+  a_relancer:   '#7C3AED',
   chiffrage:    '#2563EB',
   offre_envoyee:'#2563EB',
   gagne:        '#16A34A',
