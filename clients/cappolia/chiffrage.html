@@ -374,8 +374,15 @@
             </thead>
             <tbody id="tbodyEC"></tbody>
             <tfoot>
+              <tr style="background:#F8FAFC;font-size:11px;color:var(--gray);">
+                <td colspan="3" style="text-align:right;padding:6px 8px;">SURFACE TOTALE</td>
+                <td style="text-align:right;font-weight:700;color:var(--green-dark);" id="totalSurfaces">0</td>
+                <td style="text-align:right;font-size:10px;color:var(--gray);">m²</td>
+                <td style="text-align:right;font-size:10px;color:var(--gray);" id="ratioSurfTps">—</td>
+                <td colspan="2" style="font-size:10px;color:var(--gray);padding-left:4px;">productivité réelle</td>
+              </tr>
               <tr class="tr-total">
-                <td colspan="5" style="text-align:right;">TOTAL</td>
+                <td colspan="5" style="text-align:right;">TOTAL TEMPS / PASSAGE</td>
                 <td id="totalTpsPassage">0,00</td>
                 <td></td>
                 <td id="totalTpsMensuel">0,00</td>
@@ -864,17 +871,17 @@ function rendreGroupes() {
     tbody.appendChild(trHead);
     g.prestations.forEach((p, idx) => {
       const rid = g.id + '_' + idx;
-      const cadence = CADENCES[p] || 200;
+      const cadenceDefaut = CADENCES[p] || 200;
+      const cadenceSauvee = g.cadences && g.cadences[idx] != null ? g.cadences[idx] : cadenceDefaut;
       const tr = document.createElement('tr');
       tr.id = 'row_' + rid;
       tr.dataset.surface = g.surface;
-      tr.dataset.cadence = cadence;
       tr.innerHTML = `
         <td style="color:var(--gray);font-size:11px;padding-left:18px;">${g.local}</td>
         <td style="font-size:12px;">${p}</td>
         <td style="font-size:12px;">${g.sol}</td>
         <td style="text-align:right;">${g.surface}</td>
-        <td style="text-align:right;">${cadence}</td>
+        <td style="text-align:right;"><input type="number" id="${rid}_cadence" value="${cadenceSauvee}" min="1" step="1" oninput="sauverCadence('${g.id}',${idx},this.value);calculerEC()" style="width:68px;text-align:right;border:1.5px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;background:#FFFBEB;" title="CCN par défaut : ${cadenceDefaut} m²/h"/></td>
         <td style="text-align:right;" id="${rid}_tps">—</td>
         <td style="text-align:right;" id="${rid}_freq">${freqMois}</td>
         <td style="text-align:right;" id="${rid}_mensuel">—</td>`;
@@ -883,21 +890,35 @@ function rendreGroupes() {
   });
 }
 
+function sauverCadence(gid, idx, val) {
+  const g = groupesEC.find(x => x.id === gid);
+  if (!g) return;
+  if (!g.cadences) g.cadences = {};
+  g.cadences[idx] = parseFloat(val) || 1;
+}
+
 function calculerEC() {
   const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
   const freqMois = parseFloat((freq * 4.33).toFixed(2));
   let rawTps = 0;
+  const surfacesTotales = groupesEC.reduce((sum, g) => sum + (parseFloat(g.surface) || 0), 0);
 
   document.querySelectorAll('#tbodyEC tr[data-surface]').forEach(tr => {
     const rid = tr.id.replace('row_', '');
     const surf = parseFloat(tr.dataset.surface || 0);
-    const cadence = parseFloat(tr.dataset.cadence || 200);
+    const cadenceInput = document.getElementById(rid + '_cadence');
+    const cadence = cadenceInput ? parseFloat(cadenceInput.value) || 1 : 200;
     const tpsPresta = surf > 0 ? surf / cadence : 0;
     if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = tpsPresta.toFixed(2);
     if (document.getElementById(rid + '_freq')) document.getElementById(rid + '_freq').textContent = freqMois.toFixed(1);
     if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMois).toFixed(2);
     rawTps += tpsPresta;
   });
+
+  const elSurf = document.getElementById('totalSurfaces');
+  if (elSurf) elSurf.textContent = surfacesTotales.toFixed(0);
+  const elRatio = document.getElementById('ratioSurfTps');
+  if (elRatio) elRatio.textContent = rawTps > 0 ? (surfacesTotales / rawTps).toFixed(0) + ' m²/h' : '—';
 
   const totalTpsPassage = rawTps > 0 ? Math.max(rawTps, 1) : 0;
   const totalMensuel = parseFloat((totalTpsPassage * freqMois).toFixed(2));
