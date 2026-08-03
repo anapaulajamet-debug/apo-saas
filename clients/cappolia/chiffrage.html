@@ -672,6 +672,7 @@
           <option>Salles de réunion</option>
           <option>Espace open space</option>
           <option>Cafétéria / Salle de pause</option>
+          <option>Surface de vente</option>
           <option>Sanitaires / WC</option>
           <option>Vestiaires</option>
           <option>Couloirs / Circulations</option>
@@ -764,7 +765,7 @@ function chargerCadences() {
 }
 const CADENCES = chargerCadences();
 
-const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Conteneurs','Local poubelle','Vitrerie'];
+const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Surface de vente','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Conteneurs','Local poubelle','Vitrerie'];
 
 let currentChiffrageId = null;
 let numeroDevis = null;
@@ -855,6 +856,7 @@ const PRESTATION_MATRIX = {
   'Conteneurs':           { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
   'Local poubelle':       { dur:['Nettoyage / Désinfection des surfaces'] },
   'Vitrerie':             { dur:['Nettoyage des vitres'] },
+  'Surface de vente':     { thermoplastique:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Balayage humide','Lavage manuel du sol + finitions'], dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
 };
 
 function getPrestations(typeLocal, typeSol) {

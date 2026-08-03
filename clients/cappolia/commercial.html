@@ -918,6 +918,26 @@
 
   <div id="matrixContainer"></div>
 
+  <!-- AJOUT D'UN NOUVEAU LOCAL -->
+  <div style="margin-top:20px;background:#fff;border:1.5px dashed var(--border);border-radius:10px;padding:16px 20px;">
+    <div style="font-size:13px;font-weight:800;color:var(--green-dark);margin-bottom:12px;">➕ Ajouter un nouveau local</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+      <div style="flex:1;min-width:180px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--gray);margin-bottom:4px;">Nom du local</div>
+        <input id="newLocalName" type="text" placeholder="ex : Show-room, Espace accueil…" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Arial,sans-serif;outline:none;" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--gray);margin-bottom:6px;">Types de sol</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="newSolDur" checked> Carrelage / Dur</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="newSolSouple"> Moquette</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="newSolThermo"> Thermoplastique</label>
+        </div>
+      </div>
+      <button class="btn-chip-add" style="padding:8px 16px;font-size:13px;" onclick="ajouterNouveauLocal()">+ Créer ce local</button>
+    </div>
+  </div>
+
 </div>
 
 <div id="toast"></div>
@@ -1767,6 +1787,7 @@ const PRESTATIONS_DEFAULT = {
   'Conteneurs':           { dur:['Sortie de conteneurs','Rentrée de conteneurs','Nettoyage des conteneurs'] },
   'Local poubelle':       { dur:['Nettoyage / Désinfection des surfaces'] },
   'Vitrerie':             { dur:['Nettoyage des vitres'] },
+  'Surface de vente':     { thermoplastique:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Balayage humide','Lavage manuel du sol + finitions'], dur:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Nettoyage / Désinfection des surfaces','Aspiration du sol'] },
 };
 
 const SOL_LABELS = {
@@ -1792,14 +1813,18 @@ function afficherPrestations() {
 function renderMatrix() {
   const container = document.getElementById('matrixContainer');
   const allPrests = Object.keys(CADENCES_CCN_DEFAULT);
+  const isCustom = (local) => !PRESTATIONS_DEFAULT.hasOwnProperty(local);
   container.innerHTML = Object.entries(currentMatrix).map(([local, sols]) => {
+    const localEnc = encodeURIComponent(local);
+    const custom = isCustom(local);
+    const deleteBtn = custom
+      ? `<button onclick="supprimerLocal(decodeURIComponent('${localEnc}'))" title="Supprimer ce local" style="background:none;border:none;cursor:pointer;color:#DC2626;font-size:15px;font-weight:900;line-height:1;padding:0 4px;">✕</button>`
+      : '';
     const solsHtml = Object.entries(sols).map(([sol, prests]) => {
-      const chips = prests.map((p, i) => {
-        const localEnc = encodeURIComponent(local);
-        return `<span class="prest-chip">${p}<button class="chip-del" title="Supprimer" onclick="supprimerPrestation(decodeURIComponent('${localEnc}'),'${sol}',${i})">×</button></span>`;
-      }).join('');
+      const chips = prests.map((p, i) =>
+        `<span class="prest-chip">${p}<button class="chip-del" title="Supprimer" onclick="supprimerPrestation(decodeURIComponent('${localEnc}'),'${sol}',${i})">×</button></span>`
+      ).join('');
       const opts = allPrests.filter(p => !prests.includes(p)).map(p => `<option value="${p}">${p}</option>`).join('');
-      const localEnc = encodeURIComponent(local);
       return `
         <div class="sol-row">
           <div class="sol-label">${SOL_LABELS[sol] || sol}</div>
@@ -1813,12 +1838,36 @@ function renderMatrix() {
           </div>
         </div>`;
     }).join('');
+    const badge = custom ? '<span style="font-size:10px;background:#7C3AED;color:#fff;border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:middle;">Personnalisé</span>' : '';
     return `
       <div class="matrix-card">
-        <div class="matrix-card-header" onclick="this.classList.toggle('collapsed'); this.nextElementSibling.style.display = this.classList.contains('collapsed') ? 'none' : 'block';">${local}</div>
+        <div class="matrix-card-header" onclick="this.classList.toggle('collapsed'); this.nextElementSibling.style.display = this.classList.contains('collapsed') ? 'none' : 'block';">
+          <span>${local}${badge}</span>${deleteBtn}
+        </div>
         <div class="matrix-card-body">${solsHtml}</div>
       </div>`;
   }).join('');
+}
+
+function supprimerLocal(local) {
+  if (!confirm(`Supprimer le local « ${local} » ?`)) return;
+  delete currentMatrix[local];
+  renderMatrix();
+}
+
+function ajouterNouveauLocal() {
+  const nom = document.getElementById('newLocalName').value.trim();
+  if (!nom) { toast('Veuillez saisir un nom de local'); return; }
+  if (currentMatrix[nom]) { toast('Ce local existe déjà'); return; }
+  const sols = {};
+  if (document.getElementById('newSolDur').checked) sols.dur = [];
+  if (document.getElementById('newSolSouple').checked) sols.souple = [];
+  if (document.getElementById('newSolThermo').checked) sols.thermoplastique = [];
+  if (Object.keys(sols).length === 0) sols.dur = [];
+  currentMatrix[nom] = sols;
+  renderMatrix();
+  document.getElementById('newLocalName').value = '';
+  toast(`Local « ${nom} » ajouté — pensez à enregistrer`);
 }
 
 function supprimerPrestation(local, sol, idx) {
