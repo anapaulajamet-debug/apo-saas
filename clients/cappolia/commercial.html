@@ -354,6 +354,32 @@
     }
     .empty-col .empty-icon { font-size: 24px; margin-bottom: 6px; }
 
+    /* ── RESPONSIVE MOBILE / TABLETTE ── */
+    @media (max-width: 768px) {
+      header { padding: 10px 14px; gap: 8px; }
+      .header-brand { font-size: 13px; }
+      .header-module { font-size: 10px; }
+      .tabs { padding: 0 10px; overflow-x: auto; gap: 0; white-space: nowrap; }
+      .tab { padding: 12px 14px; font-size: 12px; }
+      main { padding: 12px; }
+      .kpi-bar { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+      .kpi-val { font-size: 22px; }
+      .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .toolbar-left { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+      .filter-btn { white-space: nowrap; font-size: 11px; padding: 6px 10px; }
+      .kanban { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 16px; }
+      .kanban-col { min-width: 280px; }
+      .map-container { height: 250px !important; }
+      .modal { margin: 10px; padding: 18px; max-width: calc(100vw - 20px) !important; }
+      .form-row { flex-direction: column; }
+      .secteurs-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .kpi-bar { grid-template-columns: 1fr 1fr; }
+      .secteurs-grid { grid-template-columns: repeat(2, 1fr); }
+      .header-right { gap: 6px; }
+    }
+
     /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 24px; right: 24px; z-index: 999;
