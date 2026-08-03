@@ -654,10 +654,16 @@
           <option>Sanitaires / WC</option>
           <option>Vestiaires</option>
           <option>Couloirs / Circulations</option>
+          <option>Palier</option>
           <option>Escaliers</option>
+          <option>Ascenseur</option>
           <option>Archives</option>
           <option>Local technique</option>
+          <option>Cave</option>
           <option>Parking intérieur</option>
+          <option>Parking extérieur</option>
+          <option>Abords extérieurs</option>
+          <option>Sortie de conteneurs</option>
         </select>
       </div>
       <div class="field">
@@ -703,11 +709,16 @@ const CADENCES_DEFAULT = {
   'Balayage humide': 250,
   'Balayage, lavage désinfection des sols': 150,
   'Désinfection des surfaces': 150,
+  'Dépluchage des marches': 50,
   'Lavage manuel du sol + finitions': 100,
   'Lavage mécanisé à l\'autolaveuse + finitions': 600,
+  'Nettoyage des miroirs': 60,
+  'Nettoyage des plinthes': 100,
   'Nettoyage des surfaces verticales': 100,
   'Nettoyage désinfection, détartrage': 40,
   'Nettoyage du mobilier': 150,
+  'Picking': 500,
+  'Sortie de conteneurs': 200,
   'Vidage des corbeilles': 800,
 };
 // Fusion avec les valeurs personnalisées par le directeur (localStorage)
@@ -719,7 +730,7 @@ function chargerCadences() {
 }
 const CADENCES = chargerCadences();
 
-const LOCAUX_OPTIONS = ['Bureaux','Sanitaires / WC','Couloirs / Circulations','Accueil / Hall','Cafétéria / Salle de pause','Escaliers','Salles de réunion','Espace open space','Archives','Local technique','Vestiaires','Parking intérieur'];
+const LOCAUX_OPTIONS = ['Bureaux','Accueil / Hall','Salles de réunion','Espace open space','Cafétéria / Salle de pause','Sanitaires / WC','Vestiaires','Couloirs / Circulations','Palier','Escaliers','Ascenseur','Archives','Local technique','Cave','Parking intérieur','Parking extérieur','Abords extérieurs','Sortie de conteneurs'];
 
 let currentChiffrageId = null;
 let numeroDevis = null;
@@ -798,10 +809,16 @@ const PRESTATION_MATRIX = {
   'Sanitaires / WC':      { dur:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage des surfaces verticales','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage des surfaces verticales'] },
   'Vestiaires':           { dur:['Vidage des corbeilles','Nettoyage désinfection, détartrage','Nettoyage des surfaces verticales','Balayage, lavage désinfection des sols'], souple:['Vidage des corbeilles','Aspiration du sol'] },
   'Couloirs / Circulations': { dur:['Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Aspiration du sol'] },
-  'Escaliers':            { dur:['Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Aspiration du sol'] },
+  'Palier':               { dur:['Balayage humide','Lavage manuel du sol + finitions'], souple:['Balayage humide'] },
+  'Escaliers':            { dur:['Balayage humide','Lavage manuel du sol + finitions','Dépluchage des marches'], souple:['Balayage humide','Dépluchage des marches'] },
+  'Ascenseur':            { dur:['Nettoyage des miroirs','Nettoyage des plinthes','Balayage humide','Lavage manuel du sol + finitions'], souple:['Nettoyage des miroirs','Nettoyage des plinthes','Balayage humide'] },
   'Archives':             { dur:['Vidage des corbeilles','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Aspiration du sol'] },
   'Local technique':      { dur:['Vidage des corbeilles','Aspiration du sol','Lavage manuel du sol + finitions'], souple:['Vidage des corbeilles','Aspiration du sol'] },
+  'Cave':                 { dur:['Balayage humide'], souple:['Balayage humide'] },
   'Parking intérieur':    { dur:['Balayage, lavage désinfection des sols'], souple:['Aspiration du sol'] },
+  'Parking extérieur':    { dur:['Picking','Balayage humide'], souple:['Picking','Balayage humide'] },
+  'Abords extérieurs':    { dur:['Picking','Balayage humide'], souple:['Picking','Balayage humide'] },
+  'Sortie de conteneurs': { dur:['Sortie de conteneurs'], souple:['Sortie de conteneurs'] },
 };
 
 function getPrestations(typeLocal, typeSol) {
