@@ -585,7 +585,8 @@
       <div class="section-sub">Aperçu du devis — prêt à envoyer</div>
 
       <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-        <button class="btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button>
+        <button class="btn-primary" onclick="window.print()">🖨️ Devis PDF</button>
+        <button class="btn-secondary" onclick="genererCDC()" style="background:#1E40AF;color:#fff;border:none;">📋 Cahier des charges PDF</button>
         <button class="btn-secondary" id="btnSaveDevis" onclick="sauvegarder()">💾 Enregistrer le devis</button>
         <div class="field" style="flex:1;min-width:200px;">
           <input type="text" id="devisCommentaires" placeholder="Commentaires libres (conditions particulières…)" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;width:100%;font-family:Arial;outline:none;"/>
@@ -1226,6 +1227,124 @@ function genererDevis() {
   const comEl = document.getElementById('dCommentaires');
   if (commentaires) { comEl.textContent = commentaires; comEl.style.display = 'block'; }
   else { comEl.style.display = 'none'; }
+}
+
+// ── CAHIER DES CHARGES PDF ───────────────────────────────────────────────
+function genererCDC() {
+  const client  = document.getElementById('fcClient')?.value  || '—';
+  const site    = document.getElementById('fcSite')?.value    || '—';
+  const contact = document.getElementById('fcContact')?.value || '';
+  const date    = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+
+  // ── Entretien courant ──
+  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  let secEC = '';
+  if (groupesEC.length === 0) {
+    secEC = '<p style="color:#6B7280;font-style:italic;">Aucun local renseigné.</p>';
+  } else {
+    groupesEC.forEach(g => {
+      const freqSem  = g.freq != null ? g.freq : freqGlobale;
+      const freqMois = (freqSem * 4.33).toFixed(1);
+      const lignes   = g.prestations.map((p, idx) => {
+        const cad = (g.cadences && g.cadences[idx] != null) ? g.cadences[idx] : (CADENCES[p] || 200);
+        return `<tr>
+          <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;">${p}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;text-align:right;">${cad} m²/h</td>
+        </tr>`;
+      }).join('');
+      secEC += `
+        <div style="margin-bottom:20px;border:1px solid #D1FAE5;border-radius:8px;overflow:hidden;">
+          <div style="background:#1A3D28;color:#fff;padding:10px 14px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+            <span>🏢 ${g.local} — ${g.sol}</span>
+            <span style="font-weight:400;font-size:12px;">${g.surface} m² · ${freqSem} j/sem · ${freqMois} passages/mois</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#F0FDF4;">
+              <th style="padding:7px 10px;text-align:left;font-size:11px;color:#374151;text-transform:uppercase;letter-spacing:.5px;">Prestation</th>
+              <th style="padding:7px 10px;text-align:right;font-size:11px;color:#374151;text-transform:uppercase;letter-spacing:.5px;">Cadence</th>
+            </tr></thead>
+            <tbody>${lignes}</tbody>
+          </table>
+        </div>`;
+    });
+  }
+
+  // ── Prestations ponctuelles (REE) ──
+  let secREE = '';
+  const reeTbody = document.getElementById('tbodyREE');
+  const reeRows  = reeTbody ? [...reeTbody.querySelectorAll('tr')] : [];
+  if (reeRows.length) {
+    const lignesREE = reeRows.map(tr => {
+      const sel  = tr.querySelector('select');
+      const inps = tr.querySelectorAll('input');
+      const presta = sel  ? sel.value        : '—';
+      const surf   = inps[0] ? inps[0].value : '—';
+      const freq   = inps[1] ? inps[1].value : '—';
+      return `<tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;">${presta}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;text-align:right;">${surf} m²</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;text-align:right;">${freq} fois/mois</td>
+      </tr>`;
+    }).join('');
+    secREE = `
+      <h2 style="font-size:15px;font-weight:800;color:#1A3D28;border-bottom:2px solid #1A3D28;padding-bottom:6px;margin:32px 0 16px;">Prestations ponctuelles</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#F0FDF4;">
+          <th style="padding:7px 10px;text-align:left;font-size:11px;color:#374151;text-transform:uppercase;">Prestation</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;color:#374151;text-transform:uppercase;">Surface</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;color:#374151;text-transform:uppercase;">Fréquence</th>
+        </tr></thead>
+        <tbody>${lignesREE}</tbody>
+      </table>`;
+  }
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+    <title>Cahier des charges — ${client}</title>
+    <style>
+      * { box-sizing:border-box; margin:0; padding:0; }
+      body { font-family:Arial,sans-serif; color:#1e293b; padding:32px 40px; font-size:13px; }
+      @media print { body { padding:20px 28px; } button { display:none; } }
+    </style>
+  </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #1A3D28;">
+      <div>
+        <div style="font-size:22px;font-weight:900;letter-spacing:3px;color:#1A3D28;">CAPPOLIA PROPRETÉ</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:3px;">Humaine · Sociale · Écologique</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:18px;font-weight:900;color:#1A3D28;">CAHIER DES CHARGES</div>
+        <div style="font-size:12px;color:#6B7280;margin-top:4px;">Émis le ${date}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;background:#F0FDF4;border-radius:8px;padding:14px 18px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6B7280;margin-bottom:4px;">Client / Prospect</div>
+        <div style="font-size:14px;font-weight:700;color:#1A3D28;">${client}</div>
+        ${contact ? `<div style="font-size:12px;color:#6B7280;margin-top:2px;">${contact}</div>` : ''}
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6B7280;margin-bottom:4px;">Site d'intervention</div>
+        <div style="font-size:13px;color:#1A3D28;">${site}</div>
+      </div>
+    </div>
+
+    <h2 style="font-size:15px;font-weight:800;color:#1A3D28;border-bottom:2px solid #1A3D28;padding-bottom:6px;margin-bottom:16px;">Entretien courant</h2>
+    ${secEC}
+    ${secREE}
+
+    <div style="margin-top:36px;padding-top:14px;border-top:1px solid #E5E7EB;font-size:10px;color:#9CA3AF;text-align:center;">
+      Document confidentiel — CAPPOLIA PROPRETÉ · Humaine · Sociale · Écologique
+    </div>
+
+    <div style="text-align:center;margin-top:20px;">
+      <button onclick="window.print()" style="padding:10px 24px;background:#1A3D28;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimer / Enregistrer en PDF</button>
+    </div>
+  </body></html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=700');
+  w.document.write(html);
+  w.document.close();
 }
 
 // ── SAUVEGARDE SUPABASE ──────────────────────────────────────────────────
