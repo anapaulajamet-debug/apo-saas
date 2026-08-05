@@ -430,19 +430,49 @@
   <!-- CORPS -->
   <div class="app-body">
 
+    <!-- Bannières notifications -->
+    <div id="notifBannieres" style="display:none;padding:0 16px 4px;"></div>
+
+    <!-- Info du jour -->
+    <div style="display:flex;gap:10px;padding:0 16px 12px;flex-wrap:wrap;">
+      <div style="background:rgba(255,255,255,0.12);border-radius:10px;padding:10px 14px;flex:1;min-width:130px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Aujourd'hui</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;" id="dateAujourdhui">—</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.12);border-radius:10px;padding:10px 14px;flex:1;min-width:130px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Congés restants</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
+          <span id="soldeCpVal">—</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:400;">(préavis 1 mois)</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Mission du jour -->
     <div class="section-label">Ma mission du jour</div>
     <div class="mission-card" id="missionCard">
       <div class="mission-icone">🏢</div>
-      <div>
+      <div style="flex:1;">
         <div class="mission-nom" id="missionNom">Chargement…</div>
         <div class="mission-adresse" id="missionAdresse">—</div>
         <div class="mission-horaire">
           <div class="horaire-chip"><span>Arrivée</span><span id="missionArrivee">—</span></div>
           <div class="horaire-chip"><span>Départ</span><span id="missionDepart">—</span></div>
         </div>
+        <a id="mapsLien" href="#" target="_blank" rel="noopener"
+           style="display:none;margin-top:8px;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#1A3D28;background:#D1FAE5;border-radius:8px;padding:6px 12px;text-decoration:none;">
+          📍 Voir l'itinéraire sur Google Maps
+        </a>
       </div>
     </div>
+
+    <!-- Google Maps embed -->
+    <div id="mapsBlock" style="display:none;padding:0 16px 12px;">
+      <iframe id="mapsFrame" src="" width="100%" height="180" style="border:0;border-radius:12px;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+
+    <!-- Autres missions du jour -->
+    <div id="autresMissions" style="display:none;padding:0 16px;"></div>
 
     <!-- Géolocalisation -->
     <div class="section-label">Localisation</div>
@@ -454,6 +484,9 @@
       </div>
       <div class="geo-distance inconnu" id="geoBadge">—</div>
     </div>
+    <button id="btnAutoGeo" onclick="demarrerGeo()" style="display:none;margin:8px 16px 0;width:calc(100% - 32px);padding:10px;background:#1A3D28;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">
+      📍 Autoriser la localisation
+    </button>
 
     <!-- Boutons pointage -->
     <div class="section-label">Pointer</div>
@@ -549,6 +582,9 @@
     }
     majHorloge();
     setInterval(majHorloge, 1000);
+    // Date du jour
+    document.getElementById('dateAujourdhui').textContent =
+      new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
 
     // ── SESSION ──
     (async () => {
@@ -558,7 +594,7 @@
 
       const { data: profil } = await supabaseClient
         .from('agents')
-        .select('nom, prenom, photo_url, site_principal_id, date_naissance')
+        .select('nom, prenom, email, photo_url, site_principal_id, date_naissance, date_entree, solde_cp')
         .eq('user_id', session.user.id)
         .single();
 
@@ -574,17 +610,69 @@
         }
         siteId = profil.site_principal_id;
 
-        // Vérifier si c'est son anniversaire aujourd'hui
+        // Photo depuis users si agents.photo_url vide
+        if (!profil.photo_url && profil.email) {
+          const { data: uData } = await supabaseClient.from('users').select('photo_url').eq('email', profil.email).single();
+          if (uData?.photo_url) {
+            avatarEl.innerHTML = `<img src="${uData.photo_url}" alt="${nom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+          }
+        }
+
+        // ── Solde congés ──
+        const soldeJours = profil.solde_cp ?? '—';
+        document.getElementById('soldeCpVal').textContent = soldeJours !== '—' ? soldeJours + ' j' : '—';
+
+        // ── Notifications contextuelles ──
+        const auj = new Date();
+        const jourSem = auj.getDay(); // 0=dim, 1=lun, 5=ven
+        const mois = auj.getMonth(); // 11=déc
+        const jour = auj.getDate();
+        const msgs = [];
+
+        // Lundi
+        if (jourSem === 1) msgs.push({ icone:'💪', texte:`Bonne semaine, ${profil.prenom} !`, couleur:'#1A3D28' });
+        // Vendredi
+        if (jourSem === 5) msgs.push({ icone:'🌟', texte:`Bon week-end, ${profil.prenom} !`, couleur:'#7C3AED' });
+        // Fêtes fin d'année (20 déc → 31 déc)
+        if (mois === 11 && jour >= 20) msgs.push({ icone:'🎄', texte:`Joyeuses fêtes, ${profil.prenom} !`, couleur:'#B91C1C' });
+
+        // Anniversaire de naissance
         if (profil.date_naissance) {
-          const auj = new Date();
-          const dn  = new Date(profil.date_naissance);
-          if (dn.getDate() === auj.getDate() && dn.getMonth() === auj.getMonth()) {
+          const dn = new Date(profil.date_naissance);
+          if (dn.getDate() === jour && dn.getMonth() === mois) {
             const age = auj.getFullYear() - dn.getFullYear();
             document.getElementById('anniversaireTitre').textContent = `Joyeux anniversaire, ${profil.prenom} ! 🎂`;
             document.getElementById('anniversaireTexte').textContent =
-              `Vous fêtez vos ${age} ans aujourd'hui. Toute l'équipe APHS vous souhaite une excellente journée !`;
+              `Vous fêtez vos ${age} ans aujourd'hui. Toute l'équipe Cappolia vous souhaite une excellente journée !`;
             document.getElementById('anniversaireOverlay').style.display = 'flex';
           }
+        }
+
+        // Anniversaire entreprise
+        if (profil.date_entree) {
+          const de = new Date(profil.date_entree);
+          if (de.getDate() === jour && de.getMonth() === mois && de.getFullYear() !== auj.getFullYear()) {
+            const ans = auj.getFullYear() - de.getFullYear();
+            msgs.push({ icone:'🏆', texte:`${ans} an${ans>1?'s':''} chez Cappolia, ${profil.prenom} ! Merci pour votre fidélité.`, couleur:'#B45309' });
+          }
+        }
+
+        // Veille de congés
+        const demain = new Date(auj); demain.setDate(demain.getDate() + 1);
+        const demainStr = demain.toISOString().split('T')[0];
+        const { data: congesDemain } = await supabaseClient.from('conges')
+          .select('date_debut').eq('agent_id', session.user.id).eq('date_debut', demainStr).eq('statut', 'valide').limit(1);
+        if (congesDemain?.length) msgs.push({ icone:'🌴', texte:`Bons congés, ${profil.prenom} ! Profitez bien de votre repos.`, couleur:'#0369A1' });
+
+        // Afficher bannières
+        const banContainer = document.getElementById('notifBannieres');
+        if (msgs.length) {
+          banContainer.innerHTML = msgs.map(m =>
+            `<div style="background:${m.couleur};color:#fff;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+               <span style="font-size:20px;">${m.icone}</span><span>${m.texte}</span>
+             </div>`
+          ).join('');
+          banContainer.style.display = 'block';
         }
       }
 
@@ -605,9 +693,21 @@
         ]);
 
         if (site) {
-          document.getElementById('missionNom').textContent    = site.nom;
+          document.getElementById('missionNom').textContent     = site.nom;
           document.getElementById('missionAdresse').textContent = site.adresse || '—';
           siteCoords = { lat: site.latitude, lon: site.longitude };
+          // Google Maps
+          const adresseEnc = encodeURIComponent(site.adresse || '');
+          const mapsUrl = site.latitude && site.longitude
+            ? `https://www.google.com/maps?q=${site.latitude},${site.longitude}`
+            : `https://www.google.com/maps/search/?api=1&query=${adresseEnc}`;
+          document.getElementById('mapsLien').href = mapsUrl;
+          document.getElementById('mapsLien').style.display = 'inline-flex';
+          if (site.latitude && site.longitude) {
+            document.getElementById('mapsFrame').src =
+              `https://maps.google.com/maps?q=${site.latitude},${site.longitude}&z=16&output=embed`;
+            document.getElementById('mapsBlock').style.display = 'block';
+          }
         }
         if (planning) {
           document.getElementById('missionArrivee').textContent = planning.heure_debut?.slice(0,5) || '—';
@@ -615,6 +715,34 @@
           document.getElementById('btnArriveeHeure').textContent = 'Prévu ' + (planning.heure_debut?.slice(0,5) || '—');
           document.getElementById('btnDepartHeure').textContent  = 'Prévu ' + (planning.heure_fin?.slice(0,5)   || '—');
           document.getElementById('confirmPrévu').textContent    = (planning.heure_debut?.slice(0,5) || '—') + ' → ' + (planning.heure_fin?.slice(0,5) || '—');
+        }
+
+        // Autres sites du jour (planning de l'agent)
+        const agentRow = await supabaseClient.from('agents').select('id').eq('user_id', sessionAgent.user.id).single();
+        if (agentRow.data) {
+          const { data: autresPlanning } = await supabaseClient.from('planning')
+            .select('heure_debut, heure_fin, site_id, sites(nom, adresse)')
+            .eq('agent_id', agentRow.data.id)
+            .eq('date', aujourd_hui)
+            .neq('site_id', siteId)
+            .order('heure_debut');
+          const autresCont = document.getElementById('autresMissions');
+          if (autresPlanning?.length) {
+            autresCont.innerHTML = '<div class="section-label" style="margin-top:12px;">Autres missions du jour</div>' +
+              autresPlanning.map(p => `
+                <div class="mission-card" style="margin-bottom:8px;">
+                  <div class="mission-icone">📍</div>
+                  <div>
+                    <div class="mission-nom">${p.sites?.nom || '—'}</div>
+                    <div class="mission-adresse">${p.sites?.adresse || '—'}</div>
+                    <div class="mission-horaire">
+                      <div class="horaire-chip"><span>Arrivée</span><span>${p.heure_debut?.slice(0,5)||'—'}</span></div>
+                      <div class="horaire-chip"><span>Départ</span><span>${p.heure_fin?.slice(0,5)||'—'}</span></div>
+                    </div>
+                  </div>
+                </div>`).join('');
+            autresCont.style.display = 'block';
+          }
         }
       } else {
         // Données démo
@@ -654,7 +782,10 @@
             majGeoUI('ok', 'Position détectée', `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
           }
         },
-        () => majGeoUI('erreur', 'Accès refusé', 'Autorisez la localisation dans vos réglages'),
+        (err) => {
+          majGeoUI('erreur', 'Accès refusé', 'Appuyez sur le bouton ci-dessous pour autoriser');
+          document.getElementById('btnAutoGeo').style.display = 'block';
+        },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
