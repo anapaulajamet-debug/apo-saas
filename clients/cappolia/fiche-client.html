@@ -504,25 +504,36 @@
     async function chargerEquipe(){
       _loadedEquipe = true;
 
-      // Agents affectés à ce site
+      // Agents affectés à ce site (avec photo)
       const { data:agents } = await sb.from('agents')
-        .select('id, nom, prenom, telephone, date_naissance')
+        .select('id, nom, prenom, telephone, photo_url, volume_horaire')
         .eq('site_principal_id', siteId)
         .order('nom');
 
       const liste = agents || [];
 
-      // Planning récurrent pour ces agents sur ce site
+      // Planning des 4 prochaines semaines pour extraire les créneaux habituels
       let planningMap = {};
       if(liste.length > 0){
         const agentIds = liste.map(a => a.id);
+        const debut = new Date().toISOString().slice(0,10);
+        const fin   = new Date(Date.now() + 28*864e5).toISOString().slice(0,10);
         const { data:plannings } = await sb.from('planning')
-          .select('agent_id, heure_debut, heure_fin, jours, type_evenement')
+          .select('agent_id, date, heure_debut, heure_fin')
           .in('agent_id', agentIds)
-          .eq('site_id', siteId);
+          .eq('site_id', siteId)
+          .gte('date', debut)
+          .lte('date', fin)
+          .order('date');
+
+        // Dédoublonner par créneau unique par agent
         (plannings||[]).forEach(p => {
-          if(!planningMap[p.agent_id]) planningMap[p.agent_id] = [];
-          planningMap[p.agent_id].push(p);
+          if(!planningMap[p.agent_id]) planningMap[p.agent_id] = new Map();
+          const cle = `${p.heure_debut}-${p.heure_fin}`;
+          if(!planningMap[p.agent_id].has(cle)){
+            const jourSem = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][new Date(p.date).getDay()];
+            planningMap[p.agent_id].set(cle, { heure_debut: p.heure_debut, heure_fin: p.heure_fin, jour: jourSem });
+          }
         });
       }
 
@@ -537,22 +548,36 @@
 
       container.innerHTML = liste.map(a => {
         const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase() || '?';
-        const plans     = planningMap[a.id] || [];
-        const horaire   = plans.length
-          ? plans.map(p => {
-              const j = p.jours ? `<strong>${esc(p.jours)}</strong> ` : '';
-              const h = p.heure_debut && p.heure_fin ? `🕐 ${esc(p.heure_debut)} – ${esc(p.heure_fin)}` : '';
-              return j+h;
-            }).join(' &nbsp;|&nbsp; ')
-          : null;
+        const plans     = planningMap[a.id] ? [...planningMap[a.id].values()] : [];
+
+        // Avatar : photo ou initiales
+        const avatarHtml = a.photo_url
+          ? `<div class="agent-avatar" style="padding:0;overflow:hidden;">
+               <img src="${esc(a.photo_url)}" alt="${esc(a.prenom)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${esc(initiales)}'"/>
+             </div>`
+          : `<div class="agent-avatar">${esc(initiales)}</div>`;
+
+        // Horaires dédoublonnés
+        const horaireHtml = plans.length
+          ? `<div class="agent-horaire">` +
+            plans.map(p => {
+              const h1 = p.heure_debut?.slice(0,5) || '';
+              const h2 = p.heure_fin?.slice(0,5)   || '';
+              return `<span style="margin-right:10px;">🕐 ${h1} – ${h2}</span>`;
+            }).join('') +
+            `</div>`
+          : a.volume_horaire
+            ? `<div class="agent-horaire">📋 ${esc(String(a.volume_horaire))} h/semaine</div>`
+            : '';
+
         return `<div class="agent-card">
-          <div class="agent-avatar">${esc(initiales)}</div>
+          ${avatarHtml}
           <div class="agent-info">
             <div class="agent-nom">${esc(a.prenom||'')} ${esc(a.nom||'')}
               <span class="agent-tag">ASP</span>
             </div>
             ${a.telephone ? `<div class="agent-tel">📞 <a href="tel:${esc(a.telephone.replace(/\s/g,''))}">${esc(a.telephone)}</a></div>` : ''}
-            ${horaire ? `<div class="agent-horaire">${horaire}</div>` : ''}
+            ${horaireHtml}
           </div>
         </div>`;
       }).join('');
