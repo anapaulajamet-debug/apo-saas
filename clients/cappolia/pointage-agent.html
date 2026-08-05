@@ -101,7 +101,7 @@
       border-radius: 20px 20px 0 0;
       margin-top: 14px;
       min-height: calc(100vh - 140px);
-      padding: 20px 16px 100px;
+      padding: 20px 16px 120px;
     }
 
     /* ── MISSION DU JOUR ── */
@@ -407,6 +407,22 @@
     }
 
     .toast.visible { display: block; }
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #E5E7EB;
+      display: flex; justify-content: space-around;
+      padding: 10px 0 env(safe-area-inset-bottom, 10px);
+      z-index: 100;
+    }
+    .bottom-nav-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; font-size: 10px; font-weight: 700;
+      color: #6B7280; text-decoration: none;
+      padding: 4px 20px; border-radius: 10px;
+    }
+    .bottom-nav-item.active { color: #1A3D28; }
+    .bottom-nav-item span { font-size: 22px; }
   </style>
 </head>
 <body>
@@ -604,28 +620,34 @@
         .eq('email', session.user.email)
         .single();
 
-      if (profil) {
-        const nom = profil.prenom + ' ' + profil.nom;
-        const initiales = ((profil.prenom[0] || '') + (profil.nom[0] || '')).toUpperCase();
+      // Fallback depuis users si pas dans agents
+      let profilUser = null;
+      if (!profil) {
+        const { data: uRow } = await supabaseClient.from('users').select('prenom, nom, photo_url, user_role').eq('email', session.user.email).single();
+        profilUser = uRow;
+      }
+
+      if (profil || profilUser) {
+        const src = profil || {};
+        const usrc = profilUser || {};
+        const prenom = src.prenom || usrc.prenom || '';
+        const nomFam = src.nom   || usrc.nom   || '';
+        const nom = (prenom + ' ' + nomFam).trim() || session.user.email;
+        const initiales = ((prenom[0] || '') + (nomFam[0] || '')).toUpperCase() || '?';
         document.getElementById('agentNom').textContent = nom;
         const avatarEl = document.getElementById('agentAvatar');
-        if (profil.photo_url) {
-          avatarEl.innerHTML = `<img src="${profil.photo_url}" alt="${nom}" />`;
+        const photoUrl = src.photo_url || usrc.photo_url || null;
+        if (photoUrl) {
+          avatarEl.innerHTML = `<img src="${photoUrl}" alt="${nom}" />`;
         } else {
           avatarEl.textContent = initiales;
         }
-        siteId = profil.site_principal_id;
+        siteId = src.site_principal_id || null;
 
-        // Photo depuis users si agents.photo_url vide
-        if (!profil.photo_url && profil.email) {
-          const { data: uData } = await supabaseClient.from('users').select('photo_url').eq('email', profil.email).single();
-          if (uData?.photo_url) {
-            avatarEl.innerHTML = `<img src="${uData.photo_url}" alt="${nom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
-          }
-        }
+        // Photo fallback déjà géré ci-dessus
 
         // ── Solde congés ──
-        const soldeJours = profil.solde_cp ?? '—';
+        const soldeJours = src.solde_cp ?? '—';
         document.getElementById('soldeCpVal').textContent = soldeJours !== '—' ? soldeJours + ' j' : '—';
 
         // ── Notifications contextuelles ──
@@ -636,18 +658,18 @@
         const msgs = [];
 
         // Lundi
-        if (jourSem === 1) msgs.push({ icone:'💪', texte:`Bonne semaine, ${profil.prenom} !`, couleur:'#1A3D28' });
+        if (jourSem === 1) msgs.push({ icone:'💪', texte:`Bonne semaine, ${prenom} !`, couleur:'#1A3D28' });
         // Vendredi
-        if (jourSem === 5) msgs.push({ icone:'🌟', texte:`Bon week-end, ${profil.prenom} !`, couleur:'#7C3AED' });
+        if (jourSem === 5) msgs.push({ icone:'🌟', texte:`Bon week-end, ${prenom} !`, couleur:'#7C3AED' });
         // Fêtes fin d'année (20 déc → 31 déc)
-        if (mois === 11 && jour >= 20) msgs.push({ icone:'🎄', texte:`Joyeuses fêtes, ${profil.prenom} !`, couleur:'#B91C1C' });
+        if (mois === 11 && jour >= 20) msgs.push({ icone:'🎄', texte:`Joyeuses fêtes, ${prenom} !`, couleur:'#B91C1C' });
 
         // Anniversaire de naissance
-        if (profil.date_naissance) {
-          const dn = new Date(profil.date_naissance);
+        if (src.date_naissance) {
+          const dn = new Date(src.date_naissance);
           if (dn.getDate() === jour && dn.getMonth() === mois) {
             const age = auj.getFullYear() - dn.getFullYear();
-            document.getElementById('anniversaireTitre').textContent = `Joyeux anniversaire, ${profil.prenom} ! 🎂`;
+            document.getElementById('anniversaireTitre').textContent = `Joyeux anniversaire, ${prenom} ! 🎂`;
             document.getElementById('anniversaireTexte').textContent =
               `Vous fêtez vos ${age} ans aujourd'hui. Toute l'équipe Cappolia vous souhaite une excellente journée !`;
             document.getElementById('anniversaireOverlay').style.display = 'flex';
@@ -655,11 +677,11 @@
         }
 
         // Anniversaire entreprise
-        if (profil.date_entree) {
-          const de = new Date(profil.date_entree);
+        if (src.date_entree) {
+          const de = new Date(src.date_entree);
           if (de.getDate() === jour && de.getMonth() === mois && de.getFullYear() !== auj.getFullYear()) {
             const ans = auj.getFullYear() - de.getFullYear();
-            msgs.push({ icone:'🏆', texte:`${ans} an${ans>1?'s':''} chez Cappolia, ${profil.prenom} ! Merci pour votre fidélité.`, couleur:'#B45309' });
+            msgs.push({ icone:'🏆', texte:`${ans} an${ans>1?'s':''} chez Cappolia, ${prenom} ! Merci pour votre fidélité.`, couleur:'#B45309' });
           }
         }
 
@@ -668,7 +690,7 @@
         const demainStr = demain.toISOString().split('T')[0];
         const { data: congesDemain } = await supabaseClient.from('conges')
           .select('date_debut').eq('date_debut', demainStr).eq('statut', 'valide').limit(1);
-        if (congesDemain?.length) msgs.push({ icone:'🌴', texte:`Bons congés, ${profil.prenom} ! Profitez bien de votre repos.`, couleur:'#0369A1' });
+        if (congesDemain?.length) msgs.push({ icone:'🌴', texte:`Bons congés, ${prenom} ! Profitez bien de votre repos.`, couleur:'#0369A1' });
 
         // Afficher bannières
         const banContainer = document.getElementById('notifBannieres');
@@ -991,5 +1013,15 @@
       window.location.href = '/';
     });
   </script>
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="/pointage" class="bottom-nav-item active">
+      <span>📍</span>Pointage
+    </a>
+    <a href="/coffre-fort" class="bottom-nav-item">
+      <span>🔐</span>Mon espace
+    </a>
+  </nav>
+
 </body>
 </html>
