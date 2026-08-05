@@ -383,7 +383,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYh3kivnlKhsUNNVcoavIpbc';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const siteId = new URLSearchParams(window.location.search).get('id');
@@ -422,17 +422,25 @@
       await checkAuth();
 
       const { data:site, error } = await sb.from('sites')
-        .select('*, users!agent_maitrise_id(prenom,nom)')
+        .select('*')
         .eq('id', siteId).single();
 
       document.getElementById('pageLoader').style.display='none';
-      if(error||!site){ alert('Fiche introuvable'); return; }
+      if(error||!site){ alert('Fiche introuvable — id: '+siteId+' err: '+(error?.message||'?')); return; }
+
+      // Charger le responsable de secteur séparément
+      let amNom = '—';
+      if(site.agent_maitrise_id){
+        const { data:amUser } = await sb.from('users').select('prenom,nom').eq('id', site.agent_maitrise_id).single();
+        if(amUser) amNom = `${amUser.prenom||''} ${amUser.nom||''}`.trim();
+      }
+      site._am = amNom;
 
       const pc = document.getElementById('pageContent');
       pc.style.display='flex';
 
       const nom    = site.nom||site.raison_sociale||'—';
-      const am     = site.users ? `${site.users.prenom||''} ${site.users.nom||''}`.trim() : '—';
+      const am     = site._am || '—';
       const adr    = [site.adresse,site.code_postal,site.ville].filter(Boolean).join(', ')||site.adresse||'—';
       const tel    = site.telephone||site.tel||'—';
       const email  = site.email||null;
