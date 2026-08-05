@@ -182,10 +182,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const USERS = {
-    'admin@guilbert.net': { password: 'admin123', nom: 'Ana Paula', role: 'admin' },
-    'cyril@guilbert.net': { password: 'agent123', nom: 'Cyril', role: 'agent' },
-    'marvin@guilbert.net': { password: 'manager123', nom: 'Marvin', role: 'manager' }
+// Rôle et nom associés à chaque email. Les mots de passe ne sont PLUS ici :
+// ils sont gérés de façon sécurisée par Firebase Authentication.
+// (Un rôle n'est pas un secret ; seul le mot de passe doit être protégé.)
+const ROLES = {
+    'admin@guilbert.net': { nom: 'Ana Paula', role: 'admin' },
+    'cyril@guilbert.net': { nom: 'Cyril', role: 'agent' },
+    'marvin@guilbert.net': { nom: 'Marvin', role: 'manager' }
 };
 
 let sites = [];
@@ -219,22 +222,38 @@ function login(e) {
     e.preventDefault();
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const u = USERS[email];
-    if (u && u.password === password) {
-        user = { email, ...u };
+    document.getElementById('message').innerHTML = '<div class="alert">⏳ Connexion...</div>';
+    // Firebase vérifie le mot de passe côté serveur. La suite (affichage de la
+    // bonne vue) est gérée par onAuthStateChanged ci-dessous.
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .catch(() => {
+            document.getElementById('message').innerHTML = '<div class="alert alert-danger">❌ Identifiants incorrects</div>';
+        });
+}
+
+// Point d'entrée unique : réagit à chaque connexion / déconnexion, et
+// reconnecte automatiquement l'utilisateur après un rafraîchissement de page.
+firebase.auth().onAuthStateChanged(fbUser => {
+    if (fbUser) {
+        const info = ROLES[fbUser.email];
+        if (!info) {
+            document.getElementById('message').innerHTML = '<div class="alert alert-danger">❌ Ce compte n\'a pas de rôle attribué. Contactez l\'administrateur.</div>';
+            firebase.auth().signOut();
+            return;
+        }
+        user = { email: fbUser.email, uid: fbUser.uid, ...info };
         if (user.role === 'admin') showAdmin();
         else if (user.role === 'agent') showAgent();
         else if (user.role === 'manager') showManager();
         loadSites();
         loadPointages();
     } else {
-        document.getElementById('message').innerHTML = '<div class="alert alert-danger">❌ Identifiants incorrects</div>';
+        user = null;
     }
-}
+});
 
 function logout() {
-    user = null;
-    location.reload();
+    firebase.auth().signOut().then(() => location.reload());
 }
 
 function showAdmin() {
