@@ -506,11 +506,28 @@
 
       // Agents affectés à ce site (avec photo)
       const { data:agents } = await sb.from('agents')
-        .select('id, nom, prenom, telephone, photo_url, volume_horaire')
+        .select('id, nom, prenom, telephone, email, photo_url, volume_horaire')
         .eq('site_principal_id', siteId)
         .order('nom');
 
       const liste = agents || [];
+
+      // Récupérer les photos depuis users (priorité sur agents.photo_url)
+      if(liste.length > 0){
+        const emails = liste.map(a => a.email).filter(Boolean);
+        if(emails.length > 0){
+          const { data:usersPhotos } = await sb.from('users')
+            .select('email, photo_url')
+            .in('email', emails);
+          if(usersPhotos){
+            const photoByEmail = {};
+            usersPhotos.forEach(u => { if(u.photo_url) photoByEmail[u.email] = u.photo_url; });
+            liste.forEach(a => {
+              if(a.email && photoByEmail[a.email]) a.photo_url = photoByEmail[a.email];
+            });
+          }
+        }
+      }
 
       // Planning des 4 prochaines semaines pour extraire les créneaux habituels
       let planningMap = {};
