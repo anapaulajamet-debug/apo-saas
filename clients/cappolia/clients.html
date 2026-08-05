@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAPPOLIA PROPRETÉ — Clients</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:       #2D6A3F;
+      --teal-dark:  #1A3D28;
+      --teal-light: #E8F5ED;
+      --or:         #D4A017;
+      --rouge:      #C0392B;
+      --vert:       #1E8449;
+      --gris-texte: #374151;
+      --gris-doux:  #6B7280;
+      --gris-fond:  #F3F6F8;
+      --blanc:      #FFFFFF;
+      --bordure:    #DDE3E8;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--gris-fond);
+      color: var(--gris-texte);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar {
+      width: 230px;
+      min-height: 100vh;
+      background: var(--teal-dark);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+    }
+
+    .sidebar-logo {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-logo img {
+      max-width: 80px;
+      width: 100%;
+      height: auto;
+      filter: brightness(0) invert(1);
+      flex-shrink: 0;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+
+    .nav-section {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      padding: 14px 20px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      cursor: pointer;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border-left-color: var(--or);
+      font-weight: 700;
+    }
+
+    .nav-icon { font-size: 16px; width: 18px; text-align: center; }
+
+    .sidebar-profil {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .profil-avatar {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 50%; background: var(--teal);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      border: 2px solid rgba(255,255,255,0.25);
+    }
+
+    .profil-nom  { font-size: 12px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); }
+
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.12); }
+
+    .btn-deconnexion {
+      margin-top: 10px; width: 100%; padding: 8px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px; font-size: 12px; cursor: pointer;
+      font-family: Arial, sans-serif; transition: background 0.15s;
+    }
+
+    .btn-deconnexion:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ══ MAIN ══ */
+    .main { margin-left: 230px; flex: 1; display: flex; flex-direction: column; }
+
+    .topbar {
+      background: var(--blanc);
+      border-bottom: 1px solid var(--bordure);
+      padding: 0 28px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .topbar-titre { font-size: 17px; font-weight: 700; color: var(--gris-texte); }
+    .topbar-date  { font-size: 13px; color: var(--gris-doux); }
+
+    .hamburger {
+      display: none; background: none; border: none;
+      font-size: 22px; cursor: pointer; color: var(--gris-texte);
+    }
+
+    .content { padding: 28px; flex: 1; }
+
+    /* ══ BARRE DE RECHERCHE & FILTRES ══ */
+    .toolbar {
+      display: flex; gap: 12px; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      flex: 1; min-width: 220px; position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%; padding: 10px 14px 10px 38px;
+      border: 1.5px solid var(--bordure); border-radius: 8px;
+      font-size: 13px; font-family: Arial, sans-serif; color: var(--gris-texte);
+      background: var(--blanc); outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-wrap input:focus { border-color: var(--teal); }
+
+    .search-wrap::before {
+      content: '🔍';
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 14px; pointer-events: none;
+    }
+
+    .filter-select {
+      padding: 10px 14px;
+      border: 1.5px solid var(--bordure); border-radius: 8px;
+      font-size: 13px; font-family: Arial, sans-serif;
+      color: var(--gris-texte); background: var(--blanc);
+      cursor: pointer; outline: none;
+    }
+
+    .filter-select:focus { border-color: var(--teal); }
+
+    /* ══ KPI ══ */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px; margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--blanc); border-radius: 10px;
+      padding: 16px 18px;
+      border: 1px solid var(--bordure);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .kpi-label { font-size: 11px; color: var(--gris-doux); text-transform: uppercase; letter-spacing: 0.8px; }
+    .kpi-value { font-size: 26px; font-weight: 700; color: var(--teal-dark); margin-top: 4px; }
+
+    /* ══ TABLE CLIENTS ══ */
+    .table-wrap {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--gris-doux);
+      border-bottom: 1.5px solid var(--bordure);
+      white-space: nowrap;
+      background: #FAFBFC;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--bordure);
+      transition: background 0.12s;
+      cursor: pointer;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--teal-light); }
+
+    tbody td {
+      padding: 13px 16px;
+      color: var(--gris-texte);
+      vertical-align: middle;
+    }
+
+    .client-nom { font-weight: 700; color: var(--teal-dark); }
+    .client-contact { color: var(--gris-doux); font-size: 12px; }
+
+    .badge-secteur {
+      display: inline-block;
+      padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700;
+      background: #E0F2FE; color: #0369A1;
+    }
+
+    .tag-statut {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700;
+    }
+
+    .tag-actif   { background: #D1FAE5; color: #065F46; }
+    .tag-resilie { background: #FEE2E2; color: #991B1B; }
+    .tag-essai   { background: #FEF3C7; color: #92400E; }
+
+    .btn-fiche {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 14px; border-radius: 6px;
+      background: var(--teal); color: #fff;
+      border: none; font-size: 12px; font-weight: 700;
+      cursor: pointer; font-family: Arial, sans-serif;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .btn-fiche:hover { background: var(--teal-dark); }
+
+    /* ══ ÉTAT VIDE ══ */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--gris-doux);
+    }
+
+    .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
+    .empty-state p { font-size: 14px; }
+    .empty-state small { font-size: 12px; margin-top: 6px; display: block; color: #9CA3AF; }
+
+    /* ══ MODALE FICHE CLIENT ══ */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: var(--blanc); border-radius: 12px;
+      width: 720px; max-width: 95vw; max-height: 90vh;
+      overflow-y: auto; padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute; top: 16px; right: 18px;
+      background: none; border: none; font-size: 22px;
+      cursor: pointer; color: var(--gris-doux);
+    }
+
+    .modal-close:hover { color: var(--rouge); }
+
+    .modal-titre {
+      font-size: 20px; font-weight: 700;
+      color: var(--teal-dark); margin-bottom: 4px;
+    }
+
+    .modal-sous-titre {
+      font-size: 13px; color: var(--gris-doux); margin-bottom: 24px;
+    }
+
+    .fiche-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px; margin-bottom: 24px;
+    }
+
+    @media (max-width: 560px) { .fiche-grid { grid-template-columns: 1fr; } }
+
+    .fiche-champ label {
+      display: block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--gris-doux); margin-bottom: 4px;
+    }
+
+    .fiche-champ p {
+      font-size: 13px; color: var(--gris-texte);
+      padding: 9px 12px;
+      background: #F8FAFC; border: 1px solid var(--bordure);
+      border-radius: 6px; min-height: 36px;
+    }
+
+    .fiche-section {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--teal);
+      margin: 20px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--teal-light);
+    }
+
+    .modal-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .btn-action {
+      padding: 9px 18px; border-radius: 7px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: Arial, sans-serif;
+      border: none; transition: background 0.15s;
+    }
+
+    .btn-action.primary { background: var(--teal); color: #fff; }
+    .btn-action.primary:hover { background: var(--teal-dark); }
+    .btn-action.secondary {
+      background: #F1F5F9; color: var(--gris-texte);
+      border: 1px solid var(--bordure);
+    }
+    .btn-action.secondary:hover { background: #E2E8F0; }
+
+    /* ══ LOADER ══ */
+    .loader {
+      text-align: center; padding: 40px;
+      color: var(--gris-doux); font-size: 14px;
+    }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.25s; z-index: 500; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .hamburger { display: block; }
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <img
+        src="/clients/cappolia/assets/logo.png"
+        alt="CAPPOLIA PROPRETÉ"
+        onerror="this.style.display='none';"
+      />
+      <div>
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#fff;line-height:1.2;">CAPPOLIA</div>
+        <div style="font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.65);text-transform:uppercase;">Propreté</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <div class="nav-section">Principal</div>
+      <a class="nav-item" href="/dashboard">
+        <span class="nav-icon">⊞</span> Tableau de bord
+      </a>
+      <a class="nav-item active" href="/clients">
+        <span class="nav-icon">👥</span> Clients
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📍</span> Sites
+      </a>
+
+      <div class="nav-section">Ressources humaines</div>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">👷</span> Agents
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">📅</span> Planning
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">🕐</span> Pointage
+      </a>
+
+      <div class="nav-section">Commercial</div>
+      <a class="nav-item" href="/commercial">
+        <span class="nav-icon">🎯</span> Prospection & CRM
+      </a>
+
+      <div class="nav-section">Exploitation</div>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">✅</span> Qualité / Audits
+      </a>
+      <a class="nav-item" href="/documents">
+        <span class="nav-icon">📄</span> Documents
+      </a>
+
+      <a class="nav-item" href="/mon-profil">
+        <span class="nav-icon">👤</span> Mon Profil
+      </a>
+
+      <div class="nav-section">Finance</div>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">🧾</span> Facturation
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">💶</span> Paie (Silae)
+      </a>
+
+    </nav>
+
+    <div class="sidebar-profil">
+      <div class="profil-avatar" id="profilAvatar">—</div>
+      <div>
+        <div class="profil-nom" id="userNom">—</div>
+        <div class="profil-role">Directeur</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-deconnexion" id="btnDeconnexion">Se déconnecter</button>
+    </div>
+
+  </aside>
+
+  <!-- ══ CONTENU ══ -->
+  <div class="main">
+
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-titre">Fichiers Clients</div>
+      <div class="topbar-date" id="dateJour"></div>
+    </header>
+
+    <div class="content">
+
+      <!-- KPI -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Total clients</div>
+          <div class="kpi-value" id="kpiTotal">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Actifs</div>
+          <div class="kpi-value" id="kpiActifs" style="color:var(--vert)">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Période d'essai</div>
+          <div class="kpi-value" id="kpiEssai" style="color:#D97706">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Résiliés</div>
+          <div class="kpi-value" id="kpiResilies" style="color:var(--rouge)">—</div>
+        </div>
+      </div>
+
+      <!-- Barre de recherche -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="Rechercher un client…" oninput="filtrerClients()" />
+        </div>
+        <select class="filter-select" id="filterSecteur" onchange="filtrerClients()">
+          <option value="">Tous les secteurs</option>
+        </select>
+        <select class="filter-select" id="filterStatut" onchange="filtrerClients()">
+          <option value="">Tous statuts</option>
+          <option value="actif">Actif</option>
+          <option value="essai">Période d'essai</option>
+          <option value="resilie">Résilié</option>
+        </select>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <div id="loaderClients" class="loader">Chargement des fiches clients…</div>
+        <table id="tableClients" style="display:none;">
+          <thead>
+            <tr>
+              <th>Site / Client</th>
+              <th>Secteur</th>
+              <th>Adresse</th>
+              <th>Téléphone</th>
+              <th>Responsable</th>
+              <th>Statut</th>
+              <th>Client depuis</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyClients"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none;">
+          <div class="icon">👥</div>
+          <p>Aucun client trouvé</p>
+          <small>Les prospects gagnés apparaîtront ici automatiquement.</small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ MODALE FICHE CLIENT ══ -->
+  <div class="modal-overlay" id="modalFiche" onclick="fermerFiche(event)">
+    <div class="modal-box">
+      <button class="modal-close" onclick="fermerModal()">✕</button>
+      <div class="modal-titre" id="ficheNom">—</div>
+      <div class="modal-sous-titre" id="ficherSecteur">—</div>
+
+      <div class="fiche-section">Informations générales</div>
+      <div class="fiche-grid">
+        <div class="fiche-champ"><label>Nom du site / Client</label><p id="ficheRaison">—</p></div>
+        <div class="fiche-champ"><label>Responsable de secteur</label><p id="ficheAM">—</p></div>
+        <div class="fiche-champ"><label>Contact principal</label><p id="ficheContact">—</p></div>
+        <div class="fiche-champ"><label>Téléphone</label><p id="ficheTel">—</p></div>
+        <div class="fiche-champ"><label>Email</label><p id="ficheEmail">—</p></div>
+        <div class="fiche-champ" style="grid-column:1/-1"><label>Adresse</label><p id="ficheAdresse">—</p></div>
+      </div>
+
+      <div class="fiche-section">Contrat</div>
+      <div class="fiche-grid">
+        <div class="fiche-champ"><label>Statut</label><p id="ficheStatut">—</p></div>
+        <div class="fiche-champ"><label>Client depuis</label><p id="ficheDepuis">—</p></div>
+        <div class="fiche-champ"><label>Surface totale (m²)</label><p id="ficheSurface">—</p></div>
+        <div class="fiche-champ"><label>Notes</label><p id="ficheNotes">—</p></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-action primary" onclick="ouvrirChiffrage()">📊 Voir le chiffrage</button>
+        <button class="btn-action secondary" onclick="fermerModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let tousLesClients = [];
+    let clientActuel = null;
+
+    // ── Auth ──
+    async function checkAuth() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+
+      const { data: profil } = await sb.from('users').select('prenom,nom,role').eq('id', session.user.id).single();
+      if (profil) {
+        const initiales = ((profil.prenom?.[0] || '') + (profil.nom?.[0] || '')).toUpperCase() || '?';
+        document.getElementById('profilAvatar').textContent = initiales;
+        document.getElementById('userNom').textContent = `${profil.prenom || ''} ${profil.nom || ''}`.trim();
+      }
+    }
+
+    document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      window.location.href = '/';
+    });
+
+    // ── Date ──
+    const jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+    const mois  = ['jan.','fév.','mar.','avr.','mai','jun.','jul.','aoû.','sep.','oct.','nov.','déc.'];
+    const now   = new Date();
+    document.getElementById('dateJour').textContent =
+      `${jours[now.getDay()]} ${now.getDate()} ${mois[now.getMonth()]} ${now.getFullYear()}`;
+
+    // ── Sidebar ──
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // ── Chargement clients ──
+    async function chargerClients() {
+      const { data, error } = await sb
+        .from('sites')
+        .select('*, users!agent_maitrise_id(prenom, nom)')
+        .order('nom', { ascending: true });
+
+      document.getElementById('loaderClients').style.display = 'none';
+
+      if (error || !data || data.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+        majKPI([]);
+        return;
+      }
+
+      tousLesClients = data.map(s => ({
+        ...s,
+        _nomClient:  s.nom || s.raison_sociale || '—',
+        _contact:    s.contact_nom || s.nom_contact || '',
+        _tel:        s.telephone || s.tel || '—',
+        _secteur:    s.secteur || s.type_site || '—',
+        _adresse:    [s.adresse, s.code_postal, s.ville].filter(Boolean).join(' ') || s.adresse || '—',
+        _sc:         s.statut_contrat || 'actif',
+        _am:         s.users ? `${s.users.prenom || ''} ${s.users.nom || ''}`.trim() : '—',
+      }));
+
+      peuplerFiltresSecteur(tousLesClients);
+      majKPI(tousLesClients);
+      afficherClients(tousLesClients);
+      document.getElementById('tableClients').style.display = 'table';
+    }
+
+    function peuplerFiltresSecteur(clients) {
+      const secteurs = [...new Set(clients.map(c => c._secteur).filter(s => s && s !== '—'))].sort();
+      const sel = document.getElementById('filterSecteur');
+      secteurs.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = s;
+        sel.appendChild(opt);
+      });
+    }
+
+    function majKPI(clients) {
+      document.getElementById('kpiTotal').textContent    = clients.length;
+      document.getElementById('kpiActifs').textContent   = clients.filter(c => c._sc === 'actif').length;
+      document.getElementById('kpiEssai').textContent    = clients.filter(c => c._sc === 'essai').length;
+      document.getElementById('kpiResilies').textContent = clients.filter(c => c._sc === 'resilie').length;
+    }
+
+    function afficherClients(clients) {
+      const tbody = document.getElementById('tbodyClients');
+      const empty = document.getElementById('emptyState');
+      const table = document.getElementById('tableClients');
+
+      if (clients.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      table.style.display = 'table';
+      empty.style.display = 'none';
+
+      tbody.innerHTML = clients.map(c => {
+        const badgeSc = c._sc === 'actif'
+          ? '<span class="tag-statut tag-actif">● Actif</span>'
+          : c._sc === 'essai'
+          ? '<span class="tag-statut tag-essai">⏳ Essai</span>'
+          : '<span class="tag-statut tag-resilie">✕ Résilié</span>';
+
+        const depuis = c.date_debut_contrat || c.date_signature || c.created_at
+          ? new Date(c.date_debut_contrat || c.date_signature || c.created_at)
+              .toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })
+          : '—';
+
+        return `<tr onclick="ouvrirFiche('${c.id}')">
+          <td>
+            <div class="client-nom">${escHtml(c._nomClient)}</div>
+            <div class="client-contact">${escHtml(c._contact)}</div>
+          </td>
+          <td><span class="badge-secteur">${escHtml(c._secteur)}</span></td>
+          <td>${escHtml(c._adresse)}</td>
+          <td>${escHtml(c._tel)}</td>
+          <td>${escHtml(c._am)}</td>
+          <td>${badgeSc}</td>
+          <td>${depuis}</td>
+          <td><button class="btn-fiche" onclick="event.stopPropagation();ouvrirFiche('${c.id}')">Voir la fiche →</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filtrerClients() {
+      const search  = document.getElementById('searchInput').value.toLowerCase().trim();
+      const secteur = document.getElementById('filterSecteur').value;
+      const statut  = document.getElementById('filterStatut').value;
+
+      const filtrés = tousLesClients.filter(c => {
+        const texte = `${c._nomClient} ${c._contact} ${c._adresse} ${c._am}`.toLowerCase();
+        if (search  && !texte.includes(search))  return false;
+        if (secteur && c._secteur !== secteur)   return false;
+        if (statut  && c._sc !== statut)         return false;
+        return true;
+      });
+
+      afficherClients(filtrés);
+    }
+
+    // ── Fiche client ──
+    function ouvrirFiche(id) {
+      const c = tousLesClients.find(x => String(x.id) === String(id));
+      if (!c) return;
+      clientActuel = c;
+
+      const statutLabel = c._sc === 'actif' ? '● Actif' : c._sc === 'essai' ? '⏳ Période d\'essai' : '✕ Résilié';
+
+      const depuis = c.date_debut_contrat || c.date_signature || c.created_at
+        ? new Date(c.date_debut_contrat || c.date_signature || c.created_at)
+            .toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
+        : '—';
+
+      document.getElementById('ficheNom').textContent      = c._nomClient;
+      document.getElementById('ficherSecteur').textContent = c._secteur;
+      document.getElementById('ficheRaison').textContent   = c._nomClient;
+      document.getElementById('ficheAM').textContent       = c._am;
+      document.getElementById('ficheContact').textContent  = c._contact || '—';
+      document.getElementById('ficheTel').textContent      = c._tel;
+      document.getElementById('ficheEmail').textContent    = c.email || '—';
+      document.getElementById('ficheAdresse').textContent  = c._adresse;
+      document.getElementById('ficheStatut').textContent   = statutLabel;
+      document.getElementById('ficheDepuis').textContent   = depuis;
+      document.getElementById('ficheSurface').textContent  = c.surface_totale ? `${c.surface_totale} m²` : '—';
+      document.getElementById('ficheNotes').textContent    = c.notes || c.commentaire || '—';
+
+      document.getElementById('modalFiche').classList.add('open');
+    }
+
+    function fermerModal() {
+      document.getElementById('modalFiche').classList.remove('open');
+      clientActuel = null;
+    }
+
+    function fermerFiche(e) {
+      if (e.target === document.getElementById('modalFiche')) fermerModal();
+    }
+
+    function ouvrirChiffrage() {
+      window.location.href = '/chiffrage';
+    }
+
+    function escHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Init ──
+    checkAuth().then(() => chargerClients());
+  </script>
+
+</body>
+</html>
