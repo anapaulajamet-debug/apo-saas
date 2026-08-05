@@ -623,7 +623,12 @@
         return;
       }
 
-      tousLesClients = data.map(s => ({
+      // Dédoublonner par id (la jointure users peut multiplier les lignes)
+      const unique = Object.values(
+        data.reduce((acc, s) => { if (!acc[s.id]) acc[s.id] = s; return acc; }, {})
+      );
+
+      tousLesClients = unique.map(s => ({
         ...s,
         _nomClient:  s.nom || s.raison_sociale || '—',
         _contact:    s.contact_nom || s.nom_contact || '',
