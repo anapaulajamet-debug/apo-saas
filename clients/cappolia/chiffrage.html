@@ -391,6 +391,7 @@
                 <th style="width:80px;">Tps/passage (h)</th>
                 <th style="width:100px;">Fréq. mensuelle</th>
                 <th style="width:80px;">Tps mensuel (h)</th>
+                <th style="width:36px;"></th>
               </tr>
             </thead>
             <tbody id="tbodyEC"></tbody>
@@ -966,7 +967,7 @@ function rendreGroupes() {
     const freqGroupe = g.freq != null ? g.freq : freqGlobale;
     const freqMoisGroupe = (freqGroupe * 4.33).toFixed(1);
     const trHead = document.createElement('tr');
-    trHead.innerHTML = `<td colspan="8" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    trHead.innerHTML = `<td colspan="9" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span>🏢 ${g.local} — ${g.sol} — ${g.surface} m²</span>
       <span style="font-weight:400;font-size:11px;color:var(--green-dark);margin-left:8px;">Fréquence :
         <input type="number" id="${g.id}_freqInput" value="${freqGroupe}" min="1" max="7" step="1"
@@ -975,7 +976,8 @@ function rendreGroupes() {
           title="Fréquence globale : ${freqGlobale} j/sem"/>
         j/sem → <span id="${g.id}_freqMoisAff">${freqMoisGroupe}</span> pass/mois
       </span>
-      <button onclick="supprimerGroupe('${g.id}')" style="margin-left:auto;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer</button>
+      <button onclick="afficherAjoutPrestation('${g.id}')" style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">+ Ajouter une prestation</button>
+      <button onclick="supprimerGroupe('${g.id}')" style="margin-left:auto;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer le local</button>
     </td>`;
     tbody.appendChild(trHead);
     g.prestations.forEach((p, idx) => {
@@ -994,7 +996,12 @@ function rendreGroupes() {
         <td style="text-align:right;"><input type="number" id="${rid}_cadence" value="${cadenceSauvee}" min="1" step="1" oninput="sauverCadence('${g.id}',${idx},this.value);calculerEC()" style="width:68px;text-align:right;border:1.5px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;background:#FFFBEB;" title="Cadence interne par défaut : ${cadenceDefaut} m²/h"/></td>
         <td style="text-align:right;" id="${rid}_tps">—</td>
         <td style="text-align:right;" id="${rid}_freq">—</td>
-        <td style="text-align:right;" id="${rid}_mensuel">—</td>`;
+        <td style="text-align:right;" id="${rid}_mensuel">—</td>
+        <td style="text-align:center;">
+          <button onclick="supprimerPrestation('${g.id}',${idx})" title="Supprimer cette prestation"
+            style="background:none;border:none;color:#DC2626;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;"
+            onmouseover="this.style.background='#FEE2E2'" onmouseout="this.style.background='none'">✕</button>
+        </td>`;
       tbody.appendChild(tr);
     });
   });
@@ -1013,6 +1020,76 @@ function sauverFreqGroupe(gid, val) {
   g.freq = parseFloat(val) || 1;
   const freqMoisAff = document.getElementById(gid + '_freqMoisAff');
   if (freqMoisAff) freqMoisAff.textContent = (g.freq * 4.33).toFixed(1);
+}
+
+function supprimerPrestation(gid, idx) {
+  const g = groupesEC.find(x => x.id === gid);
+  if (!g) return;
+  g.prestations.splice(idx, 1);
+  if (g.cadences) {
+    // Reconstruire les cadences en supprimant l'index retiré
+    const newCad = {};
+    Object.entries(g.cadences).forEach(([k, v]) => {
+      const ki = parseInt(k);
+      if (ki < idx) newCad[ki] = v;
+      else if (ki > idx) newCad[ki - 1] = v;
+    });
+    g.cadences = newCad;
+  }
+  rendreGroupes();
+  calculerEC();
+}
+
+function afficherAjoutPrestation(gid) {
+  const tbody = document.getElementById('tbodyEC');
+  // Supprimer une éventuelle ligne d'ajout déjà ouverte
+  const existing = document.getElementById('ajout_row_' + gid);
+  if (existing) { existing.remove(); return; }
+
+  const options = Object.keys(CADENCES).map(p => `<option value="${p}">${p}</option>`).join('');
+  const tr = document.createElement('tr');
+  tr.id = 'ajout_row_' + gid;
+  tr.style.background = '#F0FDF4';
+  tr.innerHTML = `
+    <td colspan="9" style="padding:8px 14px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <select id="ajout_sel_${gid}" style="flex:1;min-width:220px;padding:6px 10px;border:1.5px solid #86EFAC;border-radius:6px;font-size:12px;color:#166534;background:#F0FDF4;">
+          ${options}
+        </select>
+        <button onclick="confirmerAjoutPrestation('${gid}')"
+          style="background:#16A34A;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;">
+          ✓ Ajouter
+        </button>
+        <button onclick="document.getElementById('ajout_row_${gid}').remove()"
+          style="background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">
+          Annuler
+        </button>
+      </div>
+    </td>`;
+
+  // Insérer la ligne juste avant le prochain groupe (ou en fin de tbody)
+  // On cherche la prochaine ligne de groupe header après ce groupe
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  let insertBefore = null;
+  let found = false;
+  for (const row of rows) {
+    if (found && row.querySelector(`td[colspan="9"]`)) { insertBefore = row; break; }
+    if (row.querySelector(`[onclick*="afficherAjoutPrestation('${gid}')"]`)) found = true;
+  }
+  if (insertBefore) tbody.insertBefore(tr, insertBefore);
+  else tbody.appendChild(tr);
+}
+
+function confirmerAjoutPrestation(gid) {
+  const g = groupesEC.find(x => x.id === gid);
+  if (!g) return;
+  const sel = document.getElementById('ajout_sel_' + gid);
+  if (!sel) return;
+  g.prestations.push(sel.value);
+  const row = document.getElementById('ajout_row_' + gid);
+  if (row) row.remove();
+  rendreGroupes();
+  calculerEC();
 }
 
 function calculerEC() {
