@@ -46,6 +46,10 @@
         .brand-keolis { height: 42px; width: auto; }
         .brand-sep { width: 1px; align-self: stretch; background: #e2e2e2; margin: 8px 0; }
         .login-form h2 { font-size: 20px; }
+        .agenda-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .agenda-nav input[type="date"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
+        #agentMap { width: 100%; height: 360px; border-radius: 8px; border: 2px solid #04A6E1; margin: 12px 0 16px; }
+        .agenda-summary { margin: 14px 0 4px; color: #1D1A34; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -127,7 +131,15 @@
                 <button class="btn btn-primary" onclick="submitPointage()">✅ Enregistrer</button>
             </section>
             <section class="section">
-                <h2>📋 Pointages du jour</h2>
+                <h2>📅 Mon agenda</h2>
+                <div class="agenda-nav">
+                    <button class="btn btn-secondary" onclick="changeAgentDay(-1)">◀ Jour préc.</button>
+                    <input type="date" id="agentDate" onchange="refreshAgentDay()">
+                    <button class="btn btn-secondary" onclick="changeAgentDay(1)">Jour suiv. ▶</button>
+                    <button class="btn btn-primary" onclick="agentToday()">Aujourd'hui</button>
+                </div>
+                <p id="agentDaySummary" class="agenda-summary"></p>
+                <div id="agentMap"></div>
                 <table class="table">
                     <thead>
                         <tr><th>Site</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
@@ -207,6 +219,7 @@ let user = null;
 let pointages = [];
 let currentGeo = { lat: null, lng: null };
 let map = null;
+let agentMap = null;
 
 function loadSites() {
     db.ref('sites').on('value', snapshot => {
@@ -221,7 +234,7 @@ function loadPointages() {
     db.ref('pointages').on('value', snapshot => {
         const data = snapshot.val() || {};
         pointages = Array.isArray(data) ? data : Object.values(data);
-        if (user && user.role === 'agent') refreshAgentTable();
+        if (user && user.role === 'agent') refreshAgentDay();
         if (user && user.role === 'manager') {
             refreshManagerData();
             if (map) updateMapMarkers();
@@ -363,8 +376,11 @@ function showAgent() {
         alertHtml += '</div>';
         document.getElementById('alertesRetard').innerHTML = alertHtml;
     }
-    
-    refreshAgentTable();
+
+    if (!document.getElementById('agentDate').value) {
+        document.getElementById('agentDate').value = todayISO();
+    }
+    refreshAgentDay();
 }
 
 function autoGeolocate() {
@@ -426,19 +442,83 @@ function submitPointage() {
     currentGeo = { lat: null, lng: null };
 }
 
-function refreshAgentTable() {
-    const today = new Date().toLocaleDateString('fr-FR');
-    const pts = pointages.filter(p => p.agent === user.email && p.date === today);
-    
+// --- Agenda de l'agent : navigation par jour + carte + liste ---
+function isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function todayISO() { return isoLocal(new Date()); }
+
+function changeAgentDay(delta) {
+    const input = document.getElementById('agentDate');
+    const iso = input.value || todayISO();
+    const p = iso.split('-');
+    const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    d.setDate(d.getDate() + delta);
+    input.value = isoLocal(d);
+    refreshAgentDay();
+}
+
+function agentToday() {
+    document.getElementById('agentDate').value = todayISO();
+    refreshAgentDay();
+}
+
+function refreshAgentDay() {
+    const input = document.getElementById('agentDate');
+    if (!input) return;
+    if (!input.value) input.value = todayISO();
+    // yyyy-mm-dd -> dd/mm/yyyy (format stocké dans les pointages)
+    const jour = input.value.split('-').reverse().join('/');
+    const pts = pointages.filter(p => p.agent === user.email && p.date === jour);
+
+    // Résumé du jour
+    const nbAnom = pts.filter(p => p.anomalies).length;
+    const quand = input.value === todayISO() ? "aujourd'hui" : 'ce jour-là';
+    document.getElementById('agentDaySummary').textContent =
+        pts.length + ' site(s) nettoyé(s) ' + quand + (nbAnom ? ' • ' + nbAnom + ' anomalie(s)' : '');
+
+    // Liste
     let html = '';
     if (pts.length === 0) {
-        html = '<tr><td colspan="4" style="text-align:center;color:#999;">Aucun pointage</td></tr>';
+        html = '<tr><td colspan="4" style="text-align:center;color:#999;">Aucun pointage ce jour</td></tr>';
     } else {
         pts.forEach(p => {
             html += '<tr><td>' + p.siteName + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
         });
     }
     document.getElementById('agentTable').innerHTML = html;
+
+    // Carte
+    initAgentMap();
+    updateAgentMapMarkers(pts);
+}
+
+function initAgentMap() {
+    if (agentMap || !document.getElementById('agentMap')) return;
+    agentMap = L.map('agentMap').setView([43.45, 5.27], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(agentMap);
+}
+
+function updateAgentMapMarkers(pts) {
+    if (!agentMap) return;
+    agentMap.eachLayer(layer => { if (layer instanceof L.CircleMarker) agentMap.removeLayer(layer); });
+    const coords = [];
+    pts.forEach(p => {
+        if (p.lat && p.lat !== '?') {
+            const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                coords.push([lat, lng]);
+                L.circleMarker([lat, lng], {
+                    radius: 10, fillColor: '#27ae60', color: '#1D1A34',
+                    weight: 2, opacity: 1, fillOpacity: 0.8
+                }).addTo(agentMap).bindPopup('<strong>' + p.siteName + '</strong><br>Heure : ' + p.heure + (p.anomalies ? '<br>⚠️ ' + p.anomalies : ''));
+            }
+        }
+    });
+    if (coords.length) agentMap.fitBounds(coords, { padding: [40, 40], maxZoom: 15 });
+    setTimeout(() => { if (agentMap) agentMap.invalidateSize(); }, 150);
 }
 
 function showManager() {
