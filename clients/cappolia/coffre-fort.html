@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#1A3D28" />
+  <title>CAPPOLIA PROPRETÉ — Mon espace</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:      #2D6A3F;
+      --teal-dark: #1A3D28;
+      --gris-fond: #F3F6F8;
+      --blanc:     #FFFFFF;
+      --gris-texte:#1F2937;
+      --gris-doux: #6B7280;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--teal-dark);
+      font-family: Arial, sans-serif;
+      color: var(--gris-texte);
+      overscroll-behavior: none;
+    }
+
+    .app-header {
+      background: var(--teal-dark);
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .app-header-logo { font-size: 18px; font-weight: 900; letter-spacing: 3px; color: #fff; }
+
+    .agent-card {
+      background: rgba(255,255,255,0.12);
+      margin: 0 16px 0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .agent-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--teal); display: flex; align-items: center;
+      justify-content: center; font-size: 18px; font-weight: 700;
+      color: #fff; border: 2px solid rgba(255,255,255,0.3);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .agent-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .agent-info-nom   { font-size: 15px; font-weight: 700; color: #fff; }
+    .agent-info-poste { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 1px; }
+    .btn-deco {
+      margin-left: auto;
+      background: rgba(255,255,255,0.12); border: none; border-radius: 8px;
+      color: rgba(255,255,255,0.7); font-size: 11px; padding: 6px 10px;
+      cursor: pointer; font-family: Arial, sans-serif;
+    }
+
+    .app-body {
+      background: var(--gris-fond);
+      border-radius: 20px 20px 0 0;
+      margin-top: 14px;
+      min-height: calc(100vh - 140px);
+      padding: 20px 0 80px;
+    }
+
+    /* NAV TABS */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 16px;
+      overflow-x: auto;
+    }
+    .nav-tab {
+      flex-shrink: 0;
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      background: #fff;
+      color: var(--gris-doux);
+      border: 1px solid #E5E7EB;
+    }
+    .nav-tab.active {
+      background: var(--teal-dark);
+      color: #fff;
+      border-color: var(--teal-dark);
+    }
+
+    /* SECTION LABEL */
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--gris-doux);
+      margin-bottom: 10px; padding: 0 16px;
+    }
+
+    /* CARTE INFO */
+    .info-card {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      margin: 0 16px 12px;
+      overflow: hidden;
+    }
+    .info-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #F3F6F8;
+      gap: 12px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row-label {
+      font-size: 11px;
+      color: var(--gris-doux);
+      flex-shrink: 0;
+      width: 130px;
+    }
+    .info-row-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gris-texte);
+      word-break: break-all;
+    }
+
+    /* DOCUMENT CARD */
+    .doc-card {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      margin: 0 16px 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .doc-icone {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: #EFF6FF; display: flex; align-items: center;
+      justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .doc-nom   { font-size: 13px; font-weight: 700; color: var(--gris-texte); }
+    .doc-meta  { font-size: 11px; color: var(--gris-doux); margin-top: 2px; }
+    .doc-btn {
+      margin-left: auto;
+      background: var(--teal-dark); color: #fff;
+      border: none; border-radius: 8px; padding: 7px 14px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: Arial, sans-serif; flex-shrink: 0;
+      text-decoration: none; display: inline-block;
+    }
+    .doc-btn:hover { opacity: 0.85; }
+
+    /* CONGÉS */
+    .conge-card {
+      background: var(--blanc);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      margin: 0 16px 10px;
+      padding: 14px 16px;
+    }
+    .conge-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px;
+    }
+    .conge-periode { font-size: 13px; font-weight: 700; color: var(--gris-texte); }
+    .conge-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 10px;
+      border-radius: 20px; flex-shrink: 0;
+    }
+    .conge-badge.valide   { background: #D1FAE5; color: #065F46; }
+    .conge-badge.attente  { background: #FEF3C7; color: #92400E; }
+    .conge-badge.refuse   { background: #FEE2E2; color: #991B1B; }
+    .conge-detail { font-size: 11px; color: var(--gris-doux); margin-top: 2px; }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--gris-doux); font-size: 13px;
+    }
+    .empty-state-icone { font-size: 36px; margin-bottom: 10px; }
+
+    /* NAV BOTTOM */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #E5E7EB;
+      display: flex; justify-content: space-around;
+      padding: 10px 0 env(safe-area-inset-bottom, 10px);
+      z-index: 100;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 3px; font-size: 10px; font-weight: 600;
+      color: var(--gris-doux); text-decoration: none;
+      padding: 4px 12px; border-radius: 10px; transition: color 0.15s;
+    }
+    .nav-item.active { color: var(--teal-dark); }
+    .nav-item span { font-size: 20px; }
+
+    /* SOLDE BLOC */
+    .solde-bloc {
+      display: flex; gap: 10px; padding: 0 16px 14px; flex-wrap: wrap;
+    }
+    .solde-item {
+      background: #F0FDF4; border: 1px solid #BBF7D0;
+      border-radius: 10px; padding: 10px 14px; flex: 1; min-width: 100px;
+    }
+    .solde-label { font-size: 10px; color: #6B7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .solde-val   { font-size: 20px; font-weight: 900; color: #1A3D28; }
+    .solde-unit  { font-size: 11px; color: #6B7280; font-weight: 400; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .spinner { text-align:center; padding:30px; color:var(--gris-doux); font-size:13px; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="app-header-logo">CAPPOLIA PROPRETÉ</div>
+  </div>
+
+  <!-- AGENT CARD -->
+  <div class="agent-card">
+    <div class="agent-avatar" id="agentAvatar">…</div>
+    <div>
+      <div class="agent-info-nom"  id="agentNom">Chargement…</div>
+      <div class="agent-info-poste">Agent de propreté</div>
+    </div>
+    <button class="btn-deco" id="btnDeconnexion">Quitter</button>
+  </div>
+
+  <!-- CORPS -->
+  <div class="app-body">
+
+    <!-- ONGLETS -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="afficherTab('profil')">👤 Mon profil</button>
+      <button class="nav-tab" onclick="afficherTab('documents')">📄 Documents</button>
+      <button class="nav-tab" onclick="afficherTab('conges')">🌴 Congés</button>
+    </div>
+
+    <!-- TAB PROFIL -->
+    <div class="tab-panel active" id="tab-profil">
+      <div class="section-label">Informations personnelles</div>
+      <div class="info-card" id="infoCard">
+        <div class="spinner">Chargement…</div>
+      </div>
+
+      <div class="section-label" style="margin-top:8px;">Mon contrat</div>
+      <div class="info-card" id="contratCard">
+        <div class="spinner">Chargement…</div>
+      </div>
+    </div>
+
+    <!-- TAB DOCUMENTS -->
+    <div class="tab-panel" id="tab-documents">
+      <div class="section-label">Mes documents</div>
+      <div id="docsListe"><div class="spinner">Chargement…</div></div>
+    </div>
+
+    <!-- TAB CONGÉS -->
+    <div class="tab-panel" id="tab-conges">
+      <!-- Solde -->
+      <div class="section-label">Solde de congés</div>
+      <div class="solde-bloc">
+        <div class="solde-item">
+          <div class="solde-label">Jours restants</div>
+          <div><span class="solde-val" id="soldeJours">—</span> <span class="solde-unit">jours</span></div>
+        </div>
+        <div class="solde-item">
+          <div class="solde-label">Préavis requis</div>
+          <div><span class="solde-val">1</span> <span class="solde-unit">mois</span></div>
+        </div>
+      </div>
+
+      <div class="section-label">Mes demandes</div>
+      <div id="congesListe"><div class="spinner">Chargement…</div></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="/pointage" class="nav-item">
+      <span>📍</span>Pointage
+    </a>
+    <a href="/coffre-fort" class="nav-item active">
+      <span>🔐</span>Mon espace
+    </a>
+  </nav>
+
+  <script>
+    const SUPABASE_URL = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4MTA0MzMsImV4cCI6MjA2MDM4NjQzM30.i_l1J3RM2YMuDqjSzOLcNZSoM0tHpwdvvP5Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let agentData = null;
+
+    // ── Onglets ──────────────────────────────────────────────────────────────
+    function afficherTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // ── Formatage date ───────────────────────────────────────────────────────
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+
+      // Déconnexion
+      document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+        await sb.auth.signOut();
+        window.location.href = '/';
+      });
+
+      // Charger profil agent
+      const { data: profil } = await sb.from('agents')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
+
+      if (!profil) {
+        document.getElementById('agentNom').textContent = session.user.email;
+        document.getElementById('agentAvatar').textContent = '?';
+        return;
+      }
+
+      agentData = profil;
+      const nom = (profil.prenom || '') + ' ' + (profil.nom || '');
+      const initiales = ((profil.prenom?.[0] || '') + (profil.nom?.[0] || '')).toUpperCase() || '?';
+      document.getElementById('agentNom').textContent = nom.trim() || session.user.email;
+
+      // Avatar
+      const avatarEl = document.getElementById('agentAvatar');
+      let photoUrl = profil.photo_url;
+      if (!photoUrl) {
+        const { data: uData } = await sb.from('users').select('photo_url').eq('email', profil.email).single();
+        if (uData?.photo_url) photoUrl = uData.photo_url;
+      }
+      if (photoUrl) {
+        avatarEl.innerHTML = `<img src="${photoUrl}" alt="${nom}" />`;
+      } else {
+        avatarEl.textContent = initiales;
+      }
+
+      // ── Profil info ──────────────────────────────────────────────────────
+      document.getElementById('infoCard').innerHTML = [
+        ['Prénom', profil.prenom],
+        ['Nom',    profil.nom],
+        ['Email',  profil.email],
+        ['Téléphone', profil.telephone],
+        ['Date de naissance', fmtDate(profil.date_naissance)],
+        ['Adresse', profil.adresse],
+        ['N° Sécurité sociale', profil.numero_ss ? '••• ' + String(profil.numero_ss).slice(-4) : '—'],
+      ].map(([l, v]) => `
+        <div class="info-row">
+          <div class="info-row-label">${l}</div>
+          <div class="info-row-value">${v || '—'}</div>
+        </div>`).join('');
+
+      document.getElementById('contratCard').innerHTML = [
+        ['Type de contrat', profil.type_contrat],
+        ['Date d\'entrée',   fmtDate(profil.date_entree)],
+        ['Volume horaire',   profil.volume_horaire ? profil.volume_horaire + ' h/sem' : '—'],
+        ['Taux horaire',     profil.taux_horaire ? profil.taux_horaire + ' €/h' : '—'],
+        ['Coefficient CCN',  profil.coefficient],
+        ['Filière CCN',      profil.filiere_ccn],
+      ].map(([l, v]) => `
+        <div class="info-row">
+          <div class="info-row-label">${l}</div>
+          <div class="info-row-value">${v || '—'}</div>
+        </div>`).join('');
+
+      // ── Congés ───────────────────────────────────────────────────────────
+      document.getElementById('soldeJours').textContent = profil.solde_cp ?? '—';
+
+      const { data: conges } = await sb.from('conges')
+        .select('*')
+        .eq('agent_id', profil.id)
+        .order('date_debut', { ascending: false })
+        .limit(20);
+
+      const congesListe = document.getElementById('congesListe');
+      if (!conges?.length) {
+        congesListe.innerHTML = `<div class="empty-state"><div class="empty-state-icone">🌴</div>Aucune demande de congés</div>`;
+      } else {
+        const badges = { valide:'valide', en_attente:'attente', refuse:'refuse' };
+        const labels = { valide:'Validé', en_attente:'En attente', refuse:'Refusé' };
+        congesListe.innerHTML = conges.map(c => `
+          <div class="conge-card">
+            <div class="conge-header">
+              <div class="conge-periode">${fmtDate(c.date_debut)} → ${fmtDate(c.date_fin)}</div>
+              <div class="conge-badge ${badges[c.statut] || 'attente'}">${labels[c.statut] || c.statut}</div>
+            </div>
+            <div class="conge-detail">
+              ${c.nb_jours || '—'} jour(s) · ${c.type_conge || 'Congés payés'}
+            </div>
+          </div>`).join('');
+      }
+
+      // ── Documents ────────────────────────────────────────────────────────
+      const { data: docs } = await sb.from('documents')
+        .select('*')
+        .eq('agent_id', profil.id)
+        .order('created_at', { ascending: false });
+
+      const docsListe = document.getElementById('docsListe');
+      if (!docs?.length) {
+        docsListe.innerHTML = `<div class="empty-state"><div class="empty-state-icone">📄</div>Aucun document disponible pour le moment</div>`;
+      } else {
+        const icones = { fiche_paie:'💰', contrat:'📋', avenant:'📝', attestation:'🏅' };
+        docsListe.innerHTML = docs.map(d => `
+          <div class="doc-card">
+            <div class="doc-icone">${icones[d.type] || '📄'}</div>
+            <div>
+              <div class="doc-nom">${d.nom || d.type || 'Document'}</div>
+              <div class="doc-meta">${fmtDate(d.created_at)}</div>
+            </div>
+            ${d.url ? `<a class="doc-btn" href="${d.url}" target="_blank" rel="noopener">Voir</a>` : ''}
+          </div>`).join('');
+      }
+
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</body>
+</html>
