@@ -503,41 +503,56 @@
     // ── Équipe ──
     async function chargerEquipe(){
       _loadedEquipe = true;
+
+      // Agents affectés à ce site
       const { data:agents } = await sb.from('agents')
-        .select('id,nom,prenom,telephone,poste,horaire_debut,horaire_fin,jours_travail,type_agent')
+        .select('id, nom, prenom, telephone, date_naissance')
         .eq('site_principal_id', siteId)
         .order('nom');
 
-      const titulaires  = (agents||[]).filter(a => a.type_agent !== 'remplacant');
-      const remplacants = (agents||[]).filter(a => a.type_agent === 'remplacant');
+      const liste = agents || [];
 
-      document.getElementById('nbTitulaires').textContent  = titulaires.length;
-      document.getElementById('nbRemplacants').textContent = remplacants.length;
-
-      renderAgents('titulairesContainer', titulaires);
-      renderAgents('remplacantsContainer', remplacants);
-    }
-
-    function renderAgents(containerId, agents){
-      const el = document.getElementById(containerId);
-      if(!agents.length){
-        el.innerHTML='<div class="empty-section">Aucun agent renseigné</div>'; return;
+      // Planning récurrent pour ces agents sur ce site
+      let planningMap = {};
+      if(liste.length > 0){
+        const agentIds = liste.map(a => a.id);
+        const { data:plannings } = await sb.from('planning')
+          .select('agent_id, heure_debut, heure_fin, jours, type_evenement')
+          .in('agent_id', agentIds)
+          .eq('site_id', siteId);
+        (plannings||[]).forEach(p => {
+          if(!planningMap[p.agent_id]) planningMap[p.agent_id] = [];
+          planningMap[p.agent_id].push(p);
+        });
       }
-      el.innerHTML = agents.map(a=>{
-        const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase();
-        const horaire   = a.horaire_debut&&a.horaire_fin ? `${a.horaire_debut} – ${a.horaire_fin}` : null;
-        const jours     = a.jours_travail||null;
+
+      document.getElementById('nbTitulaires').textContent  = liste.length;
+      document.getElementById('nbRemplacants').textContent = '0';
+
+      const container = document.getElementById('titulairesContainer');
+      if(!liste.length){
+        container.innerHTML = '<div class="empty-section">Aucun agent affecté à ce site</div>';
+        return;
+      }
+
+      container.innerHTML = liste.map(a => {
+        const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase() || '?';
+        const plans     = planningMap[a.id] || [];
+        const horaire   = plans.length
+          ? plans.map(p => {
+              const j = p.jours ? `<strong>${esc(p.jours)}</strong> ` : '';
+              const h = p.heure_debut && p.heure_fin ? `🕐 ${esc(p.heure_debut)} – ${esc(p.heure_fin)}` : '';
+              return j+h;
+            }).join(' &nbsp;|&nbsp; ')
+          : null;
         return `<div class="agent-card">
-          <div class="agent-avatar">${esc(initiales||'?')}</div>
+          <div class="agent-avatar">${esc(initiales)}</div>
           <div class="agent-info">
             <div class="agent-nom">${esc(a.prenom||'')} ${esc(a.nom||'')}
-              ${a.poste ? `<span class="agent-tag">${esc(a.poste)}</span>` : ''}
+              <span class="agent-tag">ASP</span>
             </div>
-            ${a.telephone ? `<div class="agent-tel">📞 ${esc(a.telephone)}</div>` : ''}
-            ${horaire||jours ? `<div class="agent-horaire">
-              ${jours ? `<strong>${esc(jours)}</strong>` : ''}
-              ${horaire ? `🕐 ${esc(horaire)}` : ''}
-            </div>` : ''}
+            ${a.telephone ? `<div class="agent-tel">📞 <a href="tel:${esc(a.telephone.replace(/\s/g,''))}">${esc(a.telephone)}</a></div>` : ''}
+            ${horaire ? `<div class="agent-horaire">${horaire}</div>` : ''}
           </div>
         </div>`;
       }).join('');
