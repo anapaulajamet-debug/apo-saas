@@ -781,7 +781,7 @@
           autresCont.style.display = 'block';
         }
       } else {
-        document.getElementById('missionNom').textContent    = 'Pas de mission aujourd'hui';
+        document.getElementById('missionNom').textContent    = "Pas de mission aujourd'hui";
         document.getElementById('missionAdresse').textContent = '—';
       }
 
@@ -840,7 +840,7 @@
                 <span>${joursNoms[djn]}</span>
                 <span style="font-size:13px;">${d.getDate()}</span>
               </div>
-              <div style="font-size:11px;color:#6B7280;">${moisNoms[d.getMonth()]}. ${d.getFullYear()}${isAuj?' · Aujourd'hui':''}</div>
+              <div style="font-size:11px;color:#6B7280;">${moisNoms[d.getMonth()]}. ${d.getFullYear()}${isAuj ? " · Aujourd\'hui" : ''}</div>
             </div>
             ${missions.map(m => `
               <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:10px 14px;
