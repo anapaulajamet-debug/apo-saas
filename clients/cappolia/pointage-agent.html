@@ -620,23 +620,23 @@
         .eq('email', session.user.email)
         .single();
 
-      // Fallback depuis users si pas dans agents
-      let profilUser = null;
-      if (!profil) {
-        const { data: uRow } = await supabaseClient.from('users').select('prenom, nom, photo_url, user_role').eq('email', session.user.email).single();
-        profilUser = uRow;
+      // Fallback photo depuis users (photo_url seulement — prenom/nom pas dans cette table)
+      let photoUsers = null;
+      if (!profil || !profil.photo_url) {
+        const { data: uRow } = await supabaseClient.from('users').select('photo_url').eq('email', session.user.email).single();
+        if (uRow?.photo_url) photoUsers = uRow.photo_url;
       }
 
-      if (profil || profilUser) {
+      // Toujours afficher quelque chose, même si agents ne retourne rien
+      {
         const src = profil || {};
-        const usrc = profilUser || {};
-        const prenom = src.prenom || usrc.prenom || '';
-        const nomFam = src.nom   || usrc.nom   || '';
+        const prenom = src.prenom || '';
+        const nomFam = src.nom   || '';
         const nom = (prenom + ' ' + nomFam).trim() || session.user.email;
-        const initiales = ((prenom[0] || '') + (nomFam[0] || '')).toUpperCase() || '?';
+        const initiales = ((prenom[0] || '') + (nomFam[0] || '')).toUpperCase() || session.user.email.slice(0,2).toUpperCase();
         document.getElementById('agentNom').textContent = nom;
         const avatarEl = document.getElementById('agentAvatar');
-        const photoUrl = src.photo_url || usrc.photo_url || null;
+        const photoUrl = src.photo_url || photoUsers;
         if (photoUrl) {
           avatarEl.innerHTML = `<img src="${photoUrl}" alt="${nom}" />`;
         } else {
