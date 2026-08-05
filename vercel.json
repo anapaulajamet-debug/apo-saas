@@ -12,6 +12,8 @@
     { "source": "/chiffrage", "destination": "/clients/cappolia/chiffrage.html" },
     { "source": "/mon-profil", "destination": "/clients/cappolia/mon-profil.html" },
     { "source": "/clients", "destination": "/clients/cappolia/clients.html" },
-    { "source": "/fiche-client", "destination": "/clients/cappolia/fiche-client.html" }
+    { "source": "/fiche-client", "destination": "/clients/cappolia/fiche-client.html" },
+    { "source": "/coffre-fort", "destination": "/clients/cappolia/coffre-fort.html" },
+    { "source": "/pointage-agent", "destination": "/clients/cappolia/pointage-agent.html" }
   ]
 }
