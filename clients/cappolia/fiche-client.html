@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAPPOLIA — Fiche client</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:      #2D6A3F;
+      --teal-dark: #1A3D28;
+      --teal-light:#E8F5ED;
+      --or:        #D4A017;
+      --rouge:     #C0392B;
+      --vert:      #059669;
+      --orange:    #D97706;
+      --gris-texte:#374151;
+      --gris-doux: #6B7280;
+      --gris-fond: #F3F6F8;
+      --blanc:     #FFFFFF;
+      --bordure:   #DDE3E8;
+    }
+
+    body { font-family: Arial, sans-serif; background: var(--gris-fond); color: var(--gris-texte); min-height: 100vh; display: flex; }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar { width: 230px; min-height: 100vh; background: var(--teal-dark); display: flex; flex-direction: column; position: fixed; top:0; left:0; bottom:0; z-index: 200; }
+    .sidebar-logo { padding: 12px 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; gap: 8px; }
+    .sidebar-logo img { max-width: 80px; width: 100%; height: auto; filter: brightness(0) invert(1); flex-shrink: 0; }
+    .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+    .nav-section { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.4); padding: 14px 20px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: rgba(255,255,255,0.75); text-decoration: none; border-left: 3px solid transparent; transition: background 0.15s; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: var(--or); font-weight: 700; }
+    .nav-icon { font-size: 16px; width: 18px; text-align: center; }
+    .sidebar-profil { padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; gap: 10px; }
+    .profil-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }
+    .profil-nom { font-size: 12px; font-weight: 700; color: #fff; }
+    .profil-role { font-size: 10px; color: rgba(255,255,255,0.55); }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.12); }
+    .btn-deconn { width: 100%; padding: 8px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; font-size: 12px; cursor: pointer; font-family: Arial, sans-serif; }
+    .btn-deconn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ══ MAIN ══ */
+    .main { margin-left: 230px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Topbar */
+    .topbar { background: var(--blanc); border-bottom: 1px solid var(--bordure); padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 100; }
+    .btn-retour { display: flex; align-items: center; gap: 6px; color: var(--teal); text-decoration: none; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 1.5px solid var(--teal); border-radius: 7px; transition: background 0.15s; white-space: nowrap; }
+    .btn-retour:hover { background: var(--teal-light); }
+    .topbar-nom { font-size: 16px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topbar-adresse { font-size: 12px; color: var(--gris-doux); }
+
+    /* Header client */
+    .client-header { background: var(--blanc); border-bottom: 1px solid var(--bordure); padding: 18px 24px; display: flex; align-items: center; gap: 16px; }
+    .client-icon { width: 52px; height: 52px; border-radius: 10px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; border: 1px solid rgba(45,106,63,0.2); }
+    .client-header-info { flex: 1; }
+    .client-header-info h2 { font-size: 18px; font-weight: 900; color: var(--teal-dark); }
+    .client-header-sub { font-size: 13px; color: var(--gris-doux); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+    .client-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-action { padding: 8px 16px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Arial, sans-serif; border: none; transition: background 0.15s; display: flex; align-items: center; gap: 6px; }
+    .btn-action.primary { background: var(--teal); color: #fff; }
+    .btn-action.primary:hover { background: var(--teal-dark); }
+    .btn-action.danger { background: #FEE2E2; color: var(--rouge); border: 1px solid #FECACA; }
+    .btn-action.danger:hover { background: #FECACA; }
+
+    /* Onglets */
+    .tabs-bar { background: var(--blanc); border-bottom: 2px solid var(--bordure); padding: 0 24px; display: flex; gap: 0; overflow-x: auto; }
+    .tab-btn { padding: 13px 18px; font-size: 13px; font-weight: 700; color: var(--gris-doux); cursor: pointer; border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: Arial, sans-serif; transition: color 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .tab-btn:hover { color: var(--teal); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+    /* Contenu */
+    .content { padding: 24px; flex: 1; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Cards */
+    .card { background: var(--blanc); border-radius: 10px; border: 1px solid var(--bordure); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gris-doux); margin-bottom: 14px; }
+
+    /* ── FICHE CLIENT ── */
+    .contact-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+    .contact-item { padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px; border-right: 1px solid var(--bordure); }
+    .contact-item:last-child { border-right: none; }
+    .contact-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .contact-label { font-size: 11px; color: var(--gris-doux); margin-bottom: 3px; }
+    .contact-value { font-size: 14px; font-weight: 700; color: var(--gris-texte); }
+    .contact-value a { color: var(--teal); text-decoration: none; }
+    .contact-value a:hover { text-decoration: underline; }
+    .contact-value.muted { font-weight: 400; color: var(--gris-doux); font-style: italic; }
+
+    /* Map */
+    .map-wrap { border-radius: 8px; overflow: hidden; height: 260px; position: relative; background: #E8F0FE; display: flex; align-items: center; justify-content: center; }
+    .map-wrap iframe { width: 100%; height: 100%; border: none; }
+    .map-link { position: absolute; top: 10px; right: 10px; background: var(--blanc); border: 1px solid var(--bordure); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; color: var(--teal); text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .map-link:hover { background: var(--teal-light); }
+    .map-placeholder { text-align: center; color: var(--gris-doux); }
+    .map-placeholder p { font-size: 13px; margin-top: 8px; }
+
+    /* Infos grille */
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .info-item label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gris-doux); margin-bottom: 4px; }
+    .info-item p { font-size: 13px; color: var(--gris-texte); padding: 8px 11px; background: #F8FAFC; border: 1px solid var(--bordure); border-radius: 6px; min-height: 34px; word-break: break-word; }
+    .info-item.full { grid-column: 1/-1; }
+
+    /* ── ÉQUIPE ── */
+    .equipe-section-title { font-size: 12px; font-weight: 700; color: var(--gris-texte); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .count-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; background: var(--teal-light); color: var(--teal); }
+    .agent-card { border: 1px solid var(--bordure); border-radius: 8px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; background: #FAFBFC; }
+    .agent-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .agent-info { flex: 1; }
+    .agent-nom { font-size: 14px; font-weight: 700; color: var(--gris-texte); display: flex; align-items: center; gap: 8px; }
+    .agent-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #DBEAFE; color: #1D4ED8; }
+    .agent-tel { font-size: 13px; color: var(--gris-doux); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+    .agent-horaire { font-size: 12px; color: var(--gris-doux); margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+    .empty-section { background: #F9FAFB; border: 1px dashed var(--bordure); border-radius: 8px; padding: 20px; text-align: center; color: var(--gris-doux); font-size: 13px; }
+    .btn-add { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid var(--bordure); background: var(--blanc); color: var(--gris-texte); font-family: Arial, sans-serif; float: right; margin-top: -4px; }
+    .btn-add:hover { background: var(--gris-fond); }
+
+    /* ── CONTRÔLES ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+    .kpi-card { background: var(--blanc); border-radius: 10px; border: 1px solid var(--bordure); padding: 18px 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .kpi-value { font-size: 32px; font-weight: 900; margin-bottom: 4px; }
+    .kpi-label { font-size: 12px; color: var(--gris-doux); }
+    .chart-wrap { width: 100%; height: 200px; position: relative; overflow: hidden; }
+    .controle-item { padding: 14px 16px; border: 1px solid var(--bordure); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; background: #FAFBFC; }
+    .controle-date { font-size: 13px; font-weight: 700; flex: 1; }
+    .controle-meta { font-size: 12px; color: var(--gris-doux); }
+    .controle-score { font-size: 16px; font-weight: 900; padding: 4px 12px; border-radius: 8px; }
+    .score-ok { background: #D1FAE5; color: #065F46; }
+    .score-warn { background: #FEF3C7; color: #92400E; }
+    .score-bad { background: #FEE2E2; color: #991B1B; }
+    .tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-right: 4px; }
+    .pill-blue { background: #DBEAFE; color: #1D4ED8; }
+    .pill-gray { background: #F3F4F6; color: #4B5563; }
+
+    /* ── MATÉRIEL ── */
+    .materiel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .materiel-card { border: 1px solid var(--bordure); border-radius: 8px; padding: 14px 16px; background: #FAFBFC; }
+    .materiel-nom { font-size: 14px; font-weight: 700; }
+    .materiel-detail { font-size: 12px; color: var(--gris-doux); margin-top: 4px; }
+
+    /* ── BONS DE COMMANDE ── */
+    .bc-item { padding: 14px 16px; border: 1px solid var(--bordure); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; background: #FAFBFC; }
+    .bc-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .bc-info { flex: 1; }
+    .bc-titre { font-size: 14px; font-weight: 700; }
+    .bc-meta { font-size: 12px; color: var(--gris-doux); margin-top: 3px; }
+    .bc-statut { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 12px; }
+    .bc-attente { background: #FEF3C7; color: #92400E; }
+    .bc-signe { background: #D1FAE5; color: #065F46; }
+
+    /* Loader / empty */
+    .loader { text-align: center; padding: 40px; color: var(--gris-doux); font-size: 14px; }
+    .empty { text-align: center; padding: 40px; color: var(--gris-doux); }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+    .empty p { font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="/clients/cappolia/assets/logo.png" alt="CAPPOLIA" onerror="this.style.display='none';" />
+      <div>
+        <div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:#fff;line-height:1.2;">CAPPOLIA</div>
+        <div style="font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.65);text-transform:uppercase;">Propreté</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a class="nav-item" href="/dashboard"><span class="nav-icon">⊞</span> Tableau de bord</a>
+      <a class="nav-item active" href="/clients"><span class="nav-icon">👥</span> Clients</a>
+      <a class="nav-item" href="#"><span class="nav-icon">📍</span> Sites</a>
+      <div class="nav-section">Ressources humaines</div>
+      <a class="nav-item" href="#"><span class="nav-icon">👷</span> Agents</a>
+      <a class="nav-item" href="#"><span class="nav-icon">📅</span> Planning</a>
+      <a class="nav-item" href="#"><span class="nav-icon">🕐</span> Pointage</a>
+      <div class="nav-section">Commercial</div>
+      <a class="nav-item" href="/commercial"><span class="nav-icon">🎯</span> Prospection & CRM</a>
+      <div class="nav-section">Exploitation</div>
+      <a class="nav-item" href="#"><span class="nav-icon">✅</span> Qualité / Audits</a>
+      <a class="nav-item" href="/documents"><span class="nav-icon">📄</span> Documents</a>
+      <a class="nav-item" href="/mon-profil"><span class="nav-icon">👤</span> Mon Profil</a>
+      <div class="nav-section">Finance</div>
+      <a class="nav-item" href="#"><span class="nav-icon">🧾</span> Facturation</a>
+      <a class="nav-item" href="#"><span class="nav-icon">💶</span> Paie (Silae)</a>
+    </nav>
+    <div class="sidebar-profil">
+      <div class="profil-avatar" id="profilAvatar">—</div>
+      <div>
+        <div class="profil-nom" id="userNom">—</div>
+        <div class="profil-role">Directeur</div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-deconn" id="btnDeconnexion">Se déconnecter</button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main" id="mainWrap">
+
+    <!-- Loader initial -->
+    <div id="pageLoader" class="loader" style="margin-top:100px;">Chargement de la fiche…</div>
+
+    <!-- Contenu (masqué jusqu'au chargement) -->
+    <div id="pageContent" style="display:none; flex-direction:column; flex:1;">
+
+      <header class="topbar">
+        <a class="btn-retour" href="/clients">← Clients</a>
+        <div>
+          <div class="topbar-nom" id="topNom">—</div>
+          <div class="topbar-adresse" id="topAdresse">—</div>
+        </div>
+      </header>
+
+      <!-- En-tête client -->
+      <div class="client-header">
+        <div class="client-icon" id="clientIcon">🏢</div>
+        <div class="client-header-info">
+          <h2 id="clientNom">—</h2>
+          <div class="client-header-sub">
+            <span>📍</span>
+            <span id="clientAdresse">—</span>
+          </div>
+        </div>
+        <div class="client-header-actions">
+          <button class="btn-action primary" id="btnModif">✏️ Modifier</button>
+          <button class="btn-action danger" id="btnSuppr">🗑</button>
+        </div>
+      </div>
+
+      <!-- Onglets -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" onclick="showTab('fiche',this)">📋 Fiche client</button>
+        <button class="tab-btn" onclick="showTab('equipe',this)">👥 Équipe</button>
+        <button class="tab-btn" onclick="showTab('controles',this)">✅ Contrôles</button>
+        <button class="tab-btn" onclick="showTab('materiel',this)">🔧 Matériel</button>
+        <button class="tab-btn" onclick="showTab('bons',this)">📄 Bons de commande</button>
+      </div>
+
+      <div class="content">
+
+        <!-- ══ FICHE CLIENT ══ -->
+        <div class="tab-panel active" id="tab-fiche">
+          <div class="card" style="padding:0;">
+            <div class="card-title" style="padding:16px 20px 0;">CONTACT CLIENT</div>
+            <div class="contact-card" id="contactCard">
+              <div class="contact-item">
+                <div class="contact-icon">👤</div>
+                <div>
+                  <div class="contact-label">Nom du contact</div>
+                  <div class="contact-value" id="cContact">—</div>
+                </div>
+              </div>
+              <div class="contact-item">
+                <div class="contact-icon">📞</div>
+                <div>
+                  <div class="contact-label">Téléphone</div>
+                  <div class="contact-value" id="cTel">—</div>
+                </div>
+              </div>
+              <div class="contact-item">
+                <div class="contact-icon">✉️</div>
+                <div>
+                  <div class="contact-label">Email</div>
+                  <div class="contact-value" id="cEmail">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">LOCALISATION <a id="mapsLink" href="#" target="_blank" style="float:right;font-size:12px;font-weight:700;color:var(--teal);text-decoration:none;">Ouvrir dans Maps ↗</a></div>
+            <div class="map-wrap" id="mapWrap">
+              <div class="map-placeholder">
+                <div style="font-size:36px;">🗺️</div>
+                <p>Adresse non géolocalisée</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">INFORMATIONS CONTRAT</div>
+            <div class="info-grid">
+              <div class="info-item"><label>Responsable de secteur</label><p id="iAM">—</p></div>
+              <div class="info-item"><label>Statut contrat</label><p id="iStatut">—</p></div>
+              <div class="info-item"><label>Client depuis</label><p id="iDepuis">—</p></div>
+              <div class="info-item"><label>Surface totale (m²)</label><p id="iSurface">—</p></div>
+              <div class="info-item"><label>Secteur / Type</label><p id="iSecteur">—</p></div>
+              <div class="info-item"><label>Fréquence de passage</label><p id="iFrequence">—</p></div>
+              <div class="info-item full"><label>Notes</label><p id="iNotes">—</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ÉQUIPE ══ -->
+        <div class="tab-panel" id="tab-equipe">
+          <div class="card">
+            <div class="equipe-section-title">
+              <span>TITULAIRES</span>
+              <span class="count-badge" id="nbTitulaires">0</span>
+              <button class="btn-add">+ Ajouter</button>
+            </div>
+            <div id="titulairesContainer">
+              <div class="loader">Chargement…</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="equipe-section-title">
+              <span>REMPLAÇANTS</span>
+              <span class="count-badge" id="nbRemplacants">0</span>
+              <button class="btn-add">+ Ajouter</button>
+            </div>
+            <div id="remplacantsContainer">
+              <div class="empty-section">Aucun remplaçant renseigné</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ CONTRÔLES ══ -->
+        <div class="tab-panel" id="tab-controles">
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-value" id="qNb">0</div>
+              <div class="kpi-label">Contrôles réalisés</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value" id="qMoy" style="color:var(--vert)">—</div>
+              <div class="kpi-label">Note moyenne</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value" id="qConformes" style="color:var(--vert)">0</div>
+              <div class="kpi-label">Conformes (≥ 80)</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">ÉVOLUTION DE LA NOTE GLOBALE</div>
+            <canvas id="chartControles" height="180"></canvas>
+          </div>
+
+          <div class="card">
+            <div class="card-title">HISTORIQUE DES CONTRÔLES</div>
+            <div id="controlesContainer"><div class="loader">Chargement…</div></div>
+          </div>
+        </div>
+
+        <!-- ══ MATÉRIEL ══ -->
+        <div class="tab-panel" id="tab-materiel">
+          <div class="card">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <span id="nbMateriel">0 APPAREIL SUR SITE</span>
+              <button class="btn-add">+ Ajouter</button>
+            </div>
+            <div id="materielContainer">
+              <div class="empty"><div class="empty-icon">🔧</div><p>Aucun matériel enregistré</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ BONS DE COMMANDE ══ -->
+        <div class="tab-panel" id="tab-bons">
+          <div class="card">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <span id="nbBons">BONS DE COMMANDE</span>
+              <button class="btn-add" onclick="window.location.href='/chiffrage'">+ Nouveau bon</button>
+            </div>
+            <div id="bonsContainer">
+              <div class="empty"><div class="empty-icon">📄</div><p>Aucun bon de commande</p></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /pageContent -->
+  </div><!-- /main -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYh3kivnlKhsUNNVcoavIpbc';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const siteId = new URLSearchParams(window.location.search).get('id');
+
+    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function fmt(d){ return d ? new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—'; }
+    function fmtShort(d){ return d ? new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+
+    // ── Auth ──
+    async function checkAuth(){
+      const { data:{ session } } = await sb.auth.getSession();
+      if (!session){ window.location.href='/'; return; }
+      const { data:p } = await sb.from('users').select('prenom,nom').eq('id',session.user.id).single();
+      if(p){
+        document.getElementById('profilAvatar').textContent = ((p.prenom?.[0]||'')+(p.nom?.[0]||'')).toUpperCase()||'?';
+        document.getElementById('userNom').textContent = `${p.prenom||''} ${p.nom||''}`.trim();
+      }
+    }
+    document.getElementById('btnDeconnexion').addEventListener('click',async()=>{ await sb.auth.signOut(); window.location.href='/'; });
+
+    // ── Onglets ──
+    function showTab(id,btn){
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.getElementById('tab-'+id).classList.add('active');
+      btn.classList.add('active');
+      if(id==='equipe'   && !_loadedEquipe)    chargerEquipe();
+      if(id==='controles'&& !_loadedControles) chargerControles();
+    }
+
+    let _loadedEquipe=false, _loadedControles=false;
+
+    // ── Chargement fiche ──
+    async function init(){
+      if(!siteId){ window.location.href='/clients'; return; }
+      await checkAuth();
+
+      const { data:site, error } = await sb.from('sites')
+        .select('*, users!agent_maitrise_id(prenom,nom)')
+        .eq('id', siteId).single();
+
+      document.getElementById('pageLoader').style.display='none';
+      if(error||!site){ alert('Fiche introuvable'); return; }
+
+      const pc = document.getElementById('pageContent');
+      pc.style.display='flex';
+
+      const nom    = site.nom||site.raison_sociale||'—';
+      const am     = site.users ? `${site.users.prenom||''} ${site.users.nom||''}`.trim() : '—';
+      const adr    = [site.adresse,site.code_postal,site.ville].filter(Boolean).join(', ')||site.adresse||'—';
+      const tel    = site.telephone||site.tel||'—';
+      const email  = site.email||null;
+      const sc     = site.statut_contrat||'actif';
+      const depuis = fmt(site.date_debut_contrat||site.date_signature||site.created_at);
+      const secteur= site.secteur||site.type_site||'—';
+      const contact= site.contact_nom||site.nom_contact||'—';
+
+      // Topbar
+      document.title = `CAPPOLIA — ${nom}`;
+      document.getElementById('topNom').textContent     = nom;
+      document.getElementById('topAdresse').textContent = `📍 ${adr}`;
+      document.getElementById('clientNom').textContent  = nom;
+      document.getElementById('clientAdresse').textContent = adr;
+
+      // Initiales avatar
+      const init = nom.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+      document.getElementById('clientIcon').textContent = init||'🏢';
+      document.getElementById('clientIcon').style.fontSize='20px';
+      document.getElementById('clientIcon').style.color='var(--teal)';
+      document.getElementById('clientIcon').style.fontWeight='900';
+
+      // Contact
+      document.getElementById('cContact').textContent = contact;
+      document.getElementById('cTel').innerHTML = tel!=='—'
+        ? `<a href="tel:${tel.replace(/\s/g,'')}">${esc(tel)}</a>` : '<span class="muted">Non renseigné</span>';
+      document.getElementById('cEmail').innerHTML = email
+        ? `<a href="mailto:${esc(email)}">${esc(email)}</a>` : '<span class="muted">Non renseigné</span>';
+
+      // Carte Maps
+      const mapsQuery = encodeURIComponent(adr);
+      document.getElementById('mapsLink').href = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+      if(site.latitude && site.longitude){
+        document.getElementById('mapWrap').innerHTML =
+          `<iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://maps.google.com/maps?q=${site.latitude},${site.longitude}&z=16&output=embed">
+          </iframe>
+          <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=${site.latitude},${site.longitude}" target="_blank">Ouvrir dans Maps ↗</a>`;
+      } else {
+        document.getElementById('mapWrap').innerHTML =
+          `<iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://maps.google.com/maps?q=${mapsQuery}&z=15&output=embed">
+          </iframe>
+          <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}" target="_blank">Ouvrir dans Maps ↗</a>`;
+      }
+
+      // Infos contrat
+      const badgeSc = sc==='actif'?'● Actif':sc==='essai'?'⏳ Période d\'essai':'✕ Résilié';
+      document.getElementById('iAM').textContent       = am;
+      document.getElementById('iStatut').textContent   = badgeSc;
+      document.getElementById('iDepuis').textContent   = depuis;
+      document.getElementById('iSurface').textContent  = site.surface_totale ? `${site.surface_totale} m²` : '—';
+      document.getElementById('iSecteur').textContent  = secteur;
+      document.getElementById('iFrequence').textContent= site.frequence||site.frequence_passage||'—';
+      document.getElementById('iNotes').textContent    = site.notes||site.commentaire||'—';
+
+      // Charger équipe directement (onglet par défaut = fiche, mais équipe se charge à 1er clic)
+    }
+
+    // ── Équipe ──
+    async function chargerEquipe(){
+      _loadedEquipe = true;
+      const { data:agents } = await sb.from('agents')
+        .select('id,nom,prenom,telephone,poste,horaire_debut,horaire_fin,jours_travail,type_agent')
+        .eq('site_principal_id', siteId)
+        .order('nom');
+
+      const titulaires  = (agents||[]).filter(a => a.type_agent !== 'remplacant');
+      const remplacants = (agents||[]).filter(a => a.type_agent === 'remplacant');
+
+      document.getElementById('nbTitulaires').textContent  = titulaires.length;
+      document.getElementById('nbRemplacants').textContent = remplacants.length;
+
+      renderAgents('titulairesContainer', titulaires);
+      renderAgents('remplacantsContainer', remplacants);
+    }
+
+    function renderAgents(containerId, agents){
+      const el = document.getElementById(containerId);
+      if(!agents.length){
+        el.innerHTML='<div class="empty-section">Aucun agent renseigné</div>'; return;
+      }
+      el.innerHTML = agents.map(a=>{
+        const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase();
+        const horaire   = a.horaire_debut&&a.horaire_fin ? `${a.horaire_debut} – ${a.horaire_fin}` : null;
+        const jours     = a.jours_travail||null;
+        return `<div class="agent-card">
+          <div class="agent-avatar">${esc(initiales||'?')}</div>
+          <div class="agent-info">
+            <div class="agent-nom">${esc(a.prenom||'')} ${esc(a.nom||'')}
+              ${a.poste ? `<span class="agent-tag">${esc(a.poste)}</span>` : ''}
+            </div>
+            ${a.telephone ? `<div class="agent-tel">📞 ${esc(a.telephone)}</div>` : ''}
+            ${horaire||jours ? `<div class="agent-horaire">
+              ${jours ? `<strong>${esc(jours)}</strong>` : ''}
+              ${horaire ? `🕐 ${esc(horaire)}` : ''}
+            </div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Contrôles ──
+    async function chargerControles(){
+      _loadedControles = true;
+      const { data:controles } = await sb.from('controles_qualite')
+        .select('*, agents(prenom,nom)')
+        .eq('site_id', siteId)
+        .order('date',{ascending:false});
+
+      const list = controles||[];
+      const scores = list.filter(c=>c.score!=null).map(c=>Number(c.score));
+      const moy    = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+      const conformes = scores.filter(s=>s>=80).length;
+
+      document.getElementById('qNb').textContent        = list.length;
+      document.getElementById('qMoy').textContent       = moy!=null ? `${moy}/100` : '—';
+      document.getElementById('qConformes').textContent = conformes;
+      if(moy!=null) document.getElementById('qMoy').style.color = moy>=80?'var(--vert)':moy>=60?'var(--orange)':'var(--rouge)';
+
+      // Graphe simple SVG
+      dessinerGraphe(list);
+
+      // Historique
+      const cont = document.getElementById('controlesContainer');
+      if(!list.length){
+        cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><p>Aucun contrôle enregistré</p></div>'; return;
+      }
+      cont.innerHTML = list.map(c=>{
+        const s = c.score!=null ? Number(c.score) : null;
+        const cls = s==null?'':s>=80?'score-ok':s>=60?'score-warn':'score-bad';
+        const agNom = c.agents ? `${c.agents.prenom||''} ${c.agents.nom||''}`.trim() : '—';
+        return `<div class="controle-item">
+          <div class="controle-date">${fmt(c.date||c.created_at)}
+            <div class="controle-meta">${esc(agNom)}</div>
+          </div>
+          <span class="tag-pill pill-blue">${esc(c.type||'Contrôle')}</span>
+          ${c.valide ? '<span class="tag-pill pill-blue">Validé</span>' : ''}
+          ${s!=null ? `<div class="controle-score ${cls}">${s}/100</div>` : '<div class="controle-score score-gray">—</div>'}
+        </div>`;
+      }).join('');
+    }
+
+    function dessinerGraphe(controles){
+      const canvas = document.getElementById('chartControles');
+      const ctx    = canvas.getContext('2d');
+      canvas.width = canvas.parentElement.clientWidth || 600;
+      canvas.height = 180;
+      const W = canvas.width, H = canvas.height;
+      const pad = { t:20, r:20, b:30, l:40 };
+      const data = [...controles].reverse().filter(c=>c.score!=null&&(c.date||c.created_at));
+
+      ctx.clearRect(0,0,W,H);
+
+      // Grille
+      ctx.strokeStyle='#E5E7EB'; ctx.lineWidth=1;
+      [0,20,40,60,80,100].forEach(v=>{
+        const y = pad.t + (H-pad.t-pad.b)*(1-v/100);
+        ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+        ctx.fillStyle='#9CA3AF'; ctx.font='10px Arial'; ctx.fillText(v, 2, y+4);
+      });
+
+      if(data.length===0) return;
+
+      // Seuil 80
+      const y80 = pad.t + (H-pad.t-pad.b)*0.2;
+      ctx.strokeStyle='#EF4444'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.moveTo(pad.l,y80); ctx.lineTo(W-pad.r,y80); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#EF4444'; ctx.font='10px Arial'; ctx.fillText('80',W-pad.r+2,y80+4);
+
+      // Courbe
+      const xStep = data.length>1 ? (W-pad.l-pad.r)/(data.length-1) : 0;
+      const pts = data.map((c,i)=>[
+        pad.l + i*xStep,
+        pad.t + (H-pad.t-pad.b)*(1-Number(c.score)/100)
+      ]);
+
+      ctx.strokeStyle='#2D6A3F'; ctx.lineWidth=2;
+      ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+
+      // Points
+      pts.forEach(([x,y],i)=>{
+        const s = Number(data[i].score);
+        ctx.fillStyle = s>=80?'#059669':'#EF4444';
+        ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+        // Date
+        const d = new Date(data[i].date||data[i].created_at);
+        const label = `${d.getDate()} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][d.getMonth()]}`;
+        ctx.fillStyle='#6B7280'; ctx.font='9px Arial';
+        ctx.fillText(label, x-(label.length*2.5), H-8);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

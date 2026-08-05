@@ -537,38 +537,6 @@
     </div>
   </div>
 
-  <!-- ══ MODALE FICHE CLIENT ══ -->
-  <div class="modal-overlay" id="modalFiche" onclick="fermerFiche(event)">
-    <div class="modal-box">
-      <button class="modal-close" onclick="fermerModal()">✕</button>
-      <div class="modal-titre" id="ficheNom">—</div>
-      <div class="modal-sous-titre" id="ficherSecteur">—</div>
-
-      <div class="fiche-section">Informations générales</div>
-      <div class="fiche-grid">
-        <div class="fiche-champ"><label>Nom du site / Client</label><p id="ficheRaison">—</p></div>
-        <div class="fiche-champ"><label>Responsable de secteur</label><p id="ficheAM">—</p></div>
-        <div class="fiche-champ"><label>Contact principal</label><p id="ficheContact">—</p></div>
-        <div class="fiche-champ"><label>Téléphone</label><p id="ficheTel">—</p></div>
-        <div class="fiche-champ"><label>Email</label><p id="ficheEmail">—</p></div>
-        <div class="fiche-champ" style="grid-column:1/-1"><label>Adresse</label><p id="ficheAdresse">—</p></div>
-      </div>
-
-      <div class="fiche-section">Contrat</div>
-      <div class="fiche-grid">
-        <div class="fiche-champ"><label>Statut</label><p id="ficheStatut">—</p></div>
-        <div class="fiche-champ"><label>Client depuis</label><p id="ficheDepuis">—</p></div>
-        <div class="fiche-champ"><label>Surface totale (m²)</label><p id="ficheSurface">—</p></div>
-        <div class="fiche-champ"><label>Notes</label><p id="ficheNotes">—</p></div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-action primary" onclick="ouvrirChiffrage()">📊 Voir le chiffrage</button>
-        <button class="btn-action secondary" onclick="fermerModal()">Fermer</button>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
@@ -576,7 +544,6 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let tousLesClients = [];
-    let clientActuel = null;
 
     // ── Auth ──
     async function checkAuth() {
@@ -688,7 +655,7 @@
               .toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })
           : '—';
 
-        return `<tr onclick="ouvrirFiche('${c.id}')">
+        return `<tr onclick="allerFiche('${c.id}')">
           <td>
             <div class="client-nom">${escHtml(c._nomClient)}</div>
             <div class="client-contact">${escHtml(c._contact)}</div>
@@ -720,46 +687,9 @@
       afficherClients(filtrés);
     }
 
-    // ── Fiche client ──
-    function ouvrirFiche(id) {
-      const c = tousLesClients.find(x => String(x.id) === String(id));
-      if (!c) return;
-      clientActuel = c;
-
-      const statutLabel = c._sc === 'actif' ? '● Actif' : c._sc === 'essai' ? '⏳ Période d\'essai' : '✕ Résilié';
-
-      const depuis = c.date_debut_contrat || c.date_signature || c.created_at
-        ? new Date(c.date_debut_contrat || c.date_signature || c.created_at)
-            .toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
-        : '—';
-
-      document.getElementById('ficheNom').textContent      = c._nomClient;
-      document.getElementById('ficherSecteur').textContent = c._secteur;
-      document.getElementById('ficheRaison').textContent   = c._nomClient;
-      document.getElementById('ficheAM').textContent       = c._am;
-      document.getElementById('ficheContact').textContent  = c._contact || '—';
-      document.getElementById('ficheTel').textContent      = c._tel;
-      document.getElementById('ficheEmail').textContent    = c.email || '—';
-      document.getElementById('ficheAdresse').textContent  = c._adresse;
-      document.getElementById('ficheStatut').textContent   = statutLabel;
-      document.getElementById('ficheDepuis').textContent   = depuis;
-      document.getElementById('ficheSurface').textContent  = c.surface_totale ? `${c.surface_totale} m²` : '—';
-      document.getElementById('ficheNotes').textContent    = c.notes || c.commentaire || '—';
-
-      document.getElementById('modalFiche').classList.add('open');
-    }
-
-    function fermerModal() {
-      document.getElementById('modalFiche').classList.remove('open');
-      clientActuel = null;
-    }
-
-    function fermerFiche(e) {
-      if (e.target === document.getElementById('modalFiche')) fermerModal();
-    }
-
-    function ouvrirChiffrage() {
-      window.location.href = '/chiffrage';
+    // ── Navigation vers fiche complète ──
+    function allerFiche(id) {
+      window.location.href = `/fiche-client?id=${id}`;
     }
 
     function escHtml(str) {

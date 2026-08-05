@@ -11,6 +11,7 @@
     { "source": "/commercial", "destination": "/clients/cappolia/commercial.html" },
     { "source": "/chiffrage", "destination": "/clients/cappolia/chiffrage.html" },
     { "source": "/mon-profil", "destination": "/clients/cappolia/mon-profil.html" },
-    { "source": "/clients", "destination": "/clients/cappolia/clients.html" }
+    { "source": "/clients", "destination": "/clients/cappolia/clients.html" },
+    { "source": "/fiche-client", "destination": "/clients/cappolia/fiche-client.html" }
   ]
 }
