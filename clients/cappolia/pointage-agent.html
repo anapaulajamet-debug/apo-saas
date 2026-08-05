@@ -490,6 +490,12 @@
     <!-- Autres missions du jour -->
     <div id="autresMissions" style="display:none;padding:0 16px;"></div>
 
+    <!-- Planning de la semaine -->
+    <div class="section-label" style="margin-top:8px;">Mes missions cette semaine</div>
+    <div id="semaineListe" style="padding:0 16px 12px;">
+      <div style="text-align:center;padding:20px;color:#6B7280;font-size:13px;">Chargement…</div>
+    </div>
+
     <!-- Géolocalisation -->
     <div class="section-label">Localisation</div>
     <div class="geo-statut" id="geoStatut">
@@ -596,6 +602,7 @@
     let arriveePointe    = false;
     let sessionAgent     = null;
     let siteId           = null;
+    let agentId          = null;
 
     // ── HORLOGE ──
     function majHorloge() {
@@ -616,7 +623,7 @@
 
       const { data: profil } = await supabaseClient
         .from('agents')
-        .select('nom, prenom, email, photo_url, site_principal_id, date_naissance, date_entree, solde_cp')
+        .select('id, nom, prenom, email, photo_url, site_principal_id, date_naissance, date_entree, solde_cp')
         .eq('email', session.user.email)
         .single();
 
@@ -642,7 +649,8 @@
         } else {
           avatarEl.textContent = initiales;
         }
-        siteId = src.site_principal_id || null;
+        siteId   = src.site_principal_id || null;
+        agentId  = src.id || null;
 
         // Photo fallback déjà géré ci-dessus
 
@@ -709,80 +717,145 @@
       await chargerHistorique();
     })();
 
-    // ── MISSION DU JOUR ──
+    // ── MISSION DU JOUR + SEMAINE ──
     async function chargerMission() {
+      if (!agentId) {
+        document.getElementById('missionNom').textContent = 'Aucune mission trouvée';
+        document.getElementById('missionAdresse').textContent = 'Aucun planning rattaché à ce compte';
+        return;
+      }
+
       const aujourd_hui = new Date().toISOString().split('T')[0];
 
-      if (siteId) {
-        const [{ data: site }, { data: planning }] = await Promise.all([
-          supabaseClient.from('sites').select('nom, adresse, latitude, longitude').eq('id', siteId).single(),
-          supabaseClient.from('planning').select('heure_debut, heure_fin')
-            .eq('site_id', siteId).eq('date', aujourd_hui).limit(1).single()
-        ]);
+      // Toutes les missions du jour triées par heure
+      const { data: missionsDuJour } = await supabaseClient.from('planning')
+        .select('heure_debut, heure_fin, site_id, sites(nom, adresse, latitude, longitude)')
+        .eq('agent_id', agentId)
+        .eq('date', aujourd_hui)
+        .order('heure_debut');
 
-        if (site) {
-          document.getElementById('missionNom').textContent     = site.nom;
-          document.getElementById('missionAdresse').textContent = site.adresse || '—';
-          siteCoords = { lat: site.latitude, lon: site.longitude };
-          // Google Maps
-          const adresseEnc = encodeURIComponent(site.adresse || '');
-          const mapsUrl = site.latitude && site.longitude
-            ? `https://www.google.com/maps?q=${site.latitude},${site.longitude}`
-            : `https://www.google.com/maps/search/?api=1&query=${adresseEnc}`;
-          document.getElementById('mapsLien').href = mapsUrl;
-          document.getElementById('mapsLien').style.display = 'inline-flex';
-          if (site.latitude && site.longitude) {
-            document.getElementById('mapsFrame').src =
-              `https://maps.google.com/maps?q=${site.latitude},${site.longitude}&z=16&output=embed`;
-            document.getElementById('mapsBlock').style.display = 'block';
-          }
-        }
-        if (planning) {
-          document.getElementById('missionArrivee').textContent = planning.heure_debut?.slice(0,5) || '—';
-          document.getElementById('missionDepart').textContent  = planning.heure_fin?.slice(0,5)   || '—';
-          document.getElementById('btnArriveeHeure').textContent = 'Prévu ' + (planning.heure_debut?.slice(0,5) || '—');
-          document.getElementById('btnDepartHeure').textContent  = 'Prévu ' + (planning.heure_fin?.slice(0,5)   || '—');
-          document.getElementById('confirmPrévu').textContent    = (planning.heure_debut?.slice(0,5) || '—') + ' → ' + (planning.heure_fin?.slice(0,5) || '—');
+      if (missionsDuJour?.length) {
+        // Première mission = mission principale
+        const m = missionsDuJour[0];
+        const site = m.sites || {};
+        document.getElementById('missionNom').textContent     = site.nom || '—';
+        document.getElementById('missionAdresse').textContent = site.adresse || '—';
+        document.getElementById('missionArrivee').textContent = m.heure_debut?.slice(0,5) || '—';
+        document.getElementById('missionDepart').textContent  = m.heure_fin?.slice(0,5)   || '—';
+        document.getElementById('btnArriveeHeure').textContent = 'Prévu ' + (m.heure_debut?.slice(0,5) || '—');
+        document.getElementById('btnDepartHeure').textContent  = 'Prévu ' + (m.heure_fin?.slice(0,5)   || '—');
+        document.getElementById('confirmPrévu').textContent    = (m.heure_debut?.slice(0,5)||'—') + ' → ' + (m.heure_fin?.slice(0,5)||'—');
+
+        siteId     = m.site_id;
+        siteCoords = site.latitude && site.longitude ? { lat: site.latitude, lon: site.longitude } : null;
+
+        // Google Maps
+        const adresseEnc = encodeURIComponent(site.adresse || '');
+        const mapsUrl = site.latitude && site.longitude
+          ? `https://www.google.com/maps?q=${site.latitude},${site.longitude}`
+          : `https://www.google.com/maps/search/?api=1&query=${adresseEnc}`;
+        document.getElementById('mapsLien').href = mapsUrl;
+        document.getElementById('mapsLien').style.display = 'inline-flex';
+        if (site.latitude && site.longitude) {
+          document.getElementById('mapsFrame').src =
+            `https://maps.google.com/maps?q=${site.latitude},${site.longitude}&z=16&output=embed`;
+          document.getElementById('mapsBlock').style.display = 'block';
         }
 
-        // Autres sites du jour (planning de l'agent)
-        const agentRow = await supabaseClient.from('agents').select('id').eq('user_id', sessionAgent.user.id).single();
-        if (agentRow.data) {
-          const { data: autresPlanning } = await supabaseClient.from('planning')
-            .select('heure_debut, heure_fin, site_id, sites(nom, adresse)')
-            .eq('agent_id', agentRow.data.id)
-            .eq('date', aujourd_hui)
-            .neq('site_id', siteId)
-            .order('heure_debut');
-          const autresCont = document.getElementById('autresMissions');
-          if (autresPlanning?.length) {
-            autresCont.innerHTML = '<div class="section-label" style="margin-top:12px;">Autres missions du jour</div>' +
-              autresPlanning.map(p => `
-                <div class="mission-card" style="margin-bottom:8px;">
-                  <div class="mission-icone">📍</div>
-                  <div>
-                    <div class="mission-nom">${p.sites?.nom || '—'}</div>
-                    <div class="mission-adresse">${p.sites?.adresse || '—'}</div>
-                    <div class="mission-horaire">
-                      <div class="horaire-chip"><span>Arrivée</span><span>${p.heure_debut?.slice(0,5)||'—'}</span></div>
-                      <div class="horaire-chip"><span>Départ</span><span>${p.heure_fin?.slice(0,5)||'—'}</span></div>
-                    </div>
+        // Autres missions du jour
+        const autresCont = document.getElementById('autresMissions');
+        if (missionsDuJour.length > 1) {
+          autresCont.innerHTML = '<div class="section-label" style="margin-top:4px;padding:0;">Autres missions du jour</div>' +
+            missionsDuJour.slice(1).map(p => `
+              <div class="mission-card" style="margin-bottom:8px;">
+                <div class="mission-icone">📍</div>
+                <div>
+                  <div class="mission-nom">${p.sites?.nom || '—'}</div>
+                  <div class="mission-adresse">${p.sites?.adresse || '—'}</div>
+                  <div class="mission-horaire">
+                    <div class="horaire-chip"><span>Arrivée</span><span>${p.heure_debut?.slice(0,5)||'—'}</span></div>
+                    <div class="horaire-chip"><span>Départ</span><span>${p.heure_fin?.slice(0,5)||'—'}</span></div>
                   </div>
-                </div>`).join('');
-            autresCont.style.display = 'block';
-          }
+                </div>
+              </div>`).join('');
+          autresCont.style.display = 'block';
         }
       } else {
-        // Données démo
-        document.getElementById('missionNom').textContent     = 'Real Photo';
-        document.getElementById('missionAdresse').textContent = '95 Route de la Diote, 13850 Gréasque';
-        document.getElementById('missionArrivee').textContent = '06h00';
-        document.getElementById('missionDepart').textContent  = '07h30';
-        document.getElementById('btnArriveeHeure').textContent = 'Prévu 06h00';
-        document.getElementById('btnDepartHeure').textContent  = 'Prévu 07h30';
-        document.getElementById('confirmPrévu').textContent    = '06h00 → 07h30';
-        siteCoords = { lat: 43.4521, lon: 5.5634 };
+        document.getElementById('missionNom').textContent    = 'Pas de mission aujourd'hui';
+        document.getElementById('missionAdresse').textContent = '—';
       }
+
+      // ── SEMAINE ──
+      await chargerSemaine();
+    }
+
+    // ── PLANNING DE LA SEMAINE ──
+    async function chargerSemaine() {
+      if (!agentId) return;
+
+      // Lundi et dimanche de la semaine courante
+      const auj = new Date();
+      const jourSem = auj.getDay() === 0 ? 7 : auj.getDay(); // 1=lun, 7=dim
+      const lundi = new Date(auj); lundi.setDate(auj.getDate() - (jourSem - 1));
+      const dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
+      const lundiStr    = lundi.toISOString().split('T')[0];
+      const dimancheStr = dimanche.toISOString().split('T')[0];
+      const aujourdStr  = auj.toISOString().split('T')[0];
+
+      const { data: planning } = await supabaseClient.from('planning')
+        .select('date, heure_debut, heure_fin, sites(nom, adresse)')
+        .eq('agent_id', agentId)
+        .gte('date', lundiStr)
+        .lte('date', dimancheStr)
+        .order('date').order('heure_debut');
+
+      const cont = document.getElementById('semaineListe');
+      if (!cont) return;
+
+      if (!planning?.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;font-size:13px;">Aucune mission cette semaine</div>';
+        return;
+      }
+
+      // Grouper par jour
+      const jours = {};
+      planning.forEach(p => {
+        if (!jours[p.date]) jours[p.date] = [];
+        jours[p.date].push(p);
+      });
+
+      const joursNoms = ['', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+      const moisNoms  = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
+      cont.innerHTML = Object.entries(jours).map(([date, missions]) => {
+        const d = new Date(date + 'T12:00:00');
+        const djn = d.getDay() === 0 ? 7 : d.getDay();
+        const isAuj = date === aujourdStr;
+        return `
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:${isAuj?'#1A3D28':'#E5E7EB'};
+                   color:${isAuj?'#fff':'#6B7280'};display:flex;flex-direction:column;align-items:center;
+                   justify-content:center;font-size:9px;font-weight:700;line-height:1.1;flex-shrink:0;">
+                <span>${joursNoms[djn]}</span>
+                <span style="font-size:13px;">${d.getDate()}</span>
+              </div>
+              <div style="font-size:11px;color:#6B7280;">${moisNoms[d.getMonth()]}. ${d.getFullYear()}${isAuj?' · Aujourd'hui':''}</div>
+            </div>
+            ${missions.map(m => `
+              <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:10px 14px;
+                   margin-left:44px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#1F2937;">${m.sites?.nom || '—'}</div>
+                  <div style="font-size:11px;color:#6B7280;margin-top:2px;">${m.sites?.adresse || ''}</div>
+                </div>
+                <div style="text-align:right;font-size:12px;font-weight:700;color:#1A3D28;flex-shrink:0;margin-left:8px;">
+                  ${m.heure_debut?.slice(0,5)||'—'}<br>
+                  <span style="font-size:10px;color:#6B7280;font-weight:400;">→ ${m.heure_fin?.slice(0,5)||'—'}</span>
+                </div>
+              </div>`).join('')}
+          </div>`;
+      }).join('');
     }
 
     // ── GÉOLOCALISATION ──
