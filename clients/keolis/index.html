@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keolis - Suivi Nettoyage</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #1D1A34; color: #04A6E1; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-primary { background: #04A6E1; color: white; }
+        .btn-primary:hover { background: #0281b8; }
+        .btn-secondary { background: #95989a; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .content { background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .login-form { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .login-form h2 { color: #1D1A34; margin-bottom: 20px; text-align: center; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #333; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .section { margin-bottom: 30px; }
+        .section h2 { color: #1D1A34; margin-bottom: 16px; }
+        .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; }
+        .alert-danger { background: #f8d7da; color: #721c24; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .table th { background: #1D1A34; color: #04A6E1; padding: 12px; text-align: left; }
+        .table td { padding: 12px; border-bottom: 1px solid #eee; }
+        .hidden { display: none !important; }
+        .geo-info { background: #e3f2fd; padding: 12px; border-radius: 6px; margin-top: 10px; color: #01579b; font-size: 13px; }
+        .alerte-retard { background: #f8d7da; border-left: 4px solid #dc3545; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+        .alerte-retard h3 { color: #721c24; margin-bottom: 8px; }
+        #map { width: 100%; height: 500px; border-radius: 8px; border: 2px solid #04A6E1; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="loginView">
+    <div class="login-form">
+        <h2>🚌 Keolis - Suivi Nettoyage</h2>
+        <div id="message"></div>
+        <form onsubmit="login(event)">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" required />
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Se connecter</button>
+        </form>
+    </div>
+</div>
+
+<div id="adminView" class="hidden">
+    <div class="header">
+        <h1>👨‍💼 Admin</h1>
+        <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
+    </div>
+    <div class="container">
+        <div class="content">
+            <section class="section">
+                <h2>📋 Gérer les sites</h2>
+                <div id="adminMsg"></div>
+                <div style="margin-bottom:20px;">
+                    <label><strong>Importer fichier Excel</strong></label>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" />
+                    <button class="btn btn-primary" onclick="importExcel()" style="margin-top:10px;">📥 Importer</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr><th>Site</th><th>Commune</th><th>Fréquence</th><th>Retard</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="adminSitesList"></tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div id="agentView" class="hidden">
+    <div class="header">
+        <h1>👨‍🔧 Pointage</h1>
+        <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
+    </div>
+    <div class="container">
+        <div class="content">
+            <div id="alertesRetard"></div>
+            <section class="section">
+                <h2>🎯 Pointage</h2>
+                <div id="agentMsg"></div>
+                <div class="form-group">
+                    <label><strong>Site</strong></label>
+                    <select id="siteSelect" onchange="autoGeolocate()" style="font-size: 16px; padding: 12px;">
+                        <option value="">-- Sélectionner --</option>
+                    </select>
+                </div>
+                <div id="geoDisplay" class="geo-info" style="display:none;">
+                    <strong>📍 Position GPS</strong><br>
+                    Lat : <span id="latDisplay">-</span> | Lng : <span id="lngDisplay">-</span>
+                </div>
+                <div class="form-group">
+                    <label>Anomalies</label>
+                    <textarea id="anomalies" placeholder="Ex: Graffiti..." style="min-height: 80px;"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitPointage()">✅ Enregistrer</button>
+            </section>
+            <section class="section">
+                <h2>📋 Pointages du jour</h2>
+                <table class="table">
+                    <thead>
+                        <tr><th>Site</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
+                    </thead>
+                    <tbody id="agentTable"></tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div id="managerView" class="hidden">
+    <div class="header">
+        <h1>👔 Supervision</h1>
+        <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
+    </div>
+    <div class="container">
+        <div class="content">
+            <div id="sitesRetardContainer"></div>
+            <section class="section">
+                <h2>📊 Stats du jour</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    <div style="background: #f9f9f9; padding: 20px; border-radius: 6px; border: 2px solid #04A6E1;">
+                        <h4>Sites nettoyés</h4>
+                        <p style="font-size: 32px; color: #04A6E1; font-weight: bold;" id="statSites">0</p>
+                    </div>
+                    <div style="background: #f9f9f9; padding: 20px; border-radius: 6px; border: 2px solid #04A6E1;">
+                        <h4>Anomalies</h4>
+                        <p style="font-size: 32px; color: #04A6E1; font-weight: bold;" id="statAnomalies">0</p>
+                    </div>
+                </div>
+            </section>
+            <section class="section">
+                <h2>🗺️ Carte des pointages</h2>
+                <div id="map"></div>
+                <p style="font-size:12px; color:#666; margin-top:10px;">🟢 = Site nettoyé du jour</p>
+            </section>
+            <section class="section">
+                <h2>📋 Pointages</h2>
+                <button class="btn btn-primary" onclick="exportCSV()" style="margin-bottom: 16px;">📥 Export CSV</button>
+                <table class="table">
+                    <thead>
+                        <tr><th>Site</th><th>Agent</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
+                    </thead>
+                    <tbody id="managerTable"></tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCRF65MAyPQdHzGgmQi5-RlqghKFOEUQM0",
+  authDomain: "keolis-nettoyage.firebaseapp.com",
+  databaseURL: "https://keolis-nettoyage-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "keolis-nettoyage",
+  storageBucket: "keolis-nettoyage.firebasestorage.app",
+  messagingSenderId: "99115426327",
+  appId: "1:99115426327:web:74ae5629cdd82ddf5db252"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const USERS = {
+    'admin@guilbert.net': { password: 'admin123', nom: 'Ana Paula', role: 'admin' },
+    'cyril@guilbert.net': { password: 'agent123', nom: 'Cyril', role: 'agent' },
+    'marvin@guilbert.net': { password: 'manager123', nom: 'Marvin', role: 'manager' }
+};
+
+let sites = [];
+let user = null;
+let pointages = [];
+let currentGeo = { lat: null, lng: null };
+let map = null;
+
+function loadSites() {
+    db.ref('sites').on('value', snapshot => {
+        const data = snapshot.val() || {};
+        sites = Array.isArray(data) ? data : Object.values(data);
+        if (user && user.role === 'agent') showAgent();
+        if (user && user.role === 'admin') refreshAdminSites();
+    });
+}
+
+function loadPointages() {
+    db.ref('pointages').on('value', snapshot => {
+        const data = snapshot.val() || {};
+        pointages = Array.isArray(data) ? data : Object.values(data);
+        if (user && user.role === 'agent') refreshAgentTable();
+        if (user && user.role === 'manager') {
+            refreshManagerData();
+            if (map) updateMapMarkers();
+        }
+    });
+}
+
+function login(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const u = USERS[email];
+    if (u && u.password === password) {
+        user = { email, ...u };
+        if (user.role === 'admin') showAdmin();
+        else if (user.role === 'agent') showAgent();
+        else if (user.role === 'manager') showManager();
+        loadSites();
+        loadPointages();
+    } else {
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">❌ Identifiants incorrects</div>';
+    }
+}
+
+function logout() {
+    user = null;
+    location.reload();
+}
+
+function showAdmin() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('agentView').classList.add('hidden');
+    document.getElementById('managerView').classList.add('hidden');
+    document.getElementById('adminView').classList.remove('hidden');
+    refreshAdminSites();
+}
+
+function refreshAdminSites() {
+    let html = '';
+    sites.forEach((s, idx) => {
+        const jours = joursDepuisPointage(s.id);
+        const retard = estEnRetard(s) ? '🔴' : '✅';
+        html += '<tr><td><strong>' + s.nom + '</strong></td><td>' + s.commune + '</td><td><select onchange="changeFrequence(' + idx + ', this.value)" style="padding:6px;"><option value="Hebdomadaire"' + (s.frequence === 'Hebdomadaire' ? ' selected' : '') + '>Hebdomadaire</option><option value="Bi-hebdomadaire"' + (s.frequence === 'Bi-hebdomadaire' ? ' selected' : '') + '>Bi-hebdo</option><option value="Mensuel"' + (s.frequence === 'Mensuel' ? ' selected' : '') + '>Mensuel</option><option value="Trimestriel"' + (s.frequence === 'Trimestriel' ? ' selected' : '') + '>Trimestriel</option></select></td><td>' + retard + ' ' + (jours === 999 ? '-' : jours + 'j') + '</td><td><button class="btn btn-danger" onclick="deleteSite(' + idx + ')" style="padding:6px 12px; font-size:12px;">✕</button></td></tr>';
+    });
+    document.getElementById('adminSitesList').innerHTML = html || '<tr><td colspan="5">Aucun site</td></tr>';
+}
+
+function importExcel() {
+    const file = document.getElementById('excelFile').files[0];
+    if (!file) {
+        document.getElementById('adminMsg').innerHTML = '<div class="alert alert-danger">❌ Sélectionner un fichier</div>';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            const newSites = rows.map((row, idx) => ({
+                id: idx.toString(),
+                nom: row["Nom de l'arrêt"] || '',
+                commune: row.Commune || '',
+                adresse: row.Adresse || '',
+                type: row.Type || 'Autre',
+                frequence: row.Frequence || 'Mensuel'
+            }));
+            db.ref('sites').set(newSites);
+            document.getElementById('adminMsg').innerHTML = '<div class="alert alert-success">✅ ' + newSites.length + ' sites importés!</div>';
+        } catch(err) {
+            document.getElementById('adminMsg').innerHTML = '<div class="alert alert-danger">❌ Erreur</div>';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function changeFrequence(idx, freq) {
+    sites[idx].frequence = freq;
+    db.ref('sites').set(sites);
+}
+
+function deleteSite(idx) {
+    sites.splice(idx, 1);
+    db.ref('sites').set(sites);
+}
+
+function joursDepuisPointage(siteId) {
+    const pts = pointages.filter(p => p.site === siteId);
+    if (pts.length === 0) return 999;
+    const last = new Date(pts[pts.length - 1].date.split('/').reverse().join('-'));
+    return Math.floor((new Date() - last) / (1000 * 60 * 60 * 24));
+}
+
+function estEnRetard(site) {
+    const jours = joursDepuisPointage(site.id);
+    const freqDays = { 'Hebdomadaire': 7, 'Bi-hebdomadaire': 14, 'Mensuel': 30, 'Trimestriel': 90 };
+    return jours > (freqDays[site.frequence] || 30);
+}
+
+function showAgent() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminView').classList.add('hidden');
+    document.getElementById('managerView').classList.add('hidden');
+    document.getElementById('agentView').classList.remove('hidden');
+    
+    const sitesRetard = sites.filter(estEnRetard);
+    const sitesTries = [...sitesRetard, ...sites.filter(s => !estEnRetard(s))];
+    
+    let html = '<option value="">-- Sélectionner --</option>';
+    sitesTries.forEach(s => {
+        const icon = estEnRetard(s) ? '🔴' : '✅';
+        html += '<option value="' + s.id + '">' + icon + ' ' + s.nom + ' (' + s.commune + ')</option>';
+    });
+    document.getElementById('siteSelect').innerHTML = html;
+    
+    if (sitesRetard.length > 0) {
+        let alertHtml = '<div class="alerte-retard"><h3>🔴 Sites en retard :</h3>';
+        sitesRetard.slice(0, 5).forEach(s => {
+            alertHtml += '<div style="background:#fff5f5; padding:8px; margin:8px 0; border-radius:4px;">' + s.nom + ' - ' + joursDepuisPointage(s.id) + ' jours</div>';
+        });
+        if (sitesRetard.length > 5) alertHtml += '<p style="font-size:12px; color:#721c24; margin-top:10px;">+' + (sitesRetard.length - 5) + ' autres...</p>';
+        alertHtml += '</div>';
+        document.getElementById('alertesRetard').innerHTML = alertHtml;
+    }
+    
+    refreshAgentTable();
+}
+
+function autoGeolocate() {
+    const siteId = document.getElementById('siteSelect').value;
+    if (!siteId) {
+        document.getElementById('geoDisplay').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('geoDisplay').style.display = 'block';
+    document.getElementById('latDisplay').textContent = '⏳';
+    document.getElementById('lngDisplay').textContent = '⏳';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            currentGeo.lat = pos.coords.latitude.toFixed(6);
+            currentGeo.lng = pos.coords.longitude.toFixed(6);
+            document.getElementById('latDisplay').textContent = currentGeo.lat;
+            document.getElementById('lngDisplay').textContent = currentGeo.lng;
+        },
+        function(err) {
+            document.getElementById('latDisplay').textContent = '❌';
+            document.getElementById('lngDisplay').textContent = err.message;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+function submitPointage() {
+    const siteId = document.getElementById('siteSelect').value;
+    const anomalies = document.getElementById('anomalies').value;
+    
+    if (!siteId) {
+        document.getElementById('agentMsg').innerHTML = '<div class="alert alert-danger">❌ Sélectionner un site</div>';
+        return;
+    }
+    
+    const site = sites.find(s => s.id === siteId);
+    const now = new Date();
+    
+    const pointage = {
+        agent: user.email,
+        agentNom: user.nom,
+        site: siteId,
+        siteName: site.nom,
+        date: now.toLocaleDateString('fr-FR'),
+        heure: now.toLocaleTimeString('fr-FR'),
+        lat: currentGeo.lat || '?',
+        lng: currentGeo.lng || '?',
+        anomalies: anomalies
+    };
+    
+    db.ref('pointages').push(pointage);
+    document.getElementById('agentMsg').innerHTML = '<div class="alert alert-success">✅ Enregistré!</div>';
+    
+    document.getElementById('siteSelect').value = '';
+    document.getElementById('anomalies').value = '';
+    document.getElementById('geoDisplay').style.display = 'none';
+    currentGeo = { lat: null, lng: null };
+}
+
+function refreshAgentTable() {
+    const today = new Date().toLocaleDateString('fr-FR');
+    const pts = pointages.filter(p => p.agent === user.email && p.date === today);
+    
+    let html = '';
+    if (pts.length === 0) {
+        html = '<tr><td colspan="4" style="text-align:center;color:#999;">Aucun pointage</td></tr>';
+    } else {
+        pts.forEach(p => {
+            html += '<tr><td>' + p.siteName + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
+        });
+    }
+    document.getElementById('agentTable').innerHTML = html;
+}
+
+function showManager() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminView').classList.add('hidden');
+    document.getElementById('agentView').classList.add('hidden');
+    document.getElementById('managerView').classList.remove('hidden');
+    
+    const sitesRetard = sites.filter(estEnRetard);
+    if (sitesRetard.length > 0) {
+        let alertHtml = '<div class="alerte-retard"><h3>🔴 Sites EN RETARD (' + sitesRetard.length + ')</h3>';
+        sitesRetard.forEach(s => {
+            alertHtml += '<div style="background:#fff5f5; padding:8px; margin:8px 0; border-radius:4px;"><strong>' + s.nom + '</strong> (' + s.commune + ') - ' + joursDepuisPointage(s.id) + ' jours</div>';
+        });
+        alertHtml += '</div>';
+        document.getElementById('sitesRetardContainer').innerHTML = alertHtml;
+    }
+    
+    refreshManagerData();
+    
+    setTimeout(() => {
+        if (!map && document.getElementById('map')) {
+            map = L.map('map').setView([43.45, 5.27], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+            updateMapMarkers();
+        }
+    }, 300);
+}
+
+function updateMapMarkers() {
+    if (!map) return;
+    
+    map.eachLayer(layer => {
+        if (layer instanceof L.CircleMarker) {
+            map.removeLayer(layer);
+        }
+    });
+    
+    const today = new Date().toLocaleDateString('fr-FR');
+    const pts = pointages.filter(p => p.date === today);
+    
+    pts.forEach(p => {
+        if (p.lat && p.lat !== '?') {
+            const lat = parseFloat(p.lat);
+            const lng = parseFloat(p.lng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                L.circleMarker([lat, lng], {
+                    radius: 10,
+                    fillColor: '#27ae60',
+                    color: '#1D1A34',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindPopup('<strong>' + p.siteName + '</strong><br>Agent: ' + p.agentNom + '<br>Heure: ' + p.heure);
+            }
+        }
+    });
+}
+
+function refreshManagerData() {
+    const today = new Date().toLocaleDateString('fr-FR');
+    const pts = pointages.filter(p => p.date === today);
+    
+    document.getElementById('statSites').textContent = pts.length;
+    document.getElementById('statAnomalies').textContent = pts.filter(p => p.anomalies).length;
+    
+    let html = '';
+    if (pts.length === 0) {
+        html = '<tr><td colspan="5" style="text-align:center;color:#999;">Aucun pointage</td></tr>';
+    } else {
+        pts.forEach(p => {
+            html += '<tr><td>' + p.siteName + '</td><td>' + p.agentNom + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
+        });
+    }
+    document.getElementById('managerTable').innerHTML = html;
+}
+
+function exportCSV() {
+    const today = new Date().toLocaleDateString('fr-FR');
+    const pts = pointages.filter(p => p.date === today);
+    
+    let csv = 'Site,Agent,Heure,Latitude,Longitude,Anomalies\n';
+    pts.forEach(p => {
+        csv += '"' + p.siteName + '","' + p.agentNom + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '"\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", "Rapport_" + today.replace(/\//g, '-') + ".csv");
+    link.click();
+}
+</script>
+
+</body>
+</html>
