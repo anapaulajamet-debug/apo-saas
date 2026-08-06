@@ -227,6 +227,35 @@
                     <tbody id="managerTable"></tbody>
                 </table>
             </section>
+            <section class="section">
+                <h2>🏢 Gestion des sites</h2>
+                <div id="mgrSitesMsg"></div>
+                <div style="margin-bottom:16px;">
+                    <label><strong>Importer un fichier Excel</strong> <span style="color:#888;font-size:13px;">(remplace la liste actuelle)</span></label><br>
+                    <input type="file" id="mgrExcelFile" accept=".xlsx,.xls" style="margin-top:6px;">
+                    <button class="btn btn-primary" onclick="doImportExcel('mgrExcelFile','mgrSitesMsg')" style="margin-top:10px;">📥 Importer</button>
+                </div>
+                <div style="background:#f9f9f9;padding:12px;border-radius:6px;margin-bottom:16px;">
+                    <label><strong>Ajouter un site</strong></label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                        <input type="text" id="newSiteNom" placeholder="Nom de l'arrêt" style="flex:2 1 180px;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                        <input type="text" id="newSiteCommune" placeholder="Commune" style="flex:1 1 120px;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                        <select id="newSiteFreq" style="flex:1 1 140px;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                            <option value="Hebdomadaire">Hebdomadaire</option>
+                            <option value="Bi-hebdomadaire">Bi-hebdo</option>
+                            <option value="Mensuel" selected>Mensuel</option>
+                            <option value="Trimestriel">Trimestriel</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="addSite('mgrSitesMsg','newSiteNom','newSiteCommune','newSiteFreq')">➕ Ajouter</button>
+                    </div>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr><th>Site</th><th>Commune</th><th>Fréquence</th><th>Retard</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="mgrSitesList"></tbody>
+                </table>
+            </section>
         </div>
     </div>
 </div>
@@ -269,6 +298,7 @@ function loadSites() {
         sites = Array.isArray(data) ? data : Object.values(data);
         if (user && user.role === 'agent') showAgent();
         if (user && user.role === 'admin') refreshAdminSites();
+        if (user && user.role === 'manager') { refreshManagerSites(); refreshManagerRetard(); }
     });
 }
 
@@ -281,6 +311,8 @@ function loadPointages() {
         if (user && user.role === 'agent') refreshAgentDay();
         if (user && user.role === 'manager') {
             refreshManagerData();
+            refreshManagerRetard();
+            refreshManagerSites();
             if (map) updateMapMarkers();
         }
     });
@@ -340,20 +372,45 @@ function showAdmin() {
     refreshAdminSites();
 }
 
-function refreshAdminSites() {
+// Tableau des sites — partagé entre l'admin et le manager (même données)
+function renderSitesInto(tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
     let html = '';
     sites.forEach((s, idx) => {
         const jours = joursDepuisPointage(s.id);
         const retard = estEnRetard(s) ? '🔴' : '✅';
         html += '<tr><td><strong>' + s.nom + '</strong></td><td>' + s.commune + '</td><td><select onchange="changeFrequence(' + idx + ', this.value)" style="padding:6px;"><option value="Hebdomadaire"' + (s.frequence === 'Hebdomadaire' ? ' selected' : '') + '>Hebdomadaire</option><option value="Bi-hebdomadaire"' + (s.frequence === 'Bi-hebdomadaire' ? ' selected' : '') + '>Bi-hebdo</option><option value="Mensuel"' + (s.frequence === 'Mensuel' ? ' selected' : '') + '>Mensuel</option><option value="Trimestriel"' + (s.frequence === 'Trimestriel' ? ' selected' : '') + '>Trimestriel</option></select></td><td>' + retard + ' ' + (jours === 999 ? '-' : jours + 'j') + '</td><td><button class="btn btn-danger" onclick="deleteSite(' + idx + ')" style="padding:6px 12px; font-size:12px;">✕</button></td></tr>';
     });
-    document.getElementById('adminSitesList').innerHTML = html || '<tr><td colspan="5">Aucun site</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="5">Aucun site</td></tr>';
+}
+function refreshAdminSites() { renderSitesInto('adminSitesList'); }
+function refreshManagerSites() { renderSitesInto('mgrSitesList'); }
+
+// Alerte de non-respect des fréquences (mise à jour en direct) — vue manager
+function refreshManagerRetard() {
+    const el = document.getElementById('sitesRetardContainer');
+    if (!el) return;
+    const sitesRetard = sites.filter(estEnRetard);
+    if (sitesRetard.length === 0) {
+        el.innerHTML = '<div style="background:#d4edda;color:#155724;padding:12px 16px;border-radius:6px;margin-bottom:16px;">✅ Tous les sites respectent leur fréquence de nettoyage.</div>';
+        return;
+    }
+    let html = '<div class="alerte-retard"><h3>🔴 Sites EN RETARD sur la fréquence (' + sitesRetard.length + ')</h3><p style="color:#721c24;font-size:13px;margin-bottom:6px;">L\'agent s\'organise librement, mais ces sites ont dépassé leur fréquence :</p>';
+    sitesRetard.forEach(s => {
+        const j = joursDepuisPointage(s.id);
+        html += '<div style="background:#fff5f5; padding:8px; margin:8px 0; border-radius:4px;"><strong>' + s.nom + '</strong> (' + s.commune + ') — fréquence ' + s.frequence + ' — ' + (j === 999 ? 'jamais nettoyé' : 'dernier passage il y a ' + j + ' j') + '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
 }
 
-function importExcel() {
-    const file = document.getElementById('excelFile').files[0];
+// Import Excel — partagé (remplace la liste des sites). fileId + msgId ciblent admin ou manager.
+function doImportExcel(fileId, msgId) {
+    const file = document.getElementById(fileId).files[0];
+    const msg = document.getElementById(msgId);
     if (!file) {
-        document.getElementById('adminMsg').innerHTML = '<div class="alert alert-danger">❌ Sélectionner un fichier</div>';
+        msg.innerHTML = '<div class="alert alert-danger">❌ Sélectionner un fichier</div>';
         return;
     }
     const reader = new FileReader();
@@ -372,12 +429,28 @@ function importExcel() {
                 frequence: row.Frequence || 'Mensuel'
             }));
             db.ref('sites').set(newSites);
-            document.getElementById('adminMsg').innerHTML = '<div class="alert alert-success">✅ ' + newSites.length + ' sites importés!</div>';
+            msg.innerHTML = '<div class="alert alert-success">✅ ' + newSites.length + ' sites importés ! (remplace la liste précédente)</div>';
         } catch(err) {
-            document.getElementById('adminMsg').innerHTML = '<div class="alert alert-danger">❌ Erreur</div>';
+            msg.innerHTML = '<div class="alert alert-danger">❌ Erreur de lecture du fichier</div>';
         }
     };
     reader.readAsArrayBuffer(file);
+}
+function importExcel() { doImportExcel('excelFile', 'adminMsg'); }
+
+// Ajout manuel d'un site (n'écrase rien, s'ajoute à la liste)
+function addSite(msgId, nomId, communeId, freqId) {
+    const nom = document.getElementById(nomId).value.trim();
+    const commune = document.getElementById(communeId).value.trim();
+    const freq = document.getElementById(freqId).value;
+    const msg = document.getElementById(msgId);
+    if (!nom) { msg.innerHTML = '<div class="alert alert-danger">❌ Le nom du site est requis</div>'; return; }
+    const maxId = sites.reduce((m, s) => Math.max(m, parseInt(s.id) || 0), -1);
+    const newSite = { id: String(maxId + 1), nom: nom, commune: commune, adresse: '', type: 'Autre', frequence: freq };
+    db.ref('sites').set(sites.concat([newSite]));
+    msg.innerHTML = '<div class="alert alert-success">✅ Site « ' + nom + ' » ajouté</div>';
+    document.getElementById(nomId).value = '';
+    document.getElementById(communeId).value = '';
 }
 
 function changeFrequence(idx, freq) {
@@ -653,16 +726,9 @@ function showManager() {
     document.getElementById('agentView').classList.add('hidden');
     document.getElementById('managerView').classList.remove('hidden');
     
-    const sitesRetard = sites.filter(estEnRetard);
-    if (sitesRetard.length > 0) {
-        let alertHtml = '<div class="alerte-retard"><h3>🔴 Sites EN RETARD (' + sitesRetard.length + ')</h3>';
-        sitesRetard.forEach(s => {
-            alertHtml += '<div style="background:#fff5f5; padding:8px; margin:8px 0; border-radius:4px;"><strong>' + s.nom + '</strong> (' + s.commune + ') - ' + joursDepuisPointage(s.id) + ' jours</div>';
-        });
-        alertHtml += '</div>';
-        document.getElementById('sitesRetardContainer').innerHTML = alertHtml;
-    }
-    
+    refreshManagerRetard();
+    refreshManagerSites();
+
     if (!document.getElementById('mgrFrom').value) {
         document.getElementById('mgrFrom').value = todayISO();
         document.getElementById('mgrTo').value = todayISO();
