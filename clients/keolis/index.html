@@ -180,6 +180,12 @@
     <div class="container">
         <div class="content">
             <div id="sitesRetardContainer"></div>
+            <div id="archiveAlert"></div>
+            <section class="section">
+                <h2>🗄️ Archive mensuelle</h2>
+                <p style="color:#555; font-size:14px; margin-bottom:12px;">Chaque mois (avant le 15), télécharge la sauvegarde complète (photos comprises) + le CSV, puis libère la base. Les sites sont conservés, seuls les pointages sont effacés.</p>
+                <button class="btn btn-danger" onclick="archiveMonth()">🗄️ Archiver le mois (sauvegarde + effacement)</button>
+            </section>
             <section class="section">
                 <h2>🗓️ Période</h2>
                 <div class="agenda-nav">
@@ -255,6 +261,7 @@ let currentGeo = { lat: null, lng: null };
 let map = null;
 let agentMap = null;
 let currentPhoto = null;
+let metaData = {};
 
 function loadSites() {
     db.ref('sites').on('value', snapshot => {
@@ -274,6 +281,13 @@ function loadPointages() {
             refreshManagerData();
             if (map) updateMapMarkers();
         }
+    });
+}
+
+function loadMeta() {
+    db.ref('meta').on('value', snapshot => {
+        metaData = snapshot.val() || {};
+        if (user && user.role === 'manager') updateManagerAlert();
     });
 }
 
@@ -306,6 +320,7 @@ firebase.auth().onAuthStateChanged(fbUser => {
         else if (user.role === 'manager') showManager();
         loadSites();
         loadPointages();
+        loadMeta();
     } else {
         user = null;
     }
@@ -651,6 +666,7 @@ function showManager() {
         document.getElementById('mgrTo').value = todayISO();
     }
     refreshManagerData();
+    updateManagerAlert();
 
     setTimeout(() => {
         if (!map && document.getElementById('map')) {
@@ -711,6 +727,61 @@ function refreshManagerData() {
         });
     }
     document.getElementById('managerTable').innerHTML = html;
+}
+
+// --- Archive mensuelle du manager ---
+function downloadFile(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', filename);
+    link.click();
+}
+
+function currentMonthKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function updateManagerAlert() {
+    const box = document.getElementById('archiveAlert');
+    if (!box) return;
+    const archived = metaData.lastArchive === currentMonthKey();
+    const day = new Date().getDate();
+    if (archived) {
+        const when = metaData.lastArchiveDate ? new Date(metaData.lastArchiveDate).toLocaleDateString('fr-FR') : '';
+        box.innerHTML = '<div style="background:#d4edda;color:#155724;padding:12px 16px;border-radius:6px;margin-bottom:16px;">✅ Données du mois archivées' + (when ? ' le ' + when : '') + '. Rien à faire.</div>';
+    } else if (day >= 15) {
+        box.innerHTML = '<div class="alerte-retard"><h3>🔴 Effacement prévu (le 15 du mois)</h3><p style="color:#721c24;">Les données ne sont pas encore archivées ce mois-ci. Clique sur « Archiver le mois » ci-dessous : ça télécharge la sauvegarde + le CSV, puis te demande confirmation avant d\'effacer. <strong>Rien n\'est perdu.</strong></p></div>';
+    } else {
+        box.innerHTML = '<div style="background:#fff3cd;color:#856404;padding:12px 16px;border-radius:6px;border-left:4px solid #ffc107;margin-bottom:16px;">📦 Pense à <strong>archiver les données du mois avant le 15</strong> (il reste ' + (15 - day) + ' jour(s)).</div>';
+    }
+}
+
+function archiveMonth() {
+    const all = pointages.slice();
+    if (all.length === 0) { alert('Aucun pointage à archiver pour le moment.'); return; }
+
+    // 1) Sauvegarde COMPLÈTE (JSON) — inclut les photos, rien n'est perdu
+    const backup = { exporte_le: new Date().toISOString(), sites: sites, pointages: all };
+    downloadFile(JSON.stringify(backup, null, 2), 'keolis-sauvegarde-' + todayISO() + '.json', 'application/json');
+
+    // 2) Rapport CSV lisible
+    let csv = 'Site,Agent,Date,Heure,Latitude,Longitude,Anomalies,Photo\n';
+    all.forEach(p => {
+        csv += '"' + p.siteName + '","' + p.agentNom + '","' + (p.date || '') + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '","' + (p.photo ? 'oui' : 'non') + '"\n';
+    });
+    downloadFile('﻿' + csv, 'keolis-rapport-' + todayISO() + '.csv', 'text/csv;charset=utf-8;');
+
+    // 3) Confirmation puis effacement (les sites sont conservés)
+    setTimeout(function() {
+        if (confirm('📥 Sauvegarde (.json, photos comprises) et rapport (.csv) téléchargés.\n\nEffacer maintenant les ' + all.length + ' pointage(s) de l\'application ?\nLes sites sont conservés. Action définitive — mais tu gardes les 2 fichiers.')) {
+            db.ref('pointages').remove();
+            db.ref('meta/lastArchive').set(currentMonthKey());
+            db.ref('meta/lastArchiveDate').set(new Date().toISOString());
+            alert('✅ Mois archivé et pointages effacés. La base repart à zéro.');
+        }
+    }, 800);
 }
 
 function exportCSV() {
