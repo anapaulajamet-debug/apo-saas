@@ -160,7 +160,20 @@
         <div class="content">
             <div id="sitesRetardContainer"></div>
             <section class="section">
-                <h2>📊 Stats du jour</h2>
+                <h2>🗓️ Période</h2>
+                <div class="agenda-nav">
+                    <label>Du</label>
+                    <input type="date" id="mgrFrom" onchange="refreshManagerPeriod()">
+                    <label>au</label>
+                    <input type="date" id="mgrTo" onchange="refreshManagerPeriod()">
+                    <button class="btn btn-secondary" onclick="mgrPreset('today')">Aujourd'hui</button>
+                    <button class="btn btn-secondary" onclick="mgrPreset('week')">7 derniers jours</button>
+                    <button class="btn btn-secondary" onclick="mgrPreset('month')">Ce mois</button>
+                    <button class="btn btn-secondary" onclick="mgrPreset('all')">Tout</button>
+                </div>
+            </section>
+            <section class="section">
+                <h2>📊 Stats de la période</h2>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
                     <div style="background: #f9f9f9; padding: 20px; border-radius: 6px; border: 2px solid #04A6E1;">
                         <h4>Sites nettoyés</h4>
@@ -175,14 +188,14 @@
             <section class="section">
                 <h2>🗺️ Carte des pointages</h2>
                 <div id="map"></div>
-                <p style="font-size:12px; color:#666; margin-top:10px;">🟢 = Site nettoyé du jour</p>
+                <p style="font-size:12px; color:#666; margin-top:10px;">🟢 = Site nettoyé (période sélectionnée)</p>
             </section>
             <section class="section">
                 <h2>📋 Pointages</h2>
                 <button class="btn btn-primary" onclick="exportCSV()" style="margin-bottom: 16px;">📥 Export CSV</button>
                 <table class="table">
                     <thead>
-                        <tr><th>Site</th><th>Agent</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
+                        <tr><th>Site</th><th>Agent</th><th>Date</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
                     </thead>
                     <tbody id="managerTable"></tbody>
                 </table>
@@ -521,6 +534,41 @@ function updateAgentMapMarkers(pts) {
     setTimeout(() => { if (agentMap) agentMap.invalidateSize(); }, 150);
 }
 
+// --- Période du manager : filtre partagé stats / carte / liste / export ---
+function frToISO(fr) {
+    if (!fr) return '';
+    const p = fr.split('/'); // dd/mm/yyyy -> yyyy-mm-dd
+    if (p.length !== 3) return '';
+    return p[2] + '-' + p[1] + '-' + p[0];
+}
+function mgrRange() {
+    const from = document.getElementById('mgrFrom').value || '0000-01-01';
+    const to = document.getElementById('mgrTo').value || '9999-12-31';
+    return { from, to };
+}
+function mgrPtsInRange() {
+    const r = mgrRange();
+    return pointages.filter(p => {
+        const iso = frToISO(p.date);
+        return iso && iso >= r.from && iso <= r.to;
+    });
+}
+function mgrPreset(kind) {
+    const today = new Date();
+    let from, to = isoLocal(today);
+    if (kind === 'today') from = isoLocal(today);
+    else if (kind === 'week') { const d = new Date(); d.setDate(d.getDate() - 6); from = isoLocal(d); }
+    else if (kind === 'month') from = isoLocal(new Date(today.getFullYear(), today.getMonth(), 1));
+    else if (kind === 'all') from = '2000-01-01';
+    document.getElementById('mgrFrom').value = from;
+    document.getElementById('mgrTo').value = to;
+    refreshManagerPeriod();
+}
+function refreshManagerPeriod() {
+    refreshManagerData();
+    updateMapMarkers();
+}
+
 function showManager() {
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('adminView').classList.add('hidden');
@@ -537,8 +585,12 @@ function showManager() {
         document.getElementById('sitesRetardContainer').innerHTML = alertHtml;
     }
     
+    if (!document.getElementById('mgrFrom').value) {
+        document.getElementById('mgrFrom').value = todayISO();
+        document.getElementById('mgrTo').value = todayISO();
+    }
     refreshManagerData();
-    
+
     setTimeout(() => {
         if (!map && document.getElementById('map')) {
             map = L.map('map').setView([43.45, 5.27], 10);
@@ -560,14 +612,14 @@ function updateMapMarkers() {
         }
     });
     
-    const today = new Date().toLocaleDateString('fr-FR');
-    const pts = pointages.filter(p => p.date === today);
-    
+    const pts = mgrPtsInRange();
+    const coords = [];
     pts.forEach(p => {
         if (p.lat && p.lat !== '?') {
             const lat = parseFloat(p.lat);
             const lng = parseFloat(p.lng);
             if (!isNaN(lat) && !isNaN(lng)) {
+                coords.push([lat, lng]);
                 L.circleMarker([lat, lng], {
                     radius: 10,
                     fillColor: '#27ae60',
@@ -575,43 +627,48 @@ function updateMapMarkers() {
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 0.8
-                }).addTo(map).bindPopup('<strong>' + p.siteName + '</strong><br>Agent: ' + p.agentNom + '<br>Heure: ' + p.heure);
+                }).addTo(map).bindPopup('<strong>' + p.siteName + '</strong><br>Agent: ' + p.agentNom + '<br>Date : ' + (p.date || '') + '<br>Heure: ' + p.heure);
             }
         }
     });
+    if (coords.length) map.fitBounds(coords, { padding: [40, 40], maxZoom: 15 });
 }
 
 function refreshManagerData() {
-    const today = new Date().toLocaleDateString('fr-FR');
-    const pts = pointages.filter(p => p.date === today);
-    
+    const pts = mgrPtsInRange();
+
     document.getElementById('statSites').textContent = pts.length;
     document.getElementById('statAnomalies').textContent = pts.filter(p => p.anomalies).length;
-    
+
     let html = '';
     if (pts.length === 0) {
-        html = '<tr><td colspan="5" style="text-align:center;color:#999;">Aucun pointage</td></tr>';
+        html = '<tr><td colspan="6" style="text-align:center;color:#999;">Aucun pointage sur la période</td></tr>';
     } else {
         pts.forEach(p => {
-            html += '<tr><td>' + p.siteName + '</td><td>' + p.agentNom + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
+            html += '<tr><td>' + p.siteName + '</td><td>' + p.agentNom + '</td><td>' + (p.date || '') + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
         });
     }
     document.getElementById('managerTable').innerHTML = html;
 }
 
 function exportCSV() {
-    const today = new Date().toLocaleDateString('fr-FR');
-    const pts = pointages.filter(p => p.date === today);
-    
-    let csv = 'Site,Agent,Heure,Latitude,Longitude,Anomalies\n';
+    const pts = mgrPtsInRange();
+    if (pts.length === 0) {
+        alert('Aucun pointage sur la période sélectionnée.');
+        return;
+    }
+
+    let csv = 'Site,Agent,Date,Heure,Latitude,Longitude,Anomalies\n';
     pts.forEach(p => {
-        csv += '"' + p.siteName + '","' + p.agentNom + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '"\n';
+        csv += '"' + p.siteName + '","' + p.agentNom + '","' + (p.date || '') + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '"\n';
     });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+    const r = mgrRange();
+    // ﻿ = BOM UTF-8 pour que les accents s'affichent bien dans Excel
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", "Rapport_" + today.replace(/\//g, '-') + ".csv");
+    link.setAttribute("download", "Rapport_" + r.from + "_au_" + r.to + ".csv");
     link.click();
 }
 </script>
