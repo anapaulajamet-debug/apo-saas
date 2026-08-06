@@ -183,8 +183,8 @@
             <div id="archiveAlert"></div>
             <section class="section">
                 <h2>🗄️ Archive mensuelle</h2>
-                <p style="color:#555; font-size:14px; margin-bottom:12px;">Chaque mois (avant le 15), télécharge la sauvegarde complète (photos comprises) + le CSV, puis libère la base. Les sites sont conservés, seuls les pointages sont effacés.</p>
-                <button class="btn btn-danger" onclick="archiveMonth()">🗄️ Archiver le mois (sauvegarde + effacement)</button>
+                <p style="color:#555; font-size:14px; margin-bottom:12px;">Chaque mois (avant le 15), on archive le <strong>mois précédent</strong> : téléchargement de la sauvegarde complète (photos comprises) + du CSV, puis effacement de ces pointages. Le <strong>mois en cours</strong> et les <strong>sites</strong> sont conservés.</p>
+                <button class="btn btn-danger" onclick="archiveMonth()">🗄️ Archiver le mois précédent (sauvegarde + effacement)</button>
             </section>
             <section class="section">
                 <h2>🗓️ Période</h2>
@@ -275,7 +275,9 @@ function loadSites() {
 function loadPointages() {
     db.ref('pointages').on('value', snapshot => {
         const data = snapshot.val() || {};
-        pointages = Array.isArray(data) ? data : Object.values(data);
+        // On garde la clé Firebase (_key) de chaque pointage pour pouvoir
+        // n'en effacer qu'une partie (archive du mois précédent).
+        pointages = Object.keys(data).map(k => Object.assign({}, data[k], { _key: k }));
         if (user && user.role === 'agent') refreshAgentDay();
         if (user && user.role === 'manager') {
             refreshManagerData();
@@ -750,36 +752,49 @@ function updateManagerAlert() {
     const day = new Date().getDate();
     if (archived) {
         const when = metaData.lastArchiveDate ? new Date(metaData.lastArchiveDate).toLocaleDateString('fr-FR') : '';
-        box.innerHTML = '<div style="background:#d4edda;color:#155724;padding:12px 16px;border-radius:6px;margin-bottom:16px;">✅ Données du mois archivées' + (when ? ' le ' + when : '') + '. Rien à faire.</div>';
+        box.innerHTML = '<div style="background:#d4edda;color:#155724;padding:12px 16px;border-radius:6px;margin-bottom:16px;">✅ Mois précédent archivé' + (when ? ' le ' + when : '') + '. Rien à faire.</div>';
     } else if (day >= 15) {
-        box.innerHTML = '<div class="alerte-retard"><h3>🔴 Effacement prévu (le 15 du mois)</h3><p style="color:#721c24;">Les données ne sont pas encore archivées ce mois-ci. Clique sur « Archiver le mois » ci-dessous : ça télécharge la sauvegarde + le CSV, puis te demande confirmation avant d\'effacer. <strong>Rien n\'est perdu.</strong></p></div>';
+        box.innerHTML = '<div class="alerte-retard"><h3>🔴 Archive du mois précédent en retard</h3><p style="color:#721c24;">On a dépassé le 15 et le mois précédent n\'est pas encore archivé. Clique sur « Archiver le mois précédent » ci-dessous : ça télécharge la sauvegarde + le CSV, puis te demande confirmation avant d\'effacer. <strong>Rien n\'est perdu.</strong></p></div>';
     } else {
-        box.innerHTML = '<div style="background:#fff3cd;color:#856404;padding:12px 16px;border-radius:6px;border-left:4px solid #ffc107;margin-bottom:16px;">📦 Pense à <strong>archiver les données du mois avant le 15</strong> (il reste ' + (15 - day) + ' jour(s)).</div>';
+        box.innerHTML = '<div style="background:#fff3cd;color:#856404;padding:12px 16px;border-radius:6px;border-left:4px solid #ffc107;margin-bottom:16px;">📦 Pense à <strong>archiver le mois précédent avant le 15</strong> (il reste ' + (15 - day) + ' jour(s)).</div>';
     }
 }
 
+// Pointages à archiver = mois précédent et antérieurs = tout ce qui est
+// AVANT le 1er du mois en cours. Les pointages du mois en cours sont gardés.
+function ptsBeforeCurrentMonth() {
+    const firstOfMonth = currentMonthKey() + '-01'; // ex: "2026-08-01"
+    return pointages.filter(p => {
+        const iso = frToISO(p.date);
+        return iso && iso < firstOfMonth;
+    });
+}
+
 function archiveMonth() {
-    const all = pointages.slice();
-    if (all.length === 0) { alert('Aucun pointage à archiver pour le moment.'); return; }
+    const toArchive = ptsBeforeCurrentMonth();
+    if (toArchive.length === 0) {
+        alert('Aucun pointage du mois précédent (ou antérieur) à archiver.\nLes pointages du mois en cours sont conservés jusqu\'au mois prochain.');
+        return;
+    }
 
     // 1) Sauvegarde COMPLÈTE (JSON) — inclut les photos, rien n'est perdu
-    const backup = { exporte_le: new Date().toISOString(), sites: sites, pointages: all };
+    const backup = { exporte_le: new Date().toISOString(), archive_avant_le: currentMonthKey() + '-01', sites: sites, pointages: toArchive };
     downloadFile(JSON.stringify(backup, null, 2), 'keolis-sauvegarde-' + todayISO() + '.json', 'application/json');
 
-    // 2) Rapport CSV lisible
+    // 2) Rapport CSV lisible (uniquement les pointages archivés)
     let csv = 'Site,Agent,Date,Heure,Latitude,Longitude,Anomalies,Photo\n';
-    all.forEach(p => {
+    toArchive.forEach(p => {
         csv += '"' + p.siteName + '","' + p.agentNom + '","' + (p.date || '') + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '","' + (p.photo ? 'oui' : 'non') + '"\n';
     });
     downloadFile('﻿' + csv, 'keolis-rapport-' + todayISO() + '.csv', 'text/csv;charset=utf-8;');
 
-    // 3) Confirmation puis effacement (les sites sont conservés)
+    // 3) Confirmation puis effacement SÉLECTIF (mois en cours + sites conservés)
     setTimeout(function() {
-        if (confirm('📥 Sauvegarde (.json, photos comprises) et rapport (.csv) téléchargés.\n\nEffacer maintenant les ' + all.length + ' pointage(s) de l\'application ?\nLes sites sont conservés. Action définitive — mais tu gardes les 2 fichiers.')) {
-            db.ref('pointages').remove();
+        if (confirm('📥 Sauvegarde (.json, photos comprises) et rapport (.csv) téléchargés.\n\nEffacer les ' + toArchive.length + ' pointage(s) du mois précédent (et antérieurs) ?\nLes pointages du mois EN COURS et les sites sont conservés. Action définitive — mais tu gardes les 2 fichiers.')) {
+            toArchive.forEach(p => { if (p._key) db.ref('pointages/' + p._key).remove(); });
             db.ref('meta/lastArchive').set(currentMonthKey());
             db.ref('meta/lastArchiveDate').set(new Date().toISOString());
-            alert('✅ Mois archivé et pointages effacés. La base repart à zéro.');
+            alert('✅ Mois précédent archivé et effacé. Les pointages du mois en cours sont conservés.');
         }
     }, 800);
 }
