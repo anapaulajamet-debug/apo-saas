@@ -50,6 +50,22 @@
         .agenda-nav input[type="date"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
         #agentMap { width: 100%; height: 360px; border-radius: 8px; border: 2px solid #04A6E1; margin: 12px 0 16px; }
         .agenda-summary { margin: 14px 0 4px; color: #1D1A34; font-weight: bold; }
+        .pointage-photo { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid #ddd; vertical-align: middle; }
+        #photoPreview img { max-width: 160px; border-radius: 8px; margin-top: 8px; display: block; }
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .content { padding: 16px; }
+            .header { flex-direction: column; gap: 10px; text-align: center; padding: 16px; }
+            .header h1 { font-size: 20px; }
+            .section { overflow-x: auto; }
+            .table { font-size: 13px; }
+            .table th, .table td { padding: 8px; white-space: nowrap; }
+            #map, #agentMap { height: 300px; }
+            .agenda-nav .btn { flex: 1 1 auto; }
+            .brand-guilbert { height: 56px; }
+            .brand-keolis { height: 34px; }
+            .btn { padding: 12px 16px; }
+        }
     </style>
 </head>
 <body>
@@ -128,6 +144,11 @@
                     <label>Anomalies</label>
                     <textarea id="anomalies" placeholder="Ex: Graffiti..." style="min-height: 80px;"></textarea>
                 </div>
+                <div class="form-group">
+                    <label>📷 Photo (lieu / anomalie)</label>
+                    <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)" style="font-size: 16px; padding: 12px;">
+                    <div id="photoPreview"></div>
+                </div>
                 <button class="btn btn-primary" onclick="submitPointage()">✅ Enregistrer</button>
             </section>
             <section class="section">
@@ -142,7 +163,7 @@
                 <div id="agentMap"></div>
                 <table class="table">
                     <thead>
-                        <tr><th>Site</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
+                        <tr><th>Site</th><th>Heure</th><th>GPS</th><th>Anomalies</th><th>Photo</th></tr>
                     </thead>
                     <tbody id="agentTable"></tbody>
                 </table>
@@ -195,7 +216,7 @@
                 <button class="btn btn-primary" onclick="exportCSV()" style="margin-bottom: 16px;">📥 Export CSV</button>
                 <table class="table">
                     <thead>
-                        <tr><th>Site</th><th>Agent</th><th>Date</th><th>Heure</th><th>GPS</th><th>Anomalies</th></tr>
+                        <tr><th>Site</th><th>Agent</th><th>Date</th><th>Heure</th><th>GPS</th><th>Anomalies</th><th>Photo</th></tr>
                     </thead>
                     <tbody id="managerTable"></tbody>
                 </table>
@@ -233,6 +254,7 @@ let pointages = [];
 let currentGeo = { lat: null, lng: null };
 let map = null;
 let agentMap = null;
+let currentPhoto = null;
 
 function loadSites() {
     db.ref('sites').on('value', snapshot => {
@@ -422,6 +444,40 @@ function autoGeolocate() {
     );
 }
 
+// Prend la photo, la redimensionne/compresse (pour rester léger) et la garde en mémoire.
+function handlePhoto(event) {
+    const file = event.target.files[0];
+    if (!file) { currentPhoto = null; document.getElementById('photoPreview').innerHTML = ''; return; }
+    document.getElementById('photoPreview').innerHTML = '<p style="font-size:12px;color:#666;">⏳ Traitement de la photo...</p>';
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const maxDim = 1000;
+            let w = img.width, h = img.height;
+            if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+            else if (h >= w && h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            currentPhoto = canvas.toDataURL('image/jpeg', 0.6);
+            document.getElementById('photoPreview').innerHTML =
+                '<img src="' + currentPhoto + '" alt="aperçu"><p style="font-size:12px;color:#155724;">Photo prête ✅</p>';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Affiche une photo en plein écran (clic pour fermer).
+function showPhoto(src) {
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;cursor:zoom-out;';
+    o.innerHTML = '<img src="' + src + '" style="max-width:100%;max-height:100%;border-radius:8px;">';
+    o.onclick = function() { o.remove(); };
+    document.body.appendChild(o);
+}
+
 function submitPointage() {
     const siteId = document.getElementById('siteSelect').value;
     const anomalies = document.getElementById('anomalies').value;
@@ -443,7 +499,8 @@ function submitPointage() {
         heure: now.toLocaleTimeString('fr-FR'),
         lat: currentGeo.lat || '?',
         lng: currentGeo.lng || '?',
-        anomalies: anomalies
+        anomalies: anomalies,
+        photo: currentPhoto || ''
     };
     
     db.ref('pointages').push(pointage);
@@ -452,7 +509,10 @@ function submitPointage() {
     document.getElementById('siteSelect').value = '';
     document.getElementById('anomalies').value = '';
     document.getElementById('geoDisplay').style.display = 'none';
+    document.getElementById('photoInput').value = '';
+    document.getElementById('photoPreview').innerHTML = '';
     currentGeo = { lat: null, lng: null };
+    currentPhoto = null;
 }
 
 // --- Agenda de l'agent : navigation par jour + carte + liste ---
@@ -493,10 +553,11 @@ function refreshAgentDay() {
     // Liste
     let html = '';
     if (pts.length === 0) {
-        html = '<tr><td colspan="4" style="text-align:center;color:#999;">Aucun pointage ce jour</td></tr>';
+        html = '<tr><td colspan="5" style="text-align:center;color:#999;">Aucun pointage ce jour</td></tr>';
     } else {
         pts.forEach(p => {
-            html += '<tr><td>' + p.siteName + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
+            const photo = p.photo ? '<img class="pointage-photo" src="' + p.photo + '" onclick="showPhoto(this.src)">' : '-';
+            html += '<tr><td>' + p.siteName + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td><td>' + photo + '</td></tr>';
         });
     }
     document.getElementById('agentTable').innerHTML = html;
@@ -526,7 +587,7 @@ function updateAgentMapMarkers(pts) {
                 L.circleMarker([lat, lng], {
                     radius: 10, fillColor: '#27ae60', color: '#1D1A34',
                     weight: 2, opacity: 1, fillOpacity: 0.8
-                }).addTo(agentMap).bindPopup('<strong>' + p.siteName + '</strong><br>Heure : ' + p.heure + (p.anomalies ? '<br>⚠️ ' + p.anomalies : ''));
+                }).addTo(agentMap).bindPopup('<strong>' + p.siteName + '</strong><br>Heure : ' + p.heure + (p.anomalies ? '<br>⚠️ ' + p.anomalies : '') + (p.photo ? '<br><img src="' + p.photo + '" style="width:130px;border-radius:6px;margin-top:6px;cursor:zoom-in;" onclick="showPhoto(this.src)">' : ''));
             }
         }
     });
@@ -627,7 +688,7 @@ function updateMapMarkers() {
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 0.8
-                }).addTo(map).bindPopup('<strong>' + p.siteName + '</strong><br>Agent: ' + p.agentNom + '<br>Date : ' + (p.date || '') + '<br>Heure: ' + p.heure);
+                }).addTo(map).bindPopup('<strong>' + p.siteName + '</strong><br>Agent: ' + p.agentNom + '<br>Date : ' + (p.date || '') + '<br>Heure: ' + p.heure + (p.anomalies ? '<br>⚠️ ' + p.anomalies : '') + (p.photo ? '<br><img src="' + p.photo + '" style="width:130px;border-radius:6px;margin-top:6px;cursor:zoom-in;" onclick="showPhoto(this.src)">' : ''));
             }
         }
     });
@@ -642,10 +703,11 @@ function refreshManagerData() {
 
     let html = '';
     if (pts.length === 0) {
-        html = '<tr><td colspan="6" style="text-align:center;color:#999;">Aucun pointage sur la période</td></tr>';
+        html = '<tr><td colspan="7" style="text-align:center;color:#999;">Aucun pointage sur la période</td></tr>';
     } else {
         pts.forEach(p => {
-            html += '<tr><td>' + p.siteName + '</td><td>' + p.agentNom + '</td><td>' + (p.date || '') + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td></tr>';
+            const photo = p.photo ? '<img class="pointage-photo" src="' + p.photo + '" onclick="showPhoto(this.src)">' : '-';
+            html += '<tr><td>' + p.siteName + '</td><td>' + p.agentNom + '</td><td>' + (p.date || '') + '</td><td>' + p.heure + '</td><td>' + p.lat + ', ' + p.lng + '</td><td>' + (p.anomalies || '-') + '</td><td>' + photo + '</td></tr>';
         });
     }
     document.getElementById('managerTable').innerHTML = html;
@@ -658,9 +720,9 @@ function exportCSV() {
         return;
     }
 
-    let csv = 'Site,Agent,Date,Heure,Latitude,Longitude,Anomalies\n';
+    let csv = 'Site,Agent,Date,Heure,Latitude,Longitude,Anomalies,Photo\n';
     pts.forEach(p => {
-        csv += '"' + p.siteName + '","' + p.agentNom + '","' + (p.date || '') + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '"\n';
+        csv += '"' + p.siteName + '","' + p.agentNom + '","' + (p.date || '') + '","' + p.heure + '","' + p.lat + '","' + p.lng + '","' + (p.anomalies || '') + '","' + (p.photo ? 'oui' : 'non') + '"\n';
     });
 
     const r = mgrRange();
