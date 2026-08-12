@@ -249,7 +249,7 @@
       <div><div class="step-label">Prix de vente</div><div class="step-sub">Calcul automatique</div></div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" onclick="allerEtape(5)" id="step5">
+    <div class="step-item" onclick="allerEtape(6)" id="step6">
       <div class="step-num">5</div>
       <div><div class="step-label">Devis client</div><div class="step-sub">Génération & envoi</div></div>
     </div>
@@ -636,12 +636,12 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
-        <button class="btn-primary" onclick="allerEtape(5)">Générer le devis →</button>
+        <button class="btn-primary" onclick="allerEtape(6)">Générer le devis →</button>
       </div>
     </div>
 
     <!-- ÉTAPE 5 : DEVIS -->
-    <div class="section" id="section-5" id="section-devis">
+    <div class="section" id="section-6">
       <div class="section-title">Devis client</div>
       <div class="section-sub">Aperçu du devis — prêt à envoyer</div>
 
@@ -897,7 +897,7 @@ function allerEtape(n) {
   document.getElementById('section-' + n).classList.add('active');
   document.getElementById('step' + n).classList.add('active');
   if (n === 4) { syncHeuresVersCalc(); calculerPrix(); }
-  if (n === 5) { genererDevis(); }
+  if (n === 6) { genererDevis(); }
   window.scrollTo(0, 0);
 }
 
