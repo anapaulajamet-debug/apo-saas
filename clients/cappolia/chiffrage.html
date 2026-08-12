@@ -335,15 +335,25 @@
         <div class="form-grid" style="margin-top:14px;">
           <div class="field">
             <label>Fréquence d'intervention (jours / semaine) *</label>
-            <select id="fcFrequence">
-              <option value="1">1 jour / semaine</option>
-              <option value="2">2 jours / semaine</option>
-              <option value="3">3 jours / semaine</option>
-              <option value="4">4 jours / semaine</option>
-              <option value="5" selected>5 jours / semaine</option>
-              <option value="6">6 jours / semaine</option>
-              <option value="7">7 jours / semaine</option>
+            <select id="fcFrequence" onchange="afficherFreqAutres(this)">
+              <option value="0.083">1 fois par an</option>
+              <option value="0.167">Semestrielle (2 fois/an)</option>
+              <option value="0.333">Trimestrielle (4 fois/an)</option>
+              <option value="1">1 fois par mois</option>
+              <option value="2">2 fois par mois</option>
+              <option value="3">3 fois par mois</option>
+              <option value="4.33">1 fois / semaine</option>
+              <option value="8.66">2 fois / semaine</option>
+              <option value="13">3 fois / semaine</option>
+              <option value="17.33">4 fois / semaine</option>
+              <option value="21.65" selected>5 fois / semaine (j. ouvrés)</option>
+              <option value="26">6 fois / semaine</option>
+              <option value="30">7 fois / semaine</option>
+              <option value="autres">Autres</option>
             </select>
+            <input type="number" id="fcFrequenceAutres" placeholder="Nb passages/mois" min="0.1" step="0.1"
+              style="display:none;margin-top:6px;width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;"
+              oninput="calculerEC()"/>
           </div>
           <div class="field">
             <label>Horaires souhaités</label>
@@ -506,7 +516,7 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
-        <button class="btn-primary" onclick="allerEtape(5)">Étape suivante →</button>
+        <button class="btn-primary" onclick="allerEtape(4)">Étape suivante →</button>
       </div>
     </div>
 
@@ -902,6 +912,31 @@ function remplirDepuisProspect() {
 }
 
 // ── NAVIGATION ÉTAPES ────────────────────────────────────────────────────
+function getFreqMois() {
+  const sel = document.getElementById('fcFrequence');
+  if (!sel) return 21.65;
+  if (sel.value === 'autres') {
+    return parseFloat(document.getElementById('fcFrequenceAutres')?.value) || 1;
+  }
+  return parseFloat(sel.value) || 21.65;
+}
+
+function getFreqLabel() {
+  const sel = document.getElementById('fcFrequence');
+  if (!sel) return '21,65 passages/mois';
+  if (sel.value === 'autres') {
+    const v = parseFloat(document.getElementById('fcFrequenceAutres')?.value) || 1;
+    return v.toFixed(1) + ' passages/mois';
+  }
+  return sel.options[sel.selectedIndex]?.text || sel.value + ' passages/mois';
+}
+
+function afficherFreqAutres(sel) {
+  const inp = document.getElementById('fcFrequenceAutres');
+  if (inp) inp.style.display = sel.value === 'autres' ? 'block' : 'none';
+  calculerEC();
+}
+
 function allerEtape(n) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
@@ -1040,21 +1075,21 @@ function rendreGroupes() {
   }
   emptyEl.style.display = 'none';
   wrapEl.style.display = 'block';
-  const freq = parseFloat(document.getElementById('fcFrequence')?.value || 5);
-  const freqMois = (freq * 4.33).toFixed(1);
-  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  const freqGlobale = getFreqMois();
+  const freq = freqGlobale;
+  const freqMois = freqGlobale.toFixed(1);
   groupesEC.forEach(g => {
     const freqGroupe = g.freq != null ? g.freq : freqGlobale;
-    const freqMoisGroupe = (freqGroupe * 4.33).toFixed(1);
+    const freqMoisGroupe = freqGroupe.toFixed(1);
     const trHead = document.createElement('tr');
     trHead.innerHTML = `<td colspan="9" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span>🏢 ${g.local} — ${g.sol} — ${g.surface} m²</span>
       <span style="font-weight:400;font-size:11px;color:var(--green-dark);margin-left:8px;">Fréquence :
-        <input type="number" id="${g.id}_freqInput" value="${freqGroupe}" min="1" max="7" step="1"
+        <input type="number" id="${g.id}_freqInput" value="${freqGroupe}" min="0.1" max="30" step="0.5"
           oninput="sauverFreqGroupe('${g.id}',this.value);calculerEC()"
-          style="width:42px;text-align:center;border:1.5px solid var(--green-dark);border-radius:4px;padding:1px 4px;font-size:12px;font-weight:700;background:#DBEAFE;color:#1D4ED8;"
-          title="Fréquence globale : ${freqGlobale} j/sem"/>
-        j/sem → <span id="${g.id}_freqMoisAff">${freqMoisGroupe}</span> pass/mois
+          style="width:52px;text-align:center;border:1.5px solid var(--green-dark);border-radius:4px;padding:1px 4px;font-size:12px;font-weight:700;background:#DBEAFE;color:#1D4ED8;"
+          title="Fréquence globale : ${freqGlobale} pass/mois"/>
+        pass/mois
       </span>
       <button onclick="afficherAjoutPrestation('${g.id}')" style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">+ Ajouter une prestation</button>
       <button onclick="supprimerGroupe('${g.id}')" style="margin-left:auto;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer le local</button>
@@ -1173,7 +1208,7 @@ function confirmerAjoutPrestation(gid) {
 }
 
 function calculerEC() {
-  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  const freqGlobale = getFreqMois();
   let rawTps = 0;
   let totalMensuel = 0;
   const surfacesTotales = groupesEC.reduce((sum, g) => sum + (parseFloat(g.surface) || 0), 0);
@@ -1185,8 +1220,7 @@ function calculerEC() {
     const cadenceInput = document.getElementById(rid + '_cadence');
     const cadence = cadenceInput ? parseFloat(cadenceInput.value) || 1 : 200;
     const freqInput = document.getElementById(gid + '_freqInput');
-    const freqSem = freqInput ? parseFloat(freqInput.value) || freqGlobale : freqGlobale;
-    const freqMoisGroupe = parseFloat((freqSem * 4.33).toFixed(2));
+    const freqMoisGroupe = parseFloat((freqInput ? parseFloat(freqInput.value) || freqGlobale : freqGlobale).toFixed(2));
     const tpsPresta = surf > 0 ? surf / cadence : 0;
     if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = tpsPresta.toFixed(2);
     if (document.getElementById(rid + '_freq')) document.getElementById(rid + '_freq').textContent = freqMoisGroupe.toFixed(1);
@@ -1206,7 +1240,7 @@ function calculerEC() {
   document.getElementById('totalTpsPassage').textContent = totalTpsPassage.toFixed(2);
   document.getElementById('totalTpsMensuel').textContent = totalMensuelFinal.toFixed(2);
   document.getElementById('kpiTpsPassage').textContent = totalTpsPassage.toFixed(2);
-  document.getElementById('kpiFreqMois').textContent = (freqGlobale * 4.33).toFixed(1);
+  document.getElementById('kpiFreqMois').textContent = freqGlobale.toFixed(1);
   document.getElementById('kpiTpsMois').textContent = totalMensuelFinal.toFixed(2);
   const nbAgents = totalMensuelFinal > 0 ? Math.ceil(totalMensuelFinal / (3 * 22)) : 0;
   document.getElementById('kpiNbAgents').textContent = nbAgents || '—';
@@ -1417,7 +1451,7 @@ function genererDevis() {
   document.getElementById('dSite').textContent =
     [typeSite, adresse, surface ? surface + ' m²' : ''].filter(Boolean).join(' — ');
 
-  const freqLabel = freq + ' jour' + (parseInt(freq) > 1 ? 's' : '') + '/semaine';
+  const freqLabel = getFreqLabel();
   const tpsMois = document.getElementById('totalTpsMensuel')?.textContent || '0';
   const tpsREE = document.getElementById('totalREE')?.textContent || '0';
 
@@ -1468,7 +1502,7 @@ function genererDevisPDF() {
   let lignesHTML = '';
   if (hEC > 0) {
     lignesHTML += `<tr><td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;">${'Entretien courant — ' + hEC.toFixed(2) + ' h/mois'}</td>
-      <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:center;">${freq} j/sem</td>
+      <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:center;">${getFreqLabel()}</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:right;">${fmt(prix.prixHT)}</td></tr>`;
   }
   if (hREE > 0) {
@@ -1560,17 +1594,15 @@ function genererCDC() {
   const date    = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
 
   // ── Entretien courant ──
-  const freqGlobale = parseFloat(document.getElementById('fcFrequence')?.value || 5);
+  const freqGlobale = getFreqMois();
   let secEC = '';
   if (groupesEC.length === 0) {
     secEC = '<p style="color:#6B7280;font-style:italic;">Aucun local renseigné.</p>';
   } else {
     groupesEC.forEach(g => {
       const freqSem  = g.freq != null ? g.freq : freqGlobale;
-      const freqMois = (freqSem * 4.33).toFixed(1);
-      const freqLabel = freqSem == 1 ? '1 fois / semaine'
-                    : freqSem == 5 ? '5 fois / semaine (jours ouvrés)'
-                    : freqSem + ' fois / semaine';
+      const freqMois = freqSem.toFixed(1);
+      const freqLabel = freqSem.toFixed(1) + ' passages/mois';
       const lignes   = g.prestations.map(p => {
         return `<tr>
           <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;">${p}</td>
