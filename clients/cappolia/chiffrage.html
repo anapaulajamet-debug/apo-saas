@@ -1331,8 +1331,12 @@ function calculerPrix() {
   const tauxREE = parseFloat(document.getElementById('pvNiveauREE')?.value || 13.17);
 
   const masseSalariale = (hEC * tauxEC) + (hREE * tauxREE);
-  const tauxCharges    = parseFloat(document.getElementById('pvCharges')?.value || 30) / 100;
-  const tauxAllegement = parseFloat(document.getElementById('pvAllegement')?.value || 0) / 100;
+  // Charges décomposées bulletin réel CCN Propreté 2026
+  const socle          = parseFloat(document.getElementById('pvChargesSocle')?.value || 34.4) / 100;
+  const fixe           = parseFloat(document.getElementById('pvChargesFixe')?.value  || 18.7) / 100;
+  const tauxCharges    = socle + fixe;  // 53.2% total avant allègement
+  const ptsRGDU        = parseFloat(document.getElementById('pvAllegement')?.value || 0);
+  const tauxAllegement = Math.min(ptsRGDU / 100, socle); // RGDU plafonné au socle
   const tauxChargesNet = Math.max(0, tauxCharges - tauxAllegement);
   const tauxProduits   = parseFloat(document.getElementById('pvProduits')?.value || 15) / 100;
   const tauxFournitures= parseFloat(document.getElementById('pvFournitures')?.value || 5) / 100;
