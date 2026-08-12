@@ -670,8 +670,29 @@
         <button class="btn-primary" onclick="genererDevisPDF()">🖨️ Devis PDF</button>
         <button class="btn-secondary" onclick="genererCDC()" style="background:#1E40AF;color:#fff;border:none;">📋 Cahier des charges PDF</button>
         <button class="btn-secondary" id="btnSaveDevis" onclick="sauvegarder()">💾 Enregistrer le devis</button>
+        <button class="btn-secondary" onclick="ouvrirModalEnvoi()" style="background:#059669;color:#fff;border:none;">📧 Envoyer par email</button>
         <div class="field" style="flex:1;min-width:200px;">
           <input type="text" id="devisCommentaires" placeholder="Commentaires libres (conditions particulières…)" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;width:100%;font-family:Arial;outline:none;"/>
+        </div>
+      </div>
+
+      <!-- MODAL ENVOI EMAIL -->
+      <div id="modalEnvoi" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:480px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+          <div style="font-size:16px;font-weight:800;color:#1A3D28;margin-bottom:18px;">📧 Envoyer le devis par email</div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:4px;">Email du destinataire *</label>
+            <input id="envoi_to" type="email" placeholder="prospect@entreprise.fr" style="width:100%;padding:9px 12px;border:1.5px solid #D1D5DB;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#D1D5DB'"/>
+          </div>
+          <div style="margin-bottom:18px;">
+            <label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:4px;">Objet</label>
+            <input id="envoi_subject" type="text" style="width:100%;padding:9px 12px;border:1.5px solid #D1D5DB;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#D1D5DB'"/>
+          </div>
+          <div style="font-size:11px;color:#6B7280;margin-bottom:18px;">Le devis sera envoyé en HTML depuis <strong>o.jamet@cappolia-proprete.fr</strong></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="fermerModalEnvoi()" style="padding:9px 18px;border:1.5px solid #D1D5DB;border-radius:7px;background:#fff;font-size:13px;cursor:pointer;">Annuler</button>
+            <button id="btnEnvoyer" onclick="envoyerDevis()" style="padding:9px 20px;border:none;border-radius:7px;background:#059669;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Envoyer →</button>
+          </div>
         </div>
       </div>
 
@@ -1708,6 +1729,57 @@ function genererCDC() {
 }
 
 // ── SAUVEGARDE SUPABASE ──────────────────────────────────────────────────
+// ── ENVOI EMAIL DEVIS ────────────────────────────────────────────────────
+const EDGE_URL = 'https://zqehxwggzyepiftjrkxq.supabase.co/functions/v1/send-devis';
+
+function ouvrirModalEnvoi() {
+  const modal = document.getElementById('modalEnvoi');
+  modal.style.display = 'flex';
+  // Pré-remplir depuis le chiffrage
+  const email = document.getElementById('fcEmail')?.value || '';
+  const prospect = document.getElementById('fcProspect')?.options[document.getElementById('fcProspect')?.selectedIndex]?.text || '';
+  const client = document.getElementById('fcClient')?.value || prospect || 'Prospect';
+  document.getElementById('envoi_to').value = email;
+  document.getElementById('envoi_subject').value = `Devis Cappolia Propreté — ${client}`;
+}
+
+function fermerModalEnvoi() {
+  document.getElementById('modalEnvoi').style.display = 'none';
+}
+
+async function envoyerDevis() {
+  const to = document.getElementById('envoi_to').value.trim();
+  const subject = document.getElementById('envoi_subject').value.trim();
+  if (!to) { alert('Veuillez saisir l\'email du destinataire.'); return; }
+
+  const btn = document.getElementById('btnEnvoyer');
+  btn.textContent = 'Envoi…'; btn.disabled = true;
+
+  // Récupérer le HTML du devis preview
+  const devisEl = document.getElementById('devisPreview');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>body{font-family:Arial,sans-serif;color:#1F2937;max-width:800px;margin:0 auto;padding:20px;}
+    table{width:100%;border-collapse:collapse;}td,th{padding:8px 12px;border-bottom:1px solid #E5E7EB;}
+    th{background:#1A3D28;color:#fff;text-align:left;}</style></head>
+    <body>${devisEl ? devisEl.innerHTML : '<p>Devis non disponible</p>'}</body></html>`;
+
+  try {
+    const resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ to, subject, html }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Erreur serveur');
+    fermerModalEnvoi();
+    toast('✅ Devis envoyé à ' + to);
+  } catch (e) {
+    alert('Erreur lors de l\'envoi : ' + e.message);
+  } finally {
+    btn.textContent = 'Envoyer →'; btn.disabled = false;
+  }
+}
+
 async function sauvegarder() {
   const prix = calculerPrix();
   const prospectId = document.getElementById('fcProspect').value || null;
