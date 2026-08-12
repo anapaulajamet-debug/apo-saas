@@ -238,6 +238,10 @@
     <div class="step-item" onclick="allerEtape(3)" id="step3">
       <div class="step-num">3</div>
       <div><div class="step-label">Prestations ponctuelles</div><div class="step-sub">Hors entretien courant</div></div>
+      <div style="color:rgba(255,255,255,0.3);font-size:18px;align-self:center;">›</div>
+      <div onclick="allerEtape(5)" style="cursor:pointer;opacity:0.7;" id="step5">
+        <div class="step-label">Matériel</div><div class="step-sub">Amortissement</div>
+      </div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" onclick="allerEtape(4)" id="step4">
@@ -440,7 +444,7 @@
                 <th style="width:90px;">Surface (m²)</th>
                 <th style="width:100px;">Cadence (m²/h)</th>
                 <th style="width:90px;">Tps/presta (h)</th>
-                <th style="width:110px;">Fréq. mensuelle</th>
+                <th style="width:150px;">Fréquence</th>
                 <th style="width:90px;">Tps mensuel (h)</th>
                 <th style="width:36px;"></th>
               </tr>
@@ -463,11 +467,50 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(2)">← Retour</button>
-        <button class="btn-primary" onclick="allerEtape(4)">Étape suivante →</button>
+        <button class="btn-primary" onclick="allerEtape(5)">Étape suivante →</button>
       </div>
     </div>
 
-    <!-- ÉTAPE 4 : PRIX DE VENTE -->
+    <!-- ÉTAPE 5 : MATÉRIEL -->
+    <div class="section" id="section-5">
+      <div class="section-title">Matériel à amortir</div>
+      <div class="section-sub">Saisie du matériel — amortissement mensuel inclus dans le prix de vente</div>
+
+      <div class="card">
+        <div class="card-title">Liste du matériel</div>
+        <div class="table-wrap">
+          <table id="tableMateriel">
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th style="width:140px;">Fournisseur</th>
+                <th style="width:100px;">Prix HT (€)</th>
+                <th style="width:90px;">Durée (mois)</th>
+                <th style="width:110px;">Amort. mensuel (€)</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyMateriel"></tbody>
+            <tfoot>
+              <tr class="tr-total">
+                <td colspan="4" style="text-align:right;">TOTAL AMORTISSEMENT MENSUEL</td>
+                <td id="totalAmortissement">0,00 €</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button class="btn-add-row" onclick="ajouterLigneMateriel()">+ Ajouter un équipement</button>
+        <div class="info-box" style="margin-top:16px;">ℹ️ L'amortissement mensuel total sera automatiquement ajouté au prix de vente.</div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
+        <button class="btn-primary" onclick="allerEtape(5)">Étape suivante →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 5 : MATÉRIEL -->
     <div class="section" id="section-4">
       <div class="section-title">Prix de vente mensuel</div>
       <div class="section-sub">Calcul automatique — CCN Propreté 2026 — Forfait minimum 250 € HT</div>
@@ -613,9 +656,12 @@
 
       <div class="devis-preview" id="devisPreview">
         <div class="devis-header">
-          <div>
-            <div class="devis-logo">CAPPOLIA PROPRETÉ</div>
-            <div style="font-size:11px;color:var(--gray);margin-top:4px;">Humaine · Sociale · Écologique</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img src="/clients/cappolia/assets/logo.png" alt="Cappolia" style="height:50px;width:auto;"/>
+            <div>
+              <div class="devis-logo">CAPPOLIA PROPRETÉ</div>
+              <div style="font-size:11px;color:var(--gray);margin-top:4px;">Humaine · Sociale · Écologique</div>
+            </div>
           </div>
           <div class="devis-num">
             <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;">Devis</div>
@@ -776,6 +822,10 @@ const CADENCES_DEFAULT = {
   'Sortie de conteneurs': 200,
   'Vidage des corbeilles': 800,
   'Nettoyage des vitres': 40,
+  'Décapage sol thermoplastique': 25,
+  "Pose d'émulsion sol thermoplastique": 30,
+  'Récurage carrelage': 20,
+  'Shampooing moquette': 35,
 };
 // Fusion avec les valeurs personnalisées par le directeur (localStorage)
 function chargerCadences() {
@@ -1170,7 +1220,17 @@ function ajouterLigneREE() {
     <td><input type="number" min="0" step="0.5" placeholder="0" onchange="calculerREE()" class="surf-ree"/></td>
     <td><input type="number" id="${id}_cadence" value="${Object.values(CADENCES)[0]}" readonly/></td>
     <td><input type="number" id="${id}_tps" readonly/></td>
-    <td><input type="number" id="${id}_freq" value="1" min="0" step="0.5" onchange="calculerREE()"/></td>
+    <td>
+      <select id="${id}_freq" onchange="calculerREE()" style="min-width:140px;font-size:12px;">
+        <option value="0.23">1 fois / trimestre</option>
+        <option value="1" selected>1 fois / mois</option>
+        <option value="2">2 fois / mois</option>
+        <option value="4">1 fois / semaine</option>
+        <option value="8">2 fois / semaine</option>
+        <option value="12">3 fois / semaine</option>
+        <option value="20">5 fois / semaine (j. ouvrés)</option>
+      </select>
+    </td>
     <td><input type="number" id="${id}_mensuel" readonly/></td>
     <td><button class="btn-del" onclick="supprimerLigne('${id}', 'tbodyREE'); calculerREE()">✕</button></td>`;
   document.getElementById('tbodyREE').appendChild(tr);
@@ -1201,6 +1261,41 @@ function calculerREE() {
   document.getElementById('totalREE').textContent = total.toFixed(2);
   syncHeuresVersCalc();
   calculerPrix();
+}
+
+let lignesMateriel = 0;
+
+function ajouterLigneMateriel() {
+  lignesMateriel++;
+  const id = 'mat' + lignesMateriel;
+  const tr = document.createElement('tr');
+  tr.id = id;
+  tr.innerHTML = `
+    <td><input type="text" placeholder="Ex: Autolaveuse Kärcher" style="min-width:160px;"/></td>
+    <td><input type="text" placeholder="Fournisseur" style="min-width:110px;"/></td>
+    <td><input type="number" id="${id}_prix" min="0" step="0.01" placeholder="0" onchange="calculerMateriel()"/></td>
+    <td><input type="number" id="${id}_duree" min="1" step="1" value="36" onchange="calculerMateriel()"/></td>
+    <td><input type="number" id="${id}_amort" readonly/></td>
+    <td><button class="btn-del" onclick="supprimerLigne('${id}', 'tbodyMateriel'); calculerMateriel()">✕</button></td>`;
+  document.getElementById('tbodyMateriel').appendChild(tr);
+  calculerMateriel();
+}
+
+function calculerMateriel() {
+  let total = 0;
+  document.querySelectorAll('#tbodyMateriel tr').forEach(tr => {
+    const id = tr.id;
+    const prix = parseFloat(document.getElementById(id + '_prix')?.value || 0);
+    const duree = parseFloat(document.getElementById(id + '_duree')?.value || 36);
+    const amort = duree > 0 ? prix / duree : 0;
+    if (document.getElementById(id + '_amort'))
+      document.getElementById(id + '_amort').value = amort.toFixed(2);
+    total += amort;
+  });
+  document.getElementById('totalAmortissement').textContent = total.toFixed(2).replace('.', ',') + ' €';
+  // Injecter dans le prix de vente
+  const el = document.getElementById('pvAmortissement');
+  if (el) { el.value = total.toFixed(2); calculerPrix(); }
 }
 
 function supprimerLigne(id, tbody) {
