@@ -501,6 +501,7 @@
   <div class="tab" onclick="afficherOnglet('cadences', this)">⚙️ Cadences internes</div>
   <div class="tab" onclick="afficherOnglet('salaires', this)">💶 Grille salariale CCN</div>
   <div class="tab" onclick="afficherOnglet('prestations', this)">🗂️ Prestations par local</div>
+  <div class="tab" onclick="afficherOnglet('catalogue', this)">📦 Catalogue matériel</div>
 </div>
 
 <main>
@@ -949,9 +950,67 @@
 
 </div>
 
+<!-- ── CATALOGUE MATÉRIEL ─────────────────────────────────────────────── -->
+<div id="section-catalogue" class="section-hidden" style="max-width:1060px;margin:24px auto;padding:0 16px 40px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:var(--green-dark);">📦 Catalogue matériel</div>
+      <div style="font-size:12px;color:var(--gray);margin-top:3px;">Base de données des fournitures et matériels avec tarifs fournisseurs. Utilisée pour le chiffrage du matériel à amortir.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--green);border-radius:7px;background:#fff;font-size:12px;font-weight:700;color:var(--green);cursor:pointer;">
+        📥 Importer Excel
+        <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importerExcel(this)">
+      </label>
+      <button onclick="ajouterLigneCatalogue()" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-size:12px;cursor:pointer;color:var(--green-dark);font-weight:700;">+ Ajouter une ligne</button>
+      <button onclick="sauvegarderCatalogue()" style="padding:8px 16px;border:none;border-radius:7px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💾 Enregistrer</button>
+    </div>
+  </div>
+
+  <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:#1E40AF;">
+    ℹ️ Importez votre grille tarifaire fournisseur (Excel/CSV) ou saisissez les articles manuellement. Colonnes attendues : <strong>Désignation, Référence, Fournisseur, Prix HT, Unité, Amortissement (mois)</strong>.
+  </div>
+
+  <!-- Filtres -->
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+    <input id="searchCatalogue" type="text" placeholder="🔍 Rechercher un article…" oninput="filtrerCatalogue()" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none;" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+    <select id="filterFournisseur" onchange="filtrerCatalogue()" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;outline:none;background:#fff;">
+      <option value="">Tous les fournisseurs</option>
+    </select>
+    <span id="catalogueCount" style="font-size:12px;color:var(--gray);white-space:nowrap;"></span>
+  </div>
+
+  <!-- Tableau -->
+  <div style="overflow-x:auto;border-radius:10px;border:1.5px solid var(--border);">
+    <table id="tableCatalogue" style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px;">
+      <thead>
+        <tr style="background:var(--green-dark);color:#fff;">
+          <th style="padding:10px 12px;text-align:left;font-weight:700;">Désignation</th>
+          <th style="padding:10px 12px;text-align:left;font-weight:700;">Référence</th>
+          <th style="padding:10px 12px;text-align:left;font-weight:700;">Fournisseur</th>
+          <th style="padding:10px 12px;text-align:right;font-weight:700;">Prix HT (€)</th>
+          <th style="padding:10px 12px;text-align:center;font-weight:700;">Unité</th>
+          <th style="padding:10px 12px;text-align:center;font-weight:700;">Amort. (mois)</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:700;width:40px;"></th>
+        </tr>
+      </thead>
+      <tbody id="bodyCatalogue"></tbody>
+    </table>
+  </div>
+
+  <div id="catalogueVide" style="display:none;text-align:center;padding:40px 20px;color:var(--gray);">
+    <div style="font-size:36px;margin-bottom:10px;">📦</div>
+    <div style="font-size:14px;font-weight:700;">Catalogue vide</div>
+    <div style="font-size:12px;margin-top:6px;">Importez un fichier Excel ou ajoutez des articles manuellement.</div>
+  </div>
+
+</div>
+
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL = 'https://zqehxwggzyepiftjrkxq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
@@ -1607,13 +1666,14 @@ function filtrerDepuisZones(secteur) {
 function afficherOnglet(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['pipeline','zones','cadences','salaires','prestations'].forEach(s => {
+  ['pipeline','zones','cadences','salaires','prestations','catalogue'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('section-hidden', s !== id);
   });
   if (id === 'zones') { afficherSecteurs(); chargerGoogleMaps(); }
   if (id === 'cadences') { afficherCadences(); }
   if (id === 'salaires') { afficherSalaires(); }
   if (id === 'prestations') { afficherPrestations(); }
+  if (id === 'catalogue') { afficherCatalogue(); }
 }
 
 // ── CADENCES CCN ─────────────────────────────────────────────────────────
@@ -1927,6 +1987,216 @@ function reinitialiserMatrix() {
   renderMatrix();
   toast('Prestations réinitialisées aux valeurs par défaut');
 }
+
+// ── CATALOGUE MATÉRIEL ────────────────────────────────────────────────────
+let catalogueData = []; // [{id, designation, reference, fournisseur, prix_ht, unite, amortissement_mois}]
+
+function getCatalogueLocal() {
+  try { return JSON.parse(localStorage.getItem('cappolia_catalogue') || '[]'); } catch { return []; }
+}
+function saveCatalogueLocal(data) {
+  localStorage.setItem('cappolia_catalogue', JSON.stringify(data));
+}
+
+async function afficherCatalogue() {
+  // Charger depuis Supabase si dispo, sinon localStorage
+  try {
+    const { data, error } = await sb.from('catalogue_materiel')
+      .select('*').eq('tenant_id', TENANT).order('designation');
+    if (!error && data) {
+      catalogueData = data;
+      saveCatalogueLocal(data);
+    } else {
+      catalogueData = getCatalogueLocal();
+    }
+  } catch {
+    catalogueData = getCatalogueLocal();
+  }
+  renderCatalogue(catalogueData);
+}
+
+function renderCatalogue(rows) {
+  const tbody = document.getElementById('bodyCatalogue');
+  const vide = document.getElementById('catalogueVide');
+  const count = document.getElementById('catalogueCount');
+
+  // Mise à jour filtre fournisseurs
+  const fournisseurs = [...new Set(catalogueData.map(r => r.fournisseur).filter(Boolean))].sort();
+  const sel = document.getElementById('filterFournisseur');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Tous les fournisseurs</option>' +
+    fournisseurs.map(f => `<option value="${f}" ${f === current ? 'selected' : ''}>${f}</option>`).join('');
+
+  count.textContent = rows.length + ' article' + (rows.length > 1 ? 's' : '');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    vide.style.display = 'block';
+    return;
+  }
+  vide.style.display = 'none';
+
+  const UNITES = ['unité','L','kg','m²','m','rouleau','boîte','sac','bidon','carton'];
+
+  tbody.innerHTML = rows.map((r, i) => {
+    const idx = catalogueData.indexOf(r);
+    return `<tr style="border-bottom:1px solid var(--border);${i % 2 === 0 ? '' : 'background:#F9FAFB'}">
+      <td style="padding:8px 12px;">
+        <input value="${escH(r.designation||'')}" oninput="catalogueData[${idx}].designation=this.value"
+          style="width:100%;border:none;background:transparent;font-size:13px;outline:none;font-family:Arial,sans-serif;"
+          onfocus="this.style.background='#fff';this.style.border='1.5px solid var(--green)';this.style.borderRadius='5px';this.style.padding='2px 6px'"
+          onblur="this.style.background='transparent';this.style.border='none';this.style.padding='0'">
+      </td>
+      <td style="padding:8px 12px;">
+        <input value="${escH(r.reference||'')}" oninput="catalogueData[${idx}].reference=this.value"
+          style="width:100%;border:none;background:transparent;font-size:12px;color:var(--gray);outline:none;font-family:Arial,sans-serif;"
+          onfocus="this.style.background='#fff';this.style.border='1.5px solid var(--green)';this.style.borderRadius='5px';this.style.padding='2px 6px'"
+          onblur="this.style.background='transparent';this.style.border='none';this.style.padding='0'">
+      </td>
+      <td style="padding:8px 12px;">
+        <input value="${escH(r.fournisseur||'')}" oninput="catalogueData[${idx}].fournisseur=this.value"
+          style="width:100%;border:none;background:transparent;font-size:12px;outline:none;font-family:Arial,sans-serif;"
+          onfocus="this.style.background='#fff';this.style.border='1.5px solid var(--green)';this.style.borderRadius='5px';this.style.padding='2px 6px'"
+          onblur="this.style.background='transparent';this.style.border='none';this.style.padding='0'">
+      </td>
+      <td style="padding:8px 12px;text-align:right;">
+        <input type="number" step="0.01" min="0" value="${r.prix_ht||''}" oninput="catalogueData[${idx}].prix_ht=parseFloat(this.value)||0"
+          style="width:80px;border:none;background:transparent;font-size:13px;text-align:right;outline:none;font-family:Arial,sans-serif;"
+          onfocus="this.style.background='#fff';this.style.border='1.5px solid var(--green)';this.style.borderRadius='5px';this.style.padding='2px 6px'"
+          onblur="this.style.background='transparent';this.style.border='none';this.style.padding='0'">
+      </td>
+      <td style="padding:8px 12px;text-align:center;">
+        <select onchange="catalogueData[${idx}].unite=this.value"
+          style="border:1.5px solid var(--border);border-radius:5px;font-size:12px;padding:2px 4px;background:#fff;outline:none;">
+          ${UNITES.map(u => `<option value="${u}" ${r.unite===u?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:8px 12px;text-align:center;">
+        <input type="number" min="0" max="120" value="${r.amortissement_mois||''}" oninput="catalogueData[${idx}].amortissement_mois=parseInt(this.value)||0"
+          style="width:55px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:center;padding:3px 5px;outline:none;font-family:Arial,sans-serif;"
+          onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+      </td>
+      <td style="padding:8px;text-align:center;">
+        <button onclick="supprimerLigneCatalogue(${idx})" title="Supprimer"
+          style="border:none;background:none;cursor:pointer;color:#EF4444;font-size:16px;line-height:1;">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrerCatalogue() {
+  const q = document.getElementById('searchCatalogue').value.toLowerCase();
+  const f = document.getElementById('filterFournisseur').value;
+  const rows = catalogueData.filter(r => {
+    const matchQ = !q || (r.designation||'').toLowerCase().includes(q) ||
+      (r.reference||'').toLowerCase().includes(q) || (r.fournisseur||'').toLowerCase().includes(q);
+    const matchF = !f || r.fournisseur === f;
+    return matchQ && matchF;
+  });
+  renderCatalogue(rows);
+}
+
+function ajouterLigneCatalogue() {
+  catalogueData.push({ designation:'', reference:'', fournisseur:'', prix_ht:0, unite:'unité', amortissement_mois:12 });
+  renderCatalogue(catalogueData);
+  // Focus sur la dernière ligne
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#bodyCatalogue tr:last-child input');
+    if (inputs[0]) inputs[0].focus();
+  }, 50);
+}
+
+function supprimerLigneCatalogue(idx) {
+  catalogueData.splice(idx, 1);
+  renderCatalogue(catalogueData);
+}
+
+async function sauvegarderCatalogue() {
+  saveCatalogueLocal(catalogueData);
+  // Tentative Supabase
+  try {
+    // Upsert : on supprime tout et on réinsère (table petite, acceptable)
+    await sb.from('catalogue_materiel').delete().eq('tenant_id', TENANT);
+    if (catalogueData.length > 0) {
+      const rows = catalogueData.map(r => ({
+        tenant_id: TENANT,
+        designation: r.designation || '',
+        reference: r.reference || '',
+        fournisseur: r.fournisseur || '',
+        prix_ht: parseFloat(r.prix_ht) || 0,
+        unite: r.unite || 'unité',
+        amortissement_mois: parseInt(r.amortissement_mois) || 0,
+      }));
+      const { error } = await sb.from('catalogue_materiel').insert(rows);
+      if (error) throw error;
+    }
+    toast('✅ Catalogue enregistré (' + catalogueData.length + ' articles)');
+  } catch (e) {
+    // Table n'existe pas encore → sauvegarde locale OK
+    toast('💾 Sauvegardé en local (' + catalogueData.length + ' articles)');
+  }
+}
+
+// Import Excel via SheetJS
+function importerExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (rows.length === 0) { toast('⚠️ Fichier vide ou format non reconnu'); return; }
+
+      // Mapping flexible des colonnes
+      const colMap = {
+        designation:        ['designation','désignation','article','libellé','libelle','nom','produit','description'],
+        reference:          ['reference','référence','ref','réf','code','code article'],
+        fournisseur:        ['fournisseur','supplier','marque','brand'],
+        prix_ht:            ['prix ht','prix_ht','prix','price','tarif','montant ht','pu ht'],
+        unite:              ['unite','unité','unit','conditionnement','cond'],
+        amortissement_mois: ['amortissement','amortissement (mois)','amort','durée vie','duree vie'],
+      };
+
+      function findCol(row, keys) {
+        const rowKeys = Object.keys(row).map(k => k.toLowerCase().trim());
+        for (const k of keys) {
+          const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      const firstRow = rows[0];
+      const cols = {};
+      for (const [field, aliases] of Object.entries(colMap)) {
+        cols[field] = findCol(firstRow, aliases);
+      }
+
+      const imported = rows.map(row => ({
+        designation:        cols.designation        ? String(row[cols.designation]||'')        : '',
+        reference:          cols.reference          ? String(row[cols.reference]||'')          : '',
+        fournisseur:        cols.fournisseur        ? String(row[cols.fournisseur]||'')        : '',
+        prix_ht:            cols.prix_ht            ? parseFloat(String(row[cols.prix_ht]||'0').replace(',','.')) || 0 : 0,
+        unite:              cols.unite              ? String(row[cols.unite]||'unité')         : 'unité',
+        amortissement_mois: cols.amortissement_mois ? parseInt(row[cols.amortissement_mois])||0 : 0,
+      })).filter(r => r.designation);
+
+      if (imported.length === 0) { toast('⚠️ Aucun article trouvé — vérifiez les colonnes'); return; }
+
+      catalogueData = [...catalogueData, ...imported];
+      renderCatalogue(catalogueData);
+      toast('📥 ' + imported.length + ' article(s) importé(s)');
+    } catch(err) {
+      toast('❌ Erreur lecture fichier : ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
 // ── UTILS ──────────────────────────────────────────────────────────────
 function toast(msg) {
