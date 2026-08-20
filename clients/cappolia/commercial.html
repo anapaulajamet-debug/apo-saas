@@ -604,13 +604,32 @@
       </div>
       <div style="padding:6px 16px;background:#FFFBEB;border-bottom:1px solid #FDE68A;font-size:11px;color:#92400E;display:none;" id="mapInfo"></div>
       <div id="googleMap"></div>
-      <div class="map-legend" style="padding:10px 16px;border-top:1px solid var(--border);background:white;gap:16px;">
-        <div class="legend-item"><div class="legend-dot" style="background:#94A3B8"></div>Établissement Google (non contacté)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#2D6A3F"></div>À contacter</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>RDV / Visite</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Chiffrage</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Gagné</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Perdu</div>
+      <div class="map-legend" style="padding:10px 16px;border-top:1px solid var(--border);background:white;gap:12px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:11px;font-weight:700;color:var(--green-dark);margin-right:4px;">Filtres :</span>
+        <label class="legend-item" style="cursor:pointer;user-select:none;">
+          <input type="checkbox" checked onchange="filtrerMarqueurs()" data-filtre="google" style="margin-right:4px;accent-color:#94A3B8;">
+          <div class="legend-dot" style="background:#94A3B8"></div>Google (non contacté)
+        </label>
+        <label class="legend-item" style="cursor:pointer;user-select:none;">
+          <input type="checkbox" checked onchange="filtrerMarqueurs()" data-filtre="a_contacter" style="margin-right:4px;accent-color:#2D6A3F;">
+          <div class="legend-dot" style="background:#2D6A3F"></div>À contacter
+        </label>
+        <label class="legend-item" style="cursor:pointer;user-select:none;">
+          <input type="checkbox" checked onchange="filtrerMarqueurs()" data-filtre="rdv_planifie" style="margin-right:4px;accent-color:#D97706;">
+          <div class="legend-dot" style="background:#D97706"></div>RDV / Visite
+        </label>
+        <label class="legend-item" style="cursor:pointer;user-select:none;">
+          <input type="checkbox" checked onchange="filtrerMarqueurs()" data-filtre="chiffrage" style="margin-right:4px;accent-color:#2563EB;">
+          <div class="legend-dot" style="background:#2563EB"></div>Chiffrage
+        </label>
+        <label class="legend-item" style="cursor:pointer;user-select:none;">
+          <input type="checkbox" checked onchange="filtrerMarqueurs()" data-filtre="gagne" style="margin-right:4px;accent-color:#16A34A;">
+          <div class="legend-dot" style="background:#16A34A"></div>Gagné
+        </label>
+        <label class="legend-item" style="cursor:pointer;user-select:none;">
+          <input type="checkbox" checked onchange="filtrerMarqueurs()" data-filtre="perdu" style="margin-right:4px;accent-color:#DC2626;">
+          <div class="legend-dot" style="background:#DC2626"></div>Perdu
+        </label>
       </div>
     </div>
 
@@ -1420,18 +1439,6 @@ window.initMap = function() {
 
   placesService = new google.maps.places.PlacesService(gmap);
 
-  // Cercle zone de prospection
-  new google.maps.Circle({
-    map: gmap,
-    center: ALLAUCH_CENTER,
-    radius: 5000,
-    strokeColor: '#2D6A3F',
-    strokeOpacity: 0.4,
-    strokeWeight: 2,
-    fillColor: '#2D6A3F',
-    fillOpacity: 0.06,
-  });
-
   // Autocomplétion adresse dans le formulaire
   const inputAdresse = document.getElementById('pAdresse');
   autocomplete = new google.maps.places.Autocomplete(inputAdresse, {
@@ -1576,6 +1583,9 @@ function ajouterMarqueurGoogle(place, type, dejaAjoute) {
     });
   });
 
+  marker._filtre = 'google';
+  const cbGoogle = document.querySelector('[data-filtre="google"]');
+  if (cbGoogle && !cbGoogle.checked) marker.setVisible(false);
   googleMarkers.push(marker);
 }
 
@@ -1603,6 +1613,17 @@ function effacerRecherche() {
   effacerGoogleMarqueurs();
   document.getElementById('mapProspectCount').textContent =
     `${allProspects.filter(p => p.adresse).length} prospect${allProspects.filter(p=>p.adresse).length>1?'s':''} CRM`;
+}
+
+function filtrerMarqueurs() {
+  const actifs = new Set(
+    [...document.querySelectorAll('[data-filtre]')]
+      .filter(cb => cb.checked)
+      .map(cb => cb.dataset.filtre)
+  );
+  [...mapMarkers, ...googleMarkers].forEach(m => {
+    m.setVisible(actifs.has(m._filtre));
+  });
 }
 
 function placerMarqueurs() {
@@ -1667,6 +1688,7 @@ function ajouterMarqueur(p, position) {
     infoWindow.open(gmap, marker);
   });
   marker._iw = infoWindow;
+  marker._filtre = p.statut;
   mapMarkers.push(marker);
 }
 
