@@ -357,7 +357,38 @@
           </div>
           <div class="field">
             <label>Horaires souhaités</label>
-            <input type="text" id="fcHoraires" placeholder="06h00 - 08h00"/>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <select id="fcHeureDebut" onchange="majHoraires()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff;">
+                <option value="">Début</option>
+                <option value="05h00">05h00</option><option value="05h30">05h30</option>
+                <option value="06h00">06h00</option><option value="06h30">06h30</option>
+                <option value="07h00">07h00</option><option value="07h30">07h30</option>
+                <option value="08h00">08h00</option><option value="08h30">08h30</option>
+                <option value="09h00">09h00</option><option value="09h30">09h30</option>
+                <option value="10h00">10h00</option><option value="10h30">10h30</option>
+                <option value="11h00">11h00</option><option value="11h30">11h30</option>
+                <option value="12h00">12h00</option><option value="13h00">13h00</option>
+                <option value="14h00">14h00</option><option value="15h00">15h00</option>
+                <option value="16h00">16h00</option><option value="17h00">17h00</option>
+                <option value="18h00">18h00</option><option value="19h00">19h00</option>
+                <option value="20h00">20h00</option><option value="21h00">21h00</option>
+              </select>
+              <span style="font-size:12px;color:var(--gray);">→</span>
+              <select id="fcHeureFin" onchange="majHoraires()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff;">
+                <option value="">Fin</option>
+                <option value="06h00">06h00</option><option value="06h30">06h30</option>
+                <option value="07h00">07h00</option><option value="07h30">07h30</option>
+                <option value="08h00">08h00</option><option value="08h30">08h30</option>
+                <option value="09h00">09h00</option><option value="09h30">09h30</option>
+                <option value="10h00">10h00</option><option value="10h30">10h30</option>
+                <option value="11h00">11h00</option><option value="12h00">12h00</option>
+                <option value="13h00">13h00</option><option value="14h00">14h00</option>
+                <option value="17h00">17h00</option><option value="18h00">18h00</option>
+                <option value="19h00">19h00</option><option value="20h00">20h00</option>
+                <option value="21h00">21h00</option><option value="22h00">22h00</option>
+              </select>
+            </div>
+            <input type="hidden" id="fcHoraires"/>
           </div>
           <div class="field">
             <label>Accès / Particularités</label>
@@ -405,7 +436,7 @@
                 <th style="width:80px;">Surface (m²)</th>
                 <th style="width:90px;">Cadence (m²/h)</th>
                 <th style="width:80px;">Tps/passage (h)</th>
-                <th style="width:100px;">Fréq. mensuelle</th>
+                <th style="width:90px;">Fréq. tâche/sem</th>
                 <th style="width:80px;">Tps mensuel (h)</th>
                 <th style="width:36px;"></th>
               </tr>
@@ -651,6 +682,10 @@
             <div class="prix-final-ht" id="finalHT">— €</div>
             <div class="prix-final-ttc" id="finalTTC">— € TTC</div>
             <div id="finalForfait" class="prix-forfait-badge" style="display:none;">Forfait minimum appliqué</div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11px;color:rgba(255,255,255,0.7);">
+              Taux horaire vendu
+              <span id="tauxHoraireVendu" style="font-size:14px;font-weight:800;color:#fff;margin-left:6px;">— €/h</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1114,12 +1149,12 @@ function rendreGroupes() {
     const trHead = document.createElement('tr');
     trHead.innerHTML = `<td colspan="9" style="background:var(--green-light);font-weight:700;font-size:12px;color:var(--green-dark);padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span>🏢 ${g.local} — ${g.sol} — ${g.surface} m²</span>
-      <span style="font-weight:400;font-size:11px;color:var(--green-dark);margin-left:8px;">Fréquence :
-        <input type="number" id="${g.id}_freqInput" value="${freqGroupe}" min="0.1" max="30" step="0.5"
+      <span style="font-weight:400;font-size:11px;color:var(--green-dark);margin-left:8px;">Fréq. local :
+        <input type="number" id="${g.id}_freqInput" value="${(freqGroupe/4.33).toFixed(1)}" min="0.1" max="7" step="0.5"
           oninput="sauverFreqGroupe('${g.id}',this.value);calculerEC()"
-          style="width:52px;text-align:center;border:1.5px solid var(--green-dark);border-radius:4px;padding:1px 4px;font-size:12px;font-weight:700;background:#DBEAFE;color:#1D4ED8;"
-          title="Fréquence globale : ${freqGlobale} pass/mois"/>
-        pass/mois
+          style="width:48px;text-align:center;border:1.5px solid var(--green-dark);border-radius:4px;padding:1px 4px;font-size:12px;font-weight:700;background:#DBEAFE;color:#1D4ED8;"
+          title="Fréquence du local (passages/semaine)"/>
+        pass/sem
       </span>
       <button onclick="afficherAjoutPrestation('${g.id}')" style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">+ Ajouter une prestation</button>
       <button onclick="supprimerGroupe('${g.id}')" style="margin-left:auto;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:600;">✕ Supprimer le local</button>
@@ -1140,7 +1175,13 @@ function rendreGroupes() {
         <td style="text-align:right;">${g.surface}</td>
         <td style="text-align:right;"><input type="number" id="${rid}_cadence" value="${cadenceSauvee}" min="1" step="1" oninput="sauverCadence('${g.id}',${idx},this.value);calculerEC()" style="width:68px;text-align:right;border:1.5px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;background:#FFFBEB;" title="Cadence interne par défaut : ${cadenceDefaut} m²/h"/></td>
         <td style="text-align:right;" id="${rid}_tps">—</td>
-        <td style="text-align:right;" id="${rid}_freq">—</td>
+        <td style="text-align:right;">
+          <input type="number" id="${rid}_freqTache" value="${((g.freqTaches && g.freqTaches[idx] != null ? g.freqTaches[idx] : freqGroupe)/4.33).toFixed(1)}" min="0.1" max="7" step="0.5"
+            oninput="sauverFreqTache('${g.id}',${idx},this.value);calculerEC()"
+            style="width:48px;text-align:center;border:1.5px solid var(--border);border-radius:4px;padding:2px 4px;font-size:12px;background:#F0FDF4;color:#166534;"
+            title="Fréquence de cette tâche (passages/semaine)"/>
+          <span style="font-size:10px;color:var(--gray);">/sem</span>
+        </td>
         <td style="text-align:right;" id="${rid}_mensuel">—</td>
         <td style="text-align:center;">
           <button onclick="supprimerPrestation('${g.id}',${idx})" title="Supprimer cette prestation"
@@ -1162,9 +1203,21 @@ function sauverCadence(gid, idx, val) {
 function sauverFreqGroupe(gid, val) {
   const g = groupesEC.find(x => x.id === gid);
   if (!g) return;
-  g.freq = parseFloat(val) || 1;
-  const freqMoisAff = document.getElementById(gid + '_freqMoisAff');
-  if (freqMoisAff) freqMoisAff.textContent = (g.freq * 4.33).toFixed(1);
+  g.freq = (parseFloat(val) || 1) * 4.33; // stocké en passes/mois
+}
+
+function sauverFreqTache(gid, idx, val) {
+  const g = groupesEC.find(x => x.id === gid);
+  if (!g) return;
+  if (!g.freqTaches) g.freqTaches = {};
+  g.freqTaches[idx] = (parseFloat(val) || 1) * 4.33; // stocké en passes/mois
+}
+
+function majHoraires() {
+  const debut = document.getElementById('fcHeureDebut')?.value || '';
+  const fin = document.getElementById('fcHeureFin')?.value || '';
+  const hidden = document.getElementById('fcHoraires');
+  if (hidden) hidden.value = debut && fin ? debut + ' - ' + fin : debut || fin;
 }
 
 function supprimerPrestation(gid, idx) {
@@ -1249,14 +1302,17 @@ function calculerEC() {
     const surf = parseFloat(tr.dataset.surface || 0);
     const cadenceInput = document.getElementById(rid + '_cadence');
     const cadence = cadenceInput ? parseFloat(cadenceInput.value) || 1 : 200;
-    const freqInput = document.getElementById(gid + '_freqInput');
-    const freqMoisGroupe = parseFloat((freqInput ? parseFloat(freqInput.value) || freqGlobale : freqGlobale).toFixed(2));
+    const freqInputGroupe = document.getElementById(gid + '_freqInput');
+    const freqMoisGroupe = freqInputGroupe ? parseFloat(freqInputGroupe.value) * 4.33 || freqGlobale : freqGlobale;
+    // Fréquence de la tâche individuelle (input /sem × 4.33)
+    const idxTache = rid.replace(gid + '_', '');
+    const freqTacheInput = document.getElementById(rid + '_freqTache');
+    const freqMoisTache = freqTacheInput ? parseFloat(freqTacheInput.value) * 4.33 || freqMoisGroupe : freqMoisGroupe;
     const tpsPresta = surf > 0 ? surf / cadence : 0;
     if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = tpsPresta.toFixed(2);
-    if (document.getElementById(rid + '_freq')) document.getElementById(rid + '_freq').textContent = freqMoisGroupe.toFixed(1);
-    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMoisGroupe).toFixed(2);
+    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMoisTache).toFixed(2);
     rawTps += tpsPresta;
-    totalMensuel += tpsPresta * freqMoisGroupe;
+    totalMensuel += tpsPresta * freqMoisTache;
   });
 
   const elSurf = document.getElementById('totalSurfaces');
@@ -1457,6 +1513,9 @@ function calculerPrix() {
   document.getElementById('finalTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
   document.getElementById('forfaitMsg').style.display = forfaitApplique ? 'block' : 'none';
   document.getElementById('finalForfait').style.display = forfaitApplique ? 'block' : 'none';
+  const heuresMois = parseFloat(document.getElementById('kpiTpsMois')?.textContent) || 0;
+  const tauxHoraireEl = document.getElementById('tauxHoraireVendu');
+  if (tauxHoraireEl) tauxHoraireEl.textContent = heuresMois > 0 ? (prixHT / heuresMois).toFixed(2).replace('.', ',') + ' €/h' : '— €/h';
 
   document.getElementById('sidebarPrixHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
   document.getElementById('sidebarPrixTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
@@ -1876,7 +1935,14 @@ async function chargerChiffrage(id) {
   document.getElementById('fcTypeSite').value = data.type_site || '';
   document.getElementById('fcSurface').value = data.surface_totale || '';
   document.getElementById('fcFrequence').value = data.frequence_semaine || 5;
-  document.getElementById('fcHoraires').value = data.horaires || '';
+  const horSaved = data.horaires || '';
+  const hiddenHor = document.getElementById('fcHoraires');
+  if (hiddenHor) hiddenHor.value = horSaved;
+  const horParts = horSaved.split(' - ');
+  const selDebut = document.getElementById('fcHeureDebut');
+  const selFin = document.getElementById('fcHeureFin');
+  if (selDebut && horParts[0]) selDebut.value = horParts[0].trim();
+  if (selFin && horParts[1]) selFin.value = horParts[1].trim();
   if (data.prospect_id) document.getElementById('fcProspect').value = data.prospect_id;
 }
 
