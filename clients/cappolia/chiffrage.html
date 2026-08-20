@@ -635,28 +635,28 @@
             <div class="card-title">Paramètres de coût (modifiables)</div>
             <div class="form-grid cols3">
               <div class="field">
-                <label>Charges patronales — CCN Propreté 2026</label>
+                <label>Charges patronales brutes — CCN Propreté 2026</label>
                 <select id="pvCharges" onchange="calculerPrix()" style="font-size:13px;">
-                  <option value="30" selected>30% — Taux brut standard (ASP → ATQS)</option>
-                  <option value="35">35% — Non-cadre hors allègement (&gt; 3 SMIC)</option>
-                  <option value="42.5">42,5% — Cadre (toutes tranches)</option>
+                  <option value="44" selected>44% — Non-cadre (URSSAF vérifié 2026)</option>
+                  <option value="44-noalleg">44% — Non-cadre &gt; 3 SMIC (sans allègement)</option>
+                  <option value="44-cadre">44% — Cadre (sans allègement RGDU)</option>
                 </select>
-                <div style="font-size:10px;color:#6B7280;margin-top:4px;">Source : URSSAF / CCN Propreté — taux 2026</div>
+                <div style="font-size:10px;color:#6B7280;margin-top:4px;">Source : simulateur URSSAF · Total vérifié 43,96% · Décret 2025-887</div>
               </div>
               <div class="field">
                 <label style="display:flex;align-items:center;gap:6px;">
-                  Allègement RGDU (%)
-                  <span style="font-size:10px;background:#DCFCE7;color:#166534;padding:1px 6px;border-radius:10px;font-weight:700;">0 → 25%</span>
+                  Allègement RGDU — exonération sur charges patronales
+                  <span style="font-size:10px;background:#DCFCE7;color:#166534;padding:1px 6px;border-radius:10px;font-weight:700;">0 → 82%</span>
                 </label>
-                <input type="range" id="pvAllegement" value="0" min="0" max="25" step="1"
+                <input type="range" id="pvAllegement" value="82" min="0" max="82" step="1"
                   oninput="document.getElementById('pvAllegementVal').textContent=this.value+'%';calculerPrix()"
                   style="width:100%;accent-color:#16A34A;margin-top:6px;"/>
                 <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:2px;">
-                  <span>0% (aucun)</span>
-                  <span id="pvAllegementVal" style="font-weight:700;color:#166534;">0%</span>
-                  <span style="text-align:right;">25% (RGDU SMIC)</span>
+                  <span>0% (&gt; 3 SMIC)</span>
+                  <span id="pvAllegementVal" style="font-weight:700;color:#166534;">82%</span>
+                  <span style="text-align:right;">82% (niveau SMIC/ASP)</span>
                 </div>
-                <div style="font-size:10px;color:#6B7280;margin-top:3px;">Au SMIC : coût effectif ≈ 5% après RGDU · Décret 2025-887</div>
+                <div style="font-size:10px;color:#6B7280;margin-top:3px;">Charges salariales : 22% (info · à la charge du salarié, non inclus dans le coût employeur)</div>
               </div>
               <div class="field">
                 <label>Coût produits nettoyage (%)</label>
@@ -681,9 +681,10 @@
             </div>
           </div>
           <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:11px;color:#1E40AF;line-height:1.5;">
-            <strong>Rappel CCN Propreté 2026 :</strong> Taux brut standard = 30%. RGDU (Réduction Générale Dégressive Unique) applicable
-            de 0 à 25 pts selon salaire (max au SMIC → coût effectif ≈ 5%). Cadres : 42,5%.
-            Source : Décret n°2025-887 du 4 sept. 2025 + LFSS 2026.
+            <strong>Rappel CCN Propreté 2026 :</strong> Charges patronales brutes = <strong>44%</strong> (total vérifié URSSAF : 43,96%).
+            Allègement RGDU au niveau ASP (~SMIC) = <strong>82%</strong> d'exonération sur les charges patronales → charges nettes ≈ <strong>7,9%</strong> du brut.
+            Au-delà de 3 SMIC : allègement nul (0%). Charges salariales (part salarié) : <strong>22%</strong>.
+            Source : simulateur mon-entreprise.urssaf.fr · Décret n°2025-887 · LFSS 2026.
           </div>
         </div>
 
@@ -1488,13 +1489,13 @@ function calculerPrix() {
   const tauxREE = parseFloat(document.getElementById('pvNiveauREE')?.value || 13.17);
 
   const masseSalariale = (hEC * tauxEC) + (hREE * tauxREE);
-  // Charges décomposées bulletin réel CCN Propreté 2026
-  const socle          = parseFloat(document.getElementById('pvChargesSocle')?.value || 34.4) / 100;
-  const fixe           = parseFloat(document.getElementById('pvChargesFixe')?.value  || 18.7) / 100;
-  const tauxCharges    = socle + fixe;  // 53.2% total avant allègement
-  const ptsRGDU        = parseFloat(document.getElementById('pvAllegement')?.value || 0);
-  const tauxAllegement = Math.min(ptsRGDU / 100, socle); // RGDU plafonné au socle
-  const tauxChargesNet = Math.max(0, tauxCharges - tauxAllegement);
+  // Charges patronales brutes CCN Propreté 2026 (source : URSSAF)
+  const pvChargesVal   = document.getElementById('pvCharges')?.value || '44';
+  const tauxCharges    = 0.44; // 44% dans tous les cas (taux vérifié URSSAF 2026)
+  const noAlleg        = pvChargesVal.includes('noalleg') || pvChargesVal.includes('cadre');
+  const pctExoneration = noAlleg ? 0 : parseFloat(document.getElementById('pvAllegement')?.value || 82) / 100;
+  const tauxAllegement = tauxCharges * pctExoneration; // ex: 44% × 82% = 36,08% du brut
+  const tauxChargesNet = tauxCharges - tauxAllegement; // charges patronales nettes
   const tauxProduits   = parseFloat(document.getElementById('pvProduits')?.value || 15) / 100;
   const tauxFournitures= parseFloat(document.getElementById('pvFournitures')?.value || 5) / 100;
   const amortissement  = parseFloat(document.getElementById('pvAmortissement')?.value || 0);
@@ -1541,6 +1542,9 @@ function calculerPrix() {
   document.getElementById('cPrixHT').textContent = fmt(prixHT);
 
   document.getElementById('badgeCharges').textContent = (tauxCharges * 100).toFixed(0) + '%';
+  if (!noAlleg && tauxAllegement > 0) {
+    document.getElementById('badgeAllegement').textContent = Math.round(pctExoneration * 100) + '% des charges';
+  }
   document.getElementById('badgeProduits').textContent = (tauxProduits * 100).toFixed(0) + '%';
   document.getElementById('badgeFournitures').textContent = (tauxFournitures * 100).toFixed(0) + '%';
   document.getElementById('badgeStructure').textContent = (tauxStructure * 100).toFixed(0) + '%';
