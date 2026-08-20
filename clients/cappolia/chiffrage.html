@@ -454,6 +454,62 @@
         </div>
       </div>
 
+      <!-- LOCAUX & INFRASTRUCTURES -->
+      <div class="card">
+        <div class="card-title">🏗️ Locaux & infrastructures</div>
+        <div class="form-grid cols3">
+          <div class="field">
+            <label>Local ménage</label>
+            <select id="fcLocalMenage" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);width:100%;">
+              <option value="">— Non précisé</option>
+              <option value="oui">✅ Oui — local dédié</option>
+              <option value="partage">⚠️ Oui — espace partagé</option>
+              <option value="non">❌ Non</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Évacuation eaux usées</label>
+            <select id="fcEauUsee" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);width:100%;">
+              <option value="">— Non précisé</option>
+              <option value="oui">✅ Oui</option>
+              <option value="non">❌ Non</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Arrivée d'eau</label>
+            <select id="fcArriveeEau" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);width:100%;">
+              <option value="">— Non précisé</option>
+              <option value="oui">✅ Oui</option>
+              <option value="non">❌ Non</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Apport électricité</label>
+            <select id="fcElectricite" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);width:100%;">
+              <option value="">— Non précisé</option>
+              <option value="oui">✅ Oui</option>
+              <option value="non">❌ Non</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Accès verticaux</label>
+            <select id="fcAccesVerticaux" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);width:100%;">
+              <option value="">— Non précisé</option>
+              <option value="escaliers">🪜 Escaliers uniquement</option>
+              <option value="ascenseur">🛗 Ascenseur disponible</option>
+              <option value="les_deux">🪜🛗 Escaliers + ascenseur</option>
+              <option value="plain_pied">— Plain-pied (pas d'étage)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMMENTAIRE GÉNÉRAL -->
+      <div class="card">
+        <div class="card-title">💬 Commentaire / Observations</div>
+        <textarea id="fcCommentaire" rows="4" placeholder="Informations complémentaires sur le site, contraintes particulières, demandes spécifiques du client…" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;background:var(--surface);color:var(--text);line-height:1.6;"></textarea>
+      </div>
+
       <div class="card">
         <div class="card-title">👥 Usagers & consommables</div>
         <div class="form-grid cols3" style="margin-bottom:14px;">
@@ -2309,6 +2365,12 @@ async function sauvegarder(silencieux = false) {
     frequence_semaine: parseFloat(document.getElementById('fcFrequence').value || 5),
     jours_intervention: Object.keys(JOURS_IDS).filter(j => document.getElementById(JOURS_IDS[j])?.checked),
     horaires: document.getElementById('fcHoraires').value,
+    local_menage: document.getElementById('fcLocalMenage')?.value || '',
+    eau_usee: document.getElementById('fcEauUsee')?.value || '',
+    arrivee_eau: document.getElementById('fcArriveeEau')?.value || '',
+    electricite: document.getElementById('fcElectricite')?.value || '',
+    acces_verticaux: document.getElementById('fcAccesVerticaux')?.value || '',
+    commentaire: document.getElementById('fcCommentaire')?.value || '',
     surfaces: surfaces_ec,
     heures_mensuel_ec: parseFloat(document.getElementById('pvHeuresEC').value || 0),
     heures_mensuel_ree: parseFloat(document.getElementById('pvHeuresREE').value || 0),
@@ -2358,6 +2420,12 @@ async function chargerChiffrage(id) {
   } else {
     proposerJours(String(data.frequence_semaine || '21.65'));
   }
+  if (document.getElementById('fcLocalMenage'))    document.getElementById('fcLocalMenage').value    = data.local_menage     || '';
+  if (document.getElementById('fcEauUsee'))        document.getElementById('fcEauUsee').value        = data.eau_usee         || '';
+  if (document.getElementById('fcArriveeEau'))     document.getElementById('fcArriveeEau').value     = data.arrivee_eau      || '';
+  if (document.getElementById('fcElectricite'))    document.getElementById('fcElectricite').value    = data.electricite      || '';
+  if (document.getElementById('fcAccesVerticaux')) document.getElementById('fcAccesVerticaux').value = data.acces_verticaux  || '';
+  if (document.getElementById('fcCommentaire'))    document.getElementById('fcCommentaire').value    = data.commentaire      || '';
   const horSaved = data.horaires || '';
   const hiddenHor = document.getElementById('fcHoraires');
   if (hiddenHor) hiddenHor.value = horSaved;
