@@ -556,6 +556,12 @@
       <button class="btn-primary" onclick="ouvrirModalNouveauProspect()">+ Nouveau prospect</button>
     </div>
 
+    <!-- ALERTE RÉSILIATIONS -->
+    <div id="alerteResiliations" style="display:none;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:8px;padding:12px 16px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:800;color:#92400E;margin-bottom:8px;">⏰ Prospects à accompagner pour résiliation (contrat se terminant dans moins de 7 mois)</div>
+      <div id="alerteResiliationsListe" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+
     <!-- SCROLLBAR HAUT KANBAN -->
     <div id="kanbanTopScroll" style="overflow-x:auto;overflow-y:hidden;height:12px;margin-bottom:4px;">
       <div id="kanbanTopScrollInner" style="height:1px;"></div>
@@ -716,6 +722,15 @@
         <input type="date" id="pDateContact"/>
       </div>
     </div>
+    <div class="form-row">
+      <div class="field">
+        <label>🔒 Fin de contrat concurrent</label>
+        <input type="date" id="pFinContrat" title="Date de fin du contrat avec leur prestataire actuel"/>
+      </div>
+      <div class="field" style="display:flex;align-items:flex-end;">
+        <div style="font-size:11px;color:#6B7280;padding-bottom:6px;line-height:1.5;">Alerte automatique 7 mois avant pour accompagner le courrier de résiliation.</div>
+      </div>
+    </div>
     <div class="form-row full">
       <div class="field">
         <label>Notes / Observations</label>
@@ -767,6 +782,13 @@
       <div class="info-item" style="grid-column:1/-1;"><label>Adresse</label><span id="ficheAdresse">—</span></div>
       <div class="info-item"><label>Prochain contact</label><span id="ficheProchainContact">—</span></div>
       <div class="info-item"><label>Créé le</label><span id="ficheCreeLe">—</span></div>
+      <div class="info-item" id="ficheFinContratRow" style="grid-column:1/-1;display:none;">
+        <label>🔒 Fin de contrat concurrent</label>
+        <span id="ficheFinContrat" style="font-weight:700;"></span>
+      </div>
+    </div>
+    <div id="ficheAlertResiliation" style="display:none;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px;">
+      ⏰ <strong>Alerte résiliation :</strong> Ce prospect est encore sous contrat jusqu'au <strong id="ficheAlertDate"></strong>. Il faut l'accompagner dans son <strong>courrier de résiliation</strong> dès maintenant pour respecter le préavis.
     </div>
 
     <div id="ficheNotes" style="background:#F8FAFC;border-radius:8px;padding:10px 12px;font-size:13px;color:#475569;margin-bottom:16px;display:none;"></div>
@@ -1114,6 +1136,31 @@ function majKPIs() {
   const total = allProspects.length;
   const taux = total > 0 ? Math.round((allProspects.filter(p => p.statut === 'gagne').length / total) * 100) : 0;
   document.getElementById('kpiTaux').textContent = taux + '%';
+
+  // Bandeau alertes résiliations
+  const maintenant = new Date();
+  const seuil = new Date(); seuil.setMonth(seuil.getMonth() + 7);
+  const aResilier = allProspects.filter(p => {
+    if (!p.fin_contrat_concurrent) return false;
+    const fin = new Date(p.fin_contrat_concurrent);
+    return fin >= maintenant && fin <= seuil;
+  }).sort((a, b) => new Date(a.fin_contrat_concurrent) - new Date(b.fin_contrat_concurrent));
+
+  const bandeauEl = document.getElementById('alerteResiliations');
+  const listeEl   = document.getElementById('alerteResiliationsListe');
+  if (aResilier.length > 0) {
+    listeEl.innerHTML = aResilier.map(p => {
+      const fin = new Date(p.fin_contrat_concurrent);
+      const finStr = fin.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+      const jours = Math.ceil((fin - maintenant) / 86400000);
+      return `<span onclick="ouvrirFicheProspect('${p.id}')" style="cursor:pointer;background:#fff;border:1.5px solid #FED7AA;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#92400E;display:flex;align-items:center;gap:6px;">
+        📋 ${p.raison_sociale} <span style="font-weight:400;color:#B45309;">Fin contrat ${finStr} (J-${jours})</span>
+      </span>`;
+    }).join('');
+    bandeauEl.style.display = '';
+  } else {
+    bandeauEl.style.display = 'none';
+  }
 }
 
 // ── KANBAN ─────────────────────────────────────────────────────────────
@@ -1164,6 +1211,15 @@ function carteHTML(p) {
     else if (p.statut === 'a_relancer') dateLbl = `🔔 Relance le ${d}`;
     else dateLbl = d;
   }
+  let badgeResil = '';
+  if (p.fin_contrat_concurrent) {
+    const fin = new Date(p.fin_contrat_concurrent);
+    const alerte = new Date(); alerte.setMonth(alerte.getMonth() + 7);
+    if (fin <= alerte) {
+      const finStr = fin.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+      badgeResil = `<div style="margin-top:6px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:700;color:#92400E;">📋 Résiliation avant le ${finStr}</div>`;
+    }
+  }
   return `
     <div class="prospect-card" draggable="true"
       ondragstart="dragStart(event, '${p.id}')"
@@ -1171,6 +1227,7 @@ function carteHTML(p) {
       onclick="ouvrirFicheProspect('${p.id}')">
       <div class="card-name">${p.raison_sociale}</div>
       <div class="card-contact">${p.contact || '—'}</div>
+      ${badgeResil}
       <div class="card-meta">
         <span class="tag-secteur">${sec.emoji} ${sec.label}</span>
         <span class="card-date">${dateLbl}</span>
@@ -1246,6 +1303,7 @@ function ouvrirModalNouveauProspect() {
   document.getElementById('pSecteur').value = '';
   document.getElementById('pStatut').value = 'a_contacter';
   document.getElementById('pDateContact').value = '';
+  document.getElementById('pFinContrat').value = '';
   document.getElementById('modalNouveauProspect').classList.add('open');
 }
 
@@ -1263,6 +1321,7 @@ function ouvrirModifDirect(id) {
   document.getElementById('pSecteur').value = p.secteur || '';
   document.getElementById('pStatut').value = p.statut || 'a_contacter';
   document.getElementById('pDateContact').value = p.date_prochain_contact || '';
+  document.getElementById('pFinContrat').value = p.fin_contrat_concurrent || '';
   document.getElementById('modalNouveauProspect').classList.add('open');
 }
 
@@ -1286,6 +1345,7 @@ async function enregistrerProspect() {
     secteur,
     statut: document.getElementById('pStatut').value,
     date_prochain_contact: document.getElementById('pDateContact').value || null,
+    fin_contrat_concurrent: document.getElementById('pFinContrat').value || null,
     updated_at: new Date().toISOString(),
   };
 
@@ -1322,6 +1382,26 @@ async function ouvrirFicheProspect(id) {
   document.getElementById('ficheAdresse').textContent = p.adresse || '—';
   document.getElementById('ficheProchainContact').textContent = p.date_prochain_contact ? new Date(p.date_prochain_contact).toLocaleDateString('fr-FR') : '—';
   document.getElementById('ficheCreeLe').textContent = new Date(p.created_at).toLocaleDateString('fr-FR');
+
+  // Fin de contrat concurrent
+  const finContratRow = document.getElementById('ficheFinContratRow');
+  const alertResil = document.getElementById('ficheAlertResiliation');
+  if (p.fin_contrat_concurrent) {
+    const fin = new Date(p.fin_contrat_concurrent);
+    const alerte = new Date(); alerte.setMonth(alerte.getMonth() + 7);
+    const finStr = fin.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+    document.getElementById('ficheFinContrat').textContent = finStr;
+    finContratRow.style.display = '';
+    if (fin <= alerte) {
+      document.getElementById('ficheAlertDate').textContent = finStr;
+      alertResil.style.display = '';
+    } else {
+      alertResil.style.display = 'none';
+    }
+  } else {
+    finContratRow.style.display = 'none';
+    alertResil.style.display = 'none';
+  }
 
   const notesEl = document.getElementById('ficheNotes');
   if (p.notes) { notesEl.textContent = p.notes; notesEl.style.display = 'block'; }
