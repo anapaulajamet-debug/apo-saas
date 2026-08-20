@@ -679,10 +679,23 @@
                 <td colspan="2" style="font-size:10px;color:var(--gray);padding-left:4px;">productivité réelle</td>
               </tr>
               <tr class="tr-total">
-                <td colspan="5" style="text-align:right;">TOTAL TEMPS / PASSAGE</td>
-                <td id="totalTpsPassage">0,00</td>
-                <td></td>
-                <td id="totalTpsMensuel">0,00</td>
+                <td colspan="4" style="text-align:right;">TOTAL TEMPS / PASSAGE</td>
+                <td style="text-align:right;padding:4px 6px;">
+                  <input type="number" id="totalTpsPassage" value="0" step="0.05" min="0"
+                    style="width:72px;text-align:right;padding:3px 5px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;font-weight:700;background:var(--surface);color:var(--green-dark);"
+                    onchange="totalPassageManuel=true;syncHeuresVersCalc();calculerPrix()"
+                    title="Modifiable manuellement — cliquez ↺ pour revenir au calcul auto">
+                </td>
+                <td style="padding:4px 2px;">
+                  <span id="totalTpsPassageHM" style="font-size:11px;color:var(--text-muted);white-space:nowrap;"></span>
+                  <button onclick="totalPassageManuel=false;calculerEC()" title="Recalculer automatiquement"
+                    style="background:none;border:none;cursor:pointer;color:var(--green);font-size:14px;padding:0 2px;vertical-align:middle;">↺</button>
+                </td>
+                <td id="totalTpsMensuel" style="white-space:nowrap;"></td>
+              </tr>
+              <tr class="tr-total" style="font-size:11px;opacity:.8;">
+                <td colspan="5" style="text-align:right;">TOTAL TEMPS / SEMAINE</td>
+                <td id="totalTpsSemaine" colspan="3" style="white-space:nowrap;"></td>
               </tr>
             </tfoot>
           </table>
@@ -1730,10 +1743,31 @@ function sauverCadence(gid, idx, val) {
   g.cadences[idx] = parseFloat(val) || 1;
 }
 
+// Format décimal → "1h 30min"
+function fmtH(h) {
+  if (!h || h <= 0) return '0h 00min';
+  const heures = Math.floor(h);
+  const mins   = Math.round((h - heures) * 60);
+  return heures + 'h ' + String(mins).padStart(2, '0') + 'min';
+}
+
+let totalPassageManuel = false;
+
 function sauverFreqGroupe(gid, val) {
   const g = groupesEC.find(x => x.id === gid);
   if (!g) return;
-  g.freq = (parseFloat(val) || 1) * 4.33; // stocké en passes/mois
+  const nouvFreqMois = (parseFloat(val) || 1) * 4.33;
+  g.freq = nouvFreqMois;
+  // Propager aux tâches qui suivaient encore la fréquence du groupe
+  if (!g.freqTaches) g.freqTaches = {};
+  g.prestations.forEach((_, idx) => {
+    // Mettre à jour l'input de fréquence de chaque tâche
+    const freqTacheInput = document.getElementById(`${gid}_${idx}_freqTache`);
+    if (freqTacheInput) {
+      freqTacheInput.value = val; // même valeur /semaine que le groupe
+      g.freqTaches[idx] = nouvFreqMois;
+    }
+  });
 }
 
 function sauverFreqTache(gid, idx, val) {
@@ -1932,8 +1966,8 @@ function calculerEC() {
     const freqTacheInput = document.getElementById(rid + '_freqTache');
     const freqMoisTache = freqTacheInput ? parseFloat(freqTacheInput.value) * 4.33 || freqMoisGroupe : freqMoisGroupe;
     const tpsPresta = surf > 0 ? surf / cadence : 0;
-    if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = tpsPresta.toFixed(2);
-    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = (tpsPresta * freqMoisTache).toFixed(2);
+    if (document.getElementById(rid + '_tps')) document.getElementById(rid + '_tps').textContent = fmtH(tpsPresta);
+    if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = fmtH(tpsPresta * freqMoisTache);
     rawTps += tpsPresta;
     totalMensuel += tpsPresta * freqMoisTache;
   });
@@ -1943,14 +1977,29 @@ function calculerEC() {
   const elRatio = document.getElementById('ratioSurfTps');
   if (elRatio) elRatio.textContent = rawTps > 0 ? (surfacesTotales / rawTps).toFixed(0) + ' m²/h' : '—';
 
-  const totalTpsPassage = rawTps > 0 ? Math.max(rawTps, 1) : 0;
+  const totalTpsPassageAuto = rawTps > 0 ? Math.max(rawTps, 1) : 0;
   const totalMensuelFinal = parseFloat(totalMensuel.toFixed(2));
 
-  document.getElementById('totalTpsPassage').textContent = totalTpsPassage.toFixed(2);
-  document.getElementById('totalTpsMensuel').textContent = totalMensuelFinal.toFixed(2);
-  document.getElementById('kpiTpsPassage').textContent = totalTpsPassage.toFixed(2);
+  // Mise à jour du total passage (seulement si pas de verrou manuel)
+  const elPassage = document.getElementById('totalTpsPassage');
+  if (!totalPassageManuel && elPassage) elPassage.value = totalTpsPassageAuto.toFixed(2);
+  const totalTpsPassage = elPassage ? (parseFloat(elPassage.value) || totalTpsPassageAuto) : totalTpsPassageAuto;
+
+  const elPassageHM = document.getElementById('totalTpsPassageHM');
+  if (elPassageHM) elPassageHM.textContent = fmtH(totalTpsPassage);
+
+  const elMensuel = document.getElementById('totalTpsMensuel');
+  if (elMensuel) elMensuel.textContent = fmtH(totalMensuelFinal);
+
+  const totalTpsSemaine = totalMensuelFinal / 4.33;
+  const elSemaine = document.getElementById('totalTpsSemaine');
+  if (elSemaine) elSemaine.textContent = fmtH(totalTpsSemaine) + ' / sem.';
+
+  _hEC_brut = totalMensuelFinal; // pour syncHeuresVersCalc()
+
+  document.getElementById('kpiTpsPassage').textContent = fmtH(totalTpsPassage);
   document.getElementById('kpiFreqMois').textContent = freqGlobale.toFixed(1);
-  document.getElementById('kpiTpsMois').textContent = totalMensuelFinal.toFixed(2);
+  document.getElementById('kpiTpsMois').textContent = fmtH(totalMensuelFinal);
   const nbAgents = totalMensuelFinal > 0 ? Math.ceil(totalMensuelFinal / (3 * 22)) : 0;
   document.getElementById('kpiNbAgents').textContent = nbAgents || '—';
   syncHeuresVersCalc();
@@ -2058,12 +2107,14 @@ function supprimerLigne(id, tbody) {
 }
 
 // ── CALCUL PRIX ──────────────────────────────────────────────────────────
+let _hEC_brut = 0; // valeur numérique brute, mise à jour par calculerEC()
+
 function syncHeuresVersCalc() {
-  const hEC = parseFloat(document.getElementById('totalTpsMensuel')?.textContent || 0);
+  const hEC  = _hEC_brut;
   const hREE = parseFloat(document.getElementById('totalREE')?.textContent || 0);
-  const elEC = document.getElementById('pvHeuresEC');
+  const elEC  = document.getElementById('pvHeuresEC');
   const elREE = document.getElementById('pvHeuresREE');
-  if (elEC) elEC.value = hEC.toFixed(2);
+  if (elEC)  elEC.value  = hEC.toFixed(2);
   if (elREE) elREE.value = hREE.toFixed(2);
 }
 
