@@ -499,6 +499,7 @@
 
       <div class="nav-btns">
         <div></div>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(2)">Étape suivante →</button>
       </div>
     </div>
@@ -561,6 +562,7 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(1)">← Retour</button>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(3)">Étape suivante →</button>
       </div>
     </div>
@@ -604,6 +606,7 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(2)">← Retour</button>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(5)">Étape suivante →</button>
       </div>
     </div>
@@ -643,6 +646,7 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(4)">Étape suivante →</button>
       </div>
     </div>
@@ -790,6 +794,7 @@
 
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(6)">Générer le devis →</button>
       </div>
     </div>
@@ -1100,7 +1105,8 @@ function afficherFreqAutres(sel) {
   calculerEC();
 }
 
-function allerEtape(n) {
+function allerEtape(n, sauver = true) {
+  if (sauver) sauvegarder(true); // sauvegarde silencieuse avant navigation
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
   document.getElementById('section-' + n).classList.add('active');
@@ -2074,7 +2080,7 @@ async function envoyerDevis() {
   }
 }
 
-async function sauvegarder() {
+async function sauvegarder(silencieux = false) {
   const prix = calculerPrix();
   const prospectId = document.getElementById('fcProspect').value || null;
 
@@ -2120,7 +2126,11 @@ async function sauvegarder() {
     await sb.from('prospects').update({ statut: 'chiffrage', updated_at: new Date().toISOString() }).eq('id', prospectId);
   }
 
-  toast('Chiffrage enregistré ✓');
+  if (!silencieux) toast('Chiffrage enregistré ✓');
+  else { // indicateur discret dans le header
+    const btn = document.getElementById('btnSave');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Enregistré'; setTimeout(() => btn.textContent = orig, 1500); }
+  }
 }
 
 async function chargerChiffrage(id) {
