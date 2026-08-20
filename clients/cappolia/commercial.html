@@ -1068,6 +1068,7 @@ async function init() {
   document.getElementById('userEmail').textContent = user.email;
   await chargerProspects();
   afficherSecteurs();
+  chargerGoogleMaps();
   const mois = new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
   document.getElementById('kpiGagneMois').textContent = mois;
 }
