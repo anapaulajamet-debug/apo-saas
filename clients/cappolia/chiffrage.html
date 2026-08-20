@@ -238,19 +238,25 @@
     <div class="step-item" onclick="allerEtape(3)" id="step3">
       <div class="step-num">3</div>
       <div><div class="step-label">Prestations ponctuelles</div><div class="step-sub">Hors entretien courant</div></div>
-      <div style="color:rgba(255,255,255,0.3);font-size:18px;align-self:center;">›</div>
-      <div onclick="allerEtape(5)" style="cursor:pointer;opacity:0.7;" id="step5">
-        <div class="step-label">Matériel</div><div class="step-sub">Amortissement</div>
-      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(5)" id="step5">
+      <div class="step-num">4</div>
+      <div><div class="step-label">Matériel</div><div class="step-sub">Amortissement</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(7)" id="step7">
+      <div class="step-num">5</div>
+      <div><div class="step-label">Équipe & Temps</div><div class="step-sub">Composition & heures</div></div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" onclick="allerEtape(4)" id="step4">
-      <div class="step-num">4</div>
+      <div class="step-num">6</div>
       <div><div class="step-label">Prix de vente</div><div class="step-sub">Calcul automatique</div></div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" onclick="allerEtape(6)" id="step6">
-      <div class="step-num">5</div>
+      <div class="step-num">7</div>
       <div><div class="step-label">Devis client</div><div class="step-sub">Génération & envoi</div></div>
     </div>
 
@@ -647,11 +653,56 @@
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
         <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
+        <button class="btn-primary" onclick="allerEtape(7)">Étape suivante →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 5 : ÉQUIPE & TEMPS PASSÉ -->
+    <div class="section" id="section-7">
+      <div class="section-title">Équipe & Temps passé</div>
+      <div class="section-sub">Composition de l'équipe — proposition automatique modifiable</div>
+
+      <div class="card">
+        <div class="card-title">Heures calculées en amont</div>
+        <div id="equipeInfoBox" style="background:var(--bg);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--text-muted);line-height:1.9;"></div>
+
+        <div class="card-title" style="margin-top:8px;">Tableau de l'équipe</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;" id="tableEquipe">
+            <thead>
+              <tr style="background:var(--bg);text-align:left;">
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Niveau CCN 2026</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Nb agents</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">H/agent/mois</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Total h/mois</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Taux brut (€/h)</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Coût brut/mois</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyEquipe"></tbody>
+            <tfoot>
+              <tr style="font-weight:600;background:var(--bg);">
+                <td colspan="3" style="padding:8px 10px;border-top:2px solid var(--border);">TOTAL</td>
+                <td id="equipeTotalH" style="padding:8px 10px;border-top:2px solid var(--border);">—</td>
+                <td style="padding:8px 10px;border-top:2px solid var(--border);"></td>
+                <td id="equipeTotalCout" style="padding:8px 10px;border-top:2px solid var(--border);color:var(--green);">—</td>
+                <td style="border-top:2px solid var(--border);"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button class="btn-secondary" style="margin-top:12px;" onclick="ajouterLigneEquipe()">+ Ajouter un agent</button>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(5)">← Retour</button>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(4)">Étape suivante →</button>
       </div>
     </div>
 
-    <!-- ÉTAPE 5 : MATÉRIEL -->
+    <!-- ÉTAPE 6 : PRIX DE VENTE -->
     <div class="section" id="section-4">
       <div class="section-title">Prix de vente mensuel</div>
       <div class="section-sub">Calcul automatique — CCN Propreté 2026 — Forfait minimum 250 € HT</div>
@@ -793,7 +844,7 @@
       </div>
 
       <div class="nav-btns">
-        <button class="btn-secondary" onclick="allerEtape(3)">← Retour</button>
+        <button class="btn-secondary" onclick="allerEtape(7)">← Retour</button>
         <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(6)">Générer le devis →</button>
       </div>
@@ -1106,14 +1157,112 @@ function afficherFreqAutres(sel) {
 }
 
 function allerEtape(n, sauver = true) {
-  if (sauver) sauvegarder(true); // sauvegarde silencieuse avant navigation
+  if (sauver) sauvegarder(true);
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
   document.getElementById('section-' + n).classList.add('active');
   document.getElementById('step' + n).classList.add('active');
-  if (n === 4) { syncHeuresVersCalc(); calculerPrix(); }
+  if (n === 7) { initEquipe(); }
+  if (n === 4) { calculerPrix(); }
   if (n === 6) { genererDevis(); }
   window.scrollTo(0, 0);
+}
+
+// ── ÉQUIPE & TEMPS PASSÉ ─────────────────────────────────────────────────────
+
+const CCN_NIVEAUX = [
+  { label: 'AS1A – Agent de service', taux: 12.17 },
+  { label: 'AS1B – Agent de service', taux: 12.36 },
+  { label: 'AQS2A – Agent qualifié', taux: 12.55 },
+  { label: 'AQS2B – Agent qualifié', taux: 12.76 },
+  { label: 'ATQS3A – Agent très qualifié', taux: 13.00 },
+  { label: 'ATQS3B – Agent très qualifié', taux: 13.28 },
+  { label: 'MA4A – Maîtrise / Chef d\'équipe', taux: 14.50 },
+  { label: 'MA4B – Maîtrise / Chef d\'équipe', taux: 15.20 },
+  { label: 'Cadre', taux: 20.00 },
+];
+
+function optionsNiveaux(selectedTaux) {
+  return CCN_NIVEAUX.map(n =>
+    `<option value="${n.taux}" ${n.taux === selectedTaux ? 'selected' : ''}>${n.label} (${n.taux.toFixed(2)} €/h)</option>`
+  ).join('');
+}
+
+function ajouterLigneEquipe(taux, nb, h) {
+  const tbody = document.getElementById('tbodyEquipe');
+  const idx   = tbody.rows.length;
+  const _taux = taux ?? CCN_NIVEAUX[0].taux;
+  const _nb   = nb   ?? 1;
+  const _h    = h    ?? 0;
+  const tr    = document.createElement('tr');
+  tr.dataset.idx = idx;
+  tr.innerHTML = `
+    <td style="padding:6px 8px;">
+      <select class="eq-niveau" onchange="recalcEquipeLigne(this)" style="font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);width:100%;">
+        ${optionsNiveaux(_taux)}
+      </select>
+    </td>
+    <td style="padding:6px 8px;"><input type="number" class="eq-nb" value="${_nb}" min="1" step="1" onchange="recalcEquipeLigne(this)" style="width:60px;text-align:center;"></td>
+    <td style="padding:6px 8px;"><input type="number" class="eq-h" value="${_h.toFixed(2)}" min="0" step="0.5" onchange="recalcEquipeLigne(this)" style="width:70px;text-align:center;"></td>
+    <td class="eq-totalh" style="padding:6px 8px;text-align:center;font-weight:500;">—</td>
+    <td class="eq-taux-display" style="padding:6px 8px;text-align:center;color:var(--text-muted);">${_taux.toFixed(2)}</td>
+    <td class="eq-cout" style="padding:6px 8px;text-align:center;font-weight:600;color:var(--green);">—</td>
+    <td style="padding:6px 8px;text-align:center;">
+      <button onclick="supprimerLigneEquipe(this)" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:16px;" title="Supprimer">🗑️</button>
+    </td>`;
+  tbody.appendChild(tr);
+  recalcEquipeLigne(tr.querySelector('.eq-nb'));
+}
+
+function supprimerLigneEquipe(btn) {
+  btn.closest('tr').remove();
+  recalcEquipeTotaux();
+}
+
+function recalcEquipeLigne(el) {
+  const tr   = el.closest('tr');
+  const nb   = parseFloat(tr.querySelector('.eq-nb').value || 0);
+  const h    = parseFloat(tr.querySelector('.eq-h').value  || 0);
+  const taux = parseFloat(tr.querySelector('.eq-niveau').value || 0);
+  const tot  = nb * h;
+  const cout = tot * taux;
+  tr.querySelector('.eq-totalh').textContent = tot.toFixed(2) + ' h';
+  tr.querySelector('.eq-taux-display').textContent = taux.toFixed(2) + ' €';
+  tr.querySelector('.eq-cout').textContent = cout.toFixed(2) + ' €';
+  recalcEquipeTotaux();
+}
+
+function recalcEquipeTotaux() {
+  let totalH = 0, totalCout = 0;
+  document.querySelectorAll('#tbodyEquipe tr').forEach(tr => {
+    const nb   = parseFloat(tr.querySelector('.eq-nb')?.value || 0);
+    const h    = parseFloat(tr.querySelector('.eq-h')?.value  || 0);
+    const taux = parseFloat(tr.querySelector('.eq-niveau')?.value || 0);
+    totalH    += nb * h;
+    totalCout += nb * h * taux;
+  });
+  document.getElementById('equipeTotalH').textContent    = totalH.toFixed(2) + ' h';
+  document.getElementById('equipeTotalCout').textContent = totalCout.toFixed(2) + ' €';
+}
+
+function initEquipe() {
+  syncHeuresVersCalc();
+  const hEC  = parseFloat(document.getElementById('pvHeuresEC')?.value  || 0);
+  const hREE = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
+  const totalH = hEC + hREE;
+  const infoBox = document.getElementById('equipeInfoBox');
+  infoBox.innerHTML = `
+    ⏱️ <strong>Entretien courant :</strong> ${hEC.toFixed(2)} h/mois &nbsp;|&nbsp;
+    ⏱️ <strong>Prestations ponctuelles :</strong> ${hREE.toFixed(2)} h/mois<br>
+    📊 <strong>Total calculé :</strong> ${totalH.toFixed(2)} h/mois
+    ${totalH > 0 ? ' — proposition automatique ci-dessous (modifiable)' : ' — aucune heure détectée, ajoutez des lignes manuellement'}`;
+
+  const tbody = document.getElementById('tbodyEquipe');
+  if (tbody.rows.length === 0 && totalH > 0) {
+    ajouterLigneEquipe(CCN_NIVEAUX[0].taux, 1, totalH);
+  } else if (tbody.rows.length > 0) {
+    recalcEquipeTotaux();
+  }
 }
 
 // ── MATRICE PRESTATIONS PAR LOCAL × SOL ─────────────────────────────────
@@ -1642,12 +1791,23 @@ function syncHeuresVersCalc() {
 }
 
 function calculerPrix() {
-  const hEC = parseFloat(document.getElementById('pvHeuresEC')?.value || 0);
-  const hREE = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
-  const tauxEC = parseFloat(document.getElementById('pvNiveauEC')?.value || 12.57);
-  const tauxREE = parseFloat(document.getElementById('pvNiveauREE')?.value || 13.17);
-
-  const masseSalariale = (hEC * tauxEC) + (hREE * tauxREE);
+  // Si le tableau Équipe a des lignes, on s'en sert ; sinon fallback EC+REE
+  const lignesEquipe = document.querySelectorAll('#tbodyEquipe tr');
+  let masseSalariale = 0;
+  if (lignesEquipe.length > 0) {
+    lignesEquipe.forEach(tr => {
+      const nb   = parseFloat(tr.querySelector('.eq-nb')?.value  || 0);
+      const h    = parseFloat(tr.querySelector('.eq-h')?.value   || 0);
+      const taux = parseFloat(tr.querySelector('.eq-niveau')?.value || 0);
+      masseSalariale += nb * h * taux;
+    });
+  } else {
+    const hEC  = parseFloat(document.getElementById('pvHeuresEC')?.value  || 0);
+    const hREE = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
+    const tauxEC  = parseFloat(document.getElementById('pvNiveauEC')?.value  || 12.57);
+    const tauxREE = parseFloat(document.getElementById('pvNiveauREE')?.value || 13.17);
+    masseSalariale = (hEC * tauxEC) + (hREE * tauxREE);
+  }
   // Charges patronales brutes CCN Propreté 2026 (source : URSSAF)
   const pvChargesVal   = document.getElementById('pvCharges')?.value || '44';
   const tauxCharges    = 0.44; // 44% dans tous les cas (taux vérifié URSSAF 2026)
