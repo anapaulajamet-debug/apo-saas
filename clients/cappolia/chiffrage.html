@@ -1714,8 +1714,8 @@ function genererDevisPDF() {
 
 // ── CAHIER DES CHARGES PDF ───────────────────────────────────────────────
 function genererCDC() {
-  const client  = document.getElementById('fcClient')?.value  || '—';
-  const site    = document.getElementById('fcSite')?.value    || '—';
+  const client  = document.getElementById('fcRaisonSociale')?.value || '—';
+  const site    = document.getElementById('fcAdresse')?.value       || '—';
   const contact = document.getElementById('fcContact')?.value || '';
   const date    = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
 
@@ -1726,10 +1726,13 @@ function genererCDC() {
     secEC = '<p style="color:#6B7280;font-style:italic;">Aucun local renseigné.</p>';
   } else {
     groupesEC.forEach(g => {
-      const freqSem  = g.freq != null ? g.freq : freqGlobale;
-      const freqMois = freqSem.toFixed(1);
-      const freqLabel = freqSem.toFixed(1) + ' passages/mois';
-      const lignes   = g.prestations.map(p => {
+      const freqMoisGroupe = g.freq != null ? g.freq : freqGlobale;
+      const freqSemGroupe  = (freqMoisGroupe / 4.33).toFixed(1);
+      const freqLabelGroupe = freqSemGroupe + ' passage' + (parseFloat(freqSemGroupe) > 1 ? 's' : '') + '/semaine';
+      const lignes   = g.prestations.map((p, idx) => {
+        const freqMoisTache = (g.freqTaches && g.freqTaches[idx] != null) ? g.freqTaches[idx] : freqMoisGroupe;
+        const freqSemTache  = (freqMoisTache / 4.33).toFixed(1);
+        const freqLabel     = freqSemTache + ' passage' + (parseFloat(freqSemTache) > 1 ? 's' : '') + '/semaine';
         return `<tr>
           <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;">${p}</td>
           <td style="padding:7px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;text-align:right;color:#1A3D28;font-weight:600;">${freqLabel}</td>
@@ -1739,7 +1742,7 @@ function genererCDC() {
         <div style="margin-bottom:20px;border:1px solid #D1FAE5;border-radius:8px;overflow:hidden;">
           <div style="background:#1A3D28;color:#fff;padding:10px 14px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
             <span>🏢 ${g.local} — ${g.sol}</span>
-            <span style="font-weight:400;font-size:12px;">${g.surface} m² · ${freqLabel}</span>
+            <span style="font-weight:400;font-size:12px;">${g.surface} m² · ${freqLabelGroupe}</span>
           </div>
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr style="background:#F0FDF4;">
