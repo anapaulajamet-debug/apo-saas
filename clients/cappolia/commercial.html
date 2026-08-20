@@ -496,8 +496,8 @@
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab active" onclick="afficherOnglet('pipeline', this)">Pipeline prospects</div>
-  <div class="tab" onclick="afficherOnglet('zones', this)">Zones & Secteurs</div>
+  <div class="tab active" onclick="afficherOnglet('zones', this)">🗺️ Zones & Secteurs</div>
+  <div class="tab" onclick="afficherOnglet('pipeline', this)">Pipeline prospects</div>
   <div class="tab" onclick="afficherOnglet('cadences', this)">⚙️ Cadences internes</div>
   <div class="tab" onclick="afficherOnglet('salaires', this)">💶 Grille salariale CCN</div>
   <div class="tab" onclick="afficherOnglet('prestations', this)">🗂️ Prestations par local</div>
@@ -536,7 +536,7 @@
   </div>
 
   <!-- SECTION PIPELINE -->
-  <div id="section-pipeline">
+  <div id="section-pipeline" class="section-hidden">
 
     <!-- TOOLBAR -->
     <div class="toolbar">
@@ -567,12 +567,19 @@
   </div>
 
   <!-- SECTION ZONES & SECTEURS -->
-  <div id="section-zones" class="section-hidden">
+  <div id="section-zones">
 
     <div class="map-container">
       <div class="map-toolbar">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <span class="map-zone-badge">📍 13190 ALLAUCH — Bouches-du-Rhône</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:700;color:var(--green-dark);">📍 Zone :</span>
+          <input id="rechercheCodePostal" type="text" placeholder="13190" value="13190"
+            style="width:70px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;text-align:center;"
+            onkeydown="if(event.key==='Enter') changerZone()"/>
+          <input id="rechercheVille" type="text" placeholder="ALLAUCH" value="ALLAUCH"
+            style="width:110px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;"
+            onkeydown="if(event.key==='Enter') changerZone()"/>
+          <button onclick="changerZone()" style="padding:5px 10px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700;">OK</button>
           <span style="font-size:12px;color:var(--gray);" id="mapProspectCount"></span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1348,9 +1355,31 @@ function allerChiffrage() {
 
 // ── GOOGLE MAPS ────────────────────────────────────────────────────────
 const MAPS_KEY = 'AIzaSyBEVZrTPhdMuxzgkUJi9v-7jU-oVvLdpRc';
-const ALLAUCH_CENTER = { lat: 43.3356, lng: 5.4836 };
+let MAP_CENTER = { lat: 43.3356, lng: 5.4836 };
+const ALLAUCH_CENTER = MAP_CENTER; // alias de compatibilité
 let gmap = null;
 let geocoder = null;
+
+function changerZone() {
+  const cp = document.getElementById('rechercheCodePostal')?.value.trim() || '';
+  const ville = document.getElementById('rechercheVille')?.value.trim() || '';
+  if (!cp && !ville) return;
+  const adresseQuery = [cp, ville, 'France'].filter(Boolean).join(' ');
+  if (!geocoder) geocoder = new google.maps.Geocoder();
+  geocoder.geocode({ address: adresseQuery }, (results, status) => {
+    if (status === 'OK' && results[0]) {
+      const loc = results[0].geometry.location;
+      MAP_CENTER = { lat: loc.lat(), lng: loc.lng() };
+      gmap.setCenter(MAP_CENTER);
+      gmap.setZoom(13);
+      effacerGoogleMarqueurs();
+      document.getElementById('mapInfo').style.display = 'none';
+      document.getElementById('mapProspectCount').textContent = '';
+    } else {
+      toast('Zone introuvable : ' + adresseQuery);
+    }
+  });
+}
 let mapMarkers = [];
 let autocomplete = null;
 
@@ -1445,7 +1474,7 @@ function rechercherEtablissements() {
   effacerGoogleMarqueurs();
 
   const request = {
-    location: ALLAUCH_CENTER,
+    location: MAP_CENTER,
     radius: 5000,
     type: type,
   };
@@ -1530,6 +1559,7 @@ function ajouterMarqueurGoogle(place, type, dejaAjoute) {
             ${adresse ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">📍 ${adresse}</div>` : ''}
             ${tel ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">📞 <a href="tel:${tel}" style="color:#2D6A3F;text-decoration:none;">${tel}</a></div>` : '<div style="font-size:11px;color:#94A3B8;margin-bottom:4px;">📞 Téléphone non disponible</div>'}
             ${site ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">🌐 <a href="${site}" target="_blank" style="color:#2563EB;text-decoration:none;">Site web</a></div>` : ''}
+            <div style="font-size:11px;color:#475569;margin-bottom:4px;">🗺️ <a href="https://www.google.com/maps/place/?q=place_id:${place.place_id}" target="_blank" style="color:#2563EB;text-decoration:none;">Voir sur Google Maps</a></div>
           </div>
           <div style="background:#FFF7E6;border-radius:6px;padding:6px 8px;font-size:10px;color:#92400E;margin-bottom:8px;">
             ℹ️ Complétez le nom du contact et l'email après ajout
@@ -1654,7 +1684,7 @@ function afficherSecteurs() {
 }
 
 function filtrerDepuisZones(secteur) {
-  afficherOnglet('pipeline', document.querySelector('.tab'));
+  afficherOnglet('zones', document.querySelector('.tab'));
   filtreStatut = secteur;
   document.querySelectorAll('.filter-btn').forEach(b => {
     b.classList.toggle('active', b.textContent.trim().toLowerCase().includes(secteur));
