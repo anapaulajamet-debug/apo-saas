@@ -1991,7 +1991,8 @@ function calculerEC() {
   const elMensuel = document.getElementById('totalTpsMensuel');
   if (elMensuel) elMensuel.textContent = fmtH(totalMensuelFinal);
 
-  const totalTpsSemaine = totalMensuelFinal / 4.33;
+  const freqSemaine = freqGlobale / 4.33;
+  const totalTpsSemaine = totalTpsPassage * freqSemaine;
   const elSemaine = document.getElementById('totalTpsSemaine');
   if (elSemaine) elSemaine.textContent = fmtH(totalTpsSemaine) + ' / sem.';
 
