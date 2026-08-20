@@ -1989,10 +1989,10 @@ function calculerEC() {
   const elPassageHM = document.getElementById('totalTpsPassageHM');
   if (elPassageHM) elPassageHM.textContent = fmtH(totalTpsPassage);
 
-  // Mensuel et semaine basés sur le passage arrondi
-  const freqSemaine = freqGlobale / 4.33;
-  const totalTpsSemaine  = totalTpsPassage * freqSemaine;
-  const totalMensuelFinal = totalTpsPassage * freqGlobale;
+  // Mensuel = somme réelle des tâches × leur fréquence propre
+  const totalMensuelFinal = parseFloat(totalMensuel.toFixed(2));
+  // Semaine = mensuel réel ÷ 4,33 (reflète les fréquences par local)
+  const totalTpsSemaine = totalMensuelFinal / 4.33;
 
   const elMensuel = document.getElementById('totalTpsMensuel');
   if (elMensuel) elMensuel.textContent = fmtH(totalMensuelFinal);
