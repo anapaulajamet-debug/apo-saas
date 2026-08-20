@@ -1138,7 +1138,6 @@ function majKPIs() {
   document.getElementById('kpiTaux').textContent = taux + '%';
 
   // Bandeau alertes résiliations
-  const maintenant = new Date();
   const seuil = new Date(); seuil.setMonth(seuil.getMonth() + 7);
   const aResilier = allProspects.filter(p => {
     if (!p.fin_contrat_concurrent) return false;
