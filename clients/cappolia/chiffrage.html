@@ -695,6 +695,7 @@
             <div class="calcul-row"><span class="calcul-label">Masse salariale brute</span><span class="calcul-val" id="cMasseSalariale">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Charges patronales <span class="taux-badge" id="badgeCharges">30%</span></span><span class="calcul-val" id="cCharges">—</span></div>
             <div class="calcul-row" id="rowAllegement" style="display:none;color:#166534;"><span class="calcul-label">↳ Allègement RGDU <span class="taux-badge" id="badgeAllegement" style="background:#DCFCE7;color:#166534;">0%</span></span><span class="calcul-val" id="cAllegement" style="color:#166534;">—</span></div>
+            <div class="calcul-row" style="background:#F0FDF4;padding:10px;border-radius:6px;border:1px solid #86EFAC;margin:8px 0;"><span class="calcul-label" style="font-weight:700;color:#1A3D28;">Coût de la masse salariale</span><span class="calcul-val" id="cCoutMasseSalariale" style="font-weight:700;color:#1A3D28;">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Coût produits nettoyage <span class="taux-badge" id="badgeProduits">15%</span></span><span class="calcul-val" id="cProduits">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Autres fournitures <span class="taux-badge" id="badgeFournitures">5%</span></span><span class="calcul-val" id="cFournitures">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Amortissement matériel</span><span class="calcul-val" id="cAmortissement">—</span></div>
@@ -1520,8 +1521,10 @@ function calculerPrix() {
   const fmt = v => v.toFixed(2).replace('.', ',') + ' €';
 
   // Mise à jour affichage
+  const coutMasseSalariale = masseSalariale + charges; // brut + charges patronales nettes
   document.getElementById('cMasseSalariale').textContent = fmt(masseSalariale);
   document.getElementById('cCharges').textContent = fmt(chargesBrutes);
+  document.getElementById('cCoutMasseSalariale').textContent = fmt(coutMasseSalariale);
   // Allègement
   const rowAlleg = document.getElementById('rowAllegement');
   if (tauxAllegement > 0) {
