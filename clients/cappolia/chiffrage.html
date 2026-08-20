@@ -96,6 +96,9 @@
     }
     .btn-add-row:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
     .btn-del { background: none; border: none; cursor: pointer; color: #DC2626; font-size: 16px; padding: 0 4px; }
+    .jour-cb { display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;transition:all .15s;user-select:none; }
+    .jour-cb:has(input:checked) { background:var(--green-light);border-color:var(--green);color:var(--green-dark);font-weight:600; }
+    .jour-cb input { accent-color:var(--green);cursor:pointer; }
 
     /* PRIX DE VENTE */
     .prix-block { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -427,6 +430,18 @@
               </select>
             </div>
             <input type="hidden" id="fcHoraires"/>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Jours d'intervention</label>
+            <div id="fcJoursContainer" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+              <label class="jour-cb" data-jour="lun"><input type="checkbox" id="fcJourLun" value="lun" onchange="majJoursLabel()"> Lundi</label>
+              <label class="jour-cb" data-jour="mar"><input type="checkbox" id="fcJourMar" value="mar" onchange="majJoursLabel()"> Mardi</label>
+              <label class="jour-cb" data-jour="mer"><input type="checkbox" id="fcJourMer" value="mer" onchange="majJoursLabel()"> Mercredi</label>
+              <label class="jour-cb" data-jour="jeu"><input type="checkbox" id="fcJourJeu" value="jeu" onchange="majJoursLabel()"> Jeudi</label>
+              <label class="jour-cb" data-jour="ven"><input type="checkbox" id="fcJourVen" value="ven" onchange="majJoursLabel()"> Vendredi</label>
+              <label class="jour-cb" data-jour="sam"><input type="checkbox" id="fcJourSam" value="sam" onchange="majJoursLabel()"> Samedi</label>
+              <label class="jour-cb" data-jour="dim"><input type="checkbox" id="fcJourDim" value="dim" onchange="majJoursLabel()"> Dimanche</label>
+            </div>
           </div>
           <div class="field">
             <label>Accès / Particularités</label>
@@ -1116,6 +1131,8 @@ async function init() {
   document.getElementById('dDate').textContent = 'Date : ' + new Date().toLocaleDateString('fr-FR');
 
   calculerEC();
+  // Cocher les jours selon la fréquence par défaut (5j/sem)
+  proposerJours(document.getElementById('fcFrequence')?.value || '21.65');
 }
 
 // ── PROSPECT AUTO-FILL ───────────────────────────────────────────────────
@@ -1153,8 +1170,36 @@ function getFreqLabel() {
 function afficherFreqAutres(sel) {
   const inp = document.getElementById('fcFrequenceAutres');
   if (inp) inp.style.display = sel.value === 'autres' ? 'block' : 'none';
+  proposerJours(sel.value);
   calculerEC();
 }
+
+// Jours proposés selon la fréquence sélectionnée
+const JOURS_PAR_FREQ = {
+  '21.65': ['lun','mar','mer','jeu','ven'],
+  '17.33': ['lun','mar','mer','jeu'],
+  '13':    ['lun','mer','ven'],
+  '8.66':  ['lun','jeu'],
+  '4.33':  ['lun'],
+  '26':    ['lun','mar','mer','jeu','ven','sam'],
+  '30':    ['lun','mar','mer','jeu','ven','sam','dim'],
+};
+const JOURS_IDS = { lun:'fcJourLun', mar:'fcJourMar', mer:'fcJourMer', jeu:'fcJourJeu', ven:'fcJourVen', sam:'fcJourSam', dim:'fcJourDim' };
+
+function proposerJours(val) {
+  const jours = JOURS_PAR_FREQ[val];
+  if (!jours) return; // fréquences < hebdo ou "autres" → on ne touche pas
+  Object.values(JOURS_IDS).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  jours.forEach(j => {
+    const el = document.getElementById(JOURS_IDS[j]);
+    if (el) el.checked = true;
+  });
+}
+
+function majJoursLabel() { /* hook pour sauvegarde future / CDC */ }
 
 function allerEtape(n, sauver = true) {
   if (sauver) sauvegarder(true);
@@ -2262,6 +2307,7 @@ async function sauvegarder(silencieux = false) {
     type_site: document.getElementById('fcTypeSite').value,
     surface_totale: parseFloat(document.getElementById('fcSurface').value || 0),
     frequence_semaine: parseFloat(document.getElementById('fcFrequence').value || 5),
+    jours_intervention: Object.keys(JOURS_IDS).filter(j => document.getElementById(JOURS_IDS[j])?.checked),
     horaires: document.getElementById('fcHoraires').value,
     surfaces: surfaces_ec,
     heures_mensuel_ec: parseFloat(document.getElementById('pvHeuresEC').value || 0),
@@ -2304,6 +2350,14 @@ async function chargerChiffrage(id) {
   document.getElementById('fcTypeSite').value = data.type_site || '';
   document.getElementById('fcSurface').value = data.surface_totale || '';
   document.getElementById('fcFrequence').value = data.frequence_semaine || 5;
+  if (Array.isArray(data.jours_intervention) && data.jours_intervention.length > 0) {
+    Object.keys(JOURS_IDS).forEach(j => {
+      const el = document.getElementById(JOURS_IDS[j]);
+      if (el) el.checked = data.jours_intervention.includes(j);
+    });
+  } else {
+    proposerJours(String(data.frequence_semaine || '21.65'));
+  }
   const horSaved = data.horaires || '';
   const hiddenHor = document.getElementById('fcHoraires');
   if (hiddenHor) hiddenHor.value = horSaved;
