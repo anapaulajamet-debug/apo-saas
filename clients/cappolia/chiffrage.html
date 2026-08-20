@@ -1977,8 +1977,9 @@ function calculerEC() {
   const elRatio = document.getElementById('ratioSurfTps');
   if (elRatio) elRatio.textContent = rawTps > 0 ? (surfacesTotales / rawTps).toFixed(0) + ' m²/h' : '—';
 
-  const totalTpsPassageAuto = rawTps > 0 ? Math.max(rawTps, 1) : 0;
-  const totalMensuelFinal = parseFloat(totalMensuel.toFixed(2));
+  // Arrondi au 30min inférieur (ex: 2h38 → 2h30)
+  const arrondi30 = h => Math.floor(h * 2) / 2;
+  const totalTpsPassageAuto = rawTps > 0 ? Math.max(arrondi30(rawTps), 0.5) : 0;
 
   // Mise à jour du total passage (seulement si pas de verrou manuel)
   const elPassage = document.getElementById('totalTpsPassage');
@@ -1988,11 +1989,14 @@ function calculerEC() {
   const elPassageHM = document.getElementById('totalTpsPassageHM');
   if (elPassageHM) elPassageHM.textContent = fmtH(totalTpsPassage);
 
+  // Mensuel et semaine basés sur le passage arrondi
+  const freqSemaine = freqGlobale / 4.33;
+  const totalTpsSemaine  = totalTpsPassage * freqSemaine;
+  const totalMensuelFinal = totalTpsPassage * freqGlobale;
+
   const elMensuel = document.getElementById('totalTpsMensuel');
   if (elMensuel) elMensuel.textContent = fmtH(totalMensuelFinal);
 
-  const freqSemaine = freqGlobale / 4.33;
-  const totalTpsSemaine = totalTpsPassage * freqSemaine;
   const elSemaine = document.getElementById('totalTpsSemaine');
   if (elSemaine) elSemaine.textContent = fmtH(totalTpsSemaine) + ' / sem.';
 
