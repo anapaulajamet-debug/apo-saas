@@ -463,6 +463,46 @@
         </div>
       </div>
 
+      <!-- PRESTATAIRE ACTUEL -->
+      <div class="card">
+        <div class="card-title">🏢 Prestataire actuel</div>
+        <div class="form-grid cols3">
+          <div class="field">
+            <label>Nom du prestataire concurrent</label>
+            <input type="text" id="fcPrestataireNom" placeholder="Ex: ISS, Onet, Mondial Propreté…"/>
+          </div>
+          <div class="field">
+            <label>Tarif mensuel actuel (€ HT)</label>
+            <input type="number" id="fcPrestataireTarif" placeholder="0.00" min="0" step="0.01"/>
+          </div>
+          <div class="field">
+            <label>Durée du contrat</label>
+            <select id="fcPrestataireContrat" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);width:100%;">
+              <option value="">— Non précisé</option>
+              <option value="1an">1 an</option>
+              <option value="2ans">2 ans</option>
+              <option value="3ans">3 ans</option>
+              <option value="4ans">4 ans</option>
+              <option value="5ans">5 ans</option>
+              <option value="reconductible">Tacitement reconductible</option>
+              <option value="sans_engagement">Sans engagement</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Date d'échéance du contrat</label>
+            <input type="date" id="fcPrestataireEcheance" onchange="majAlertEcheance()"/>
+          </div>
+          <div class="field" id="fcAlertEcheanceRow" style="display:none;">
+            <label>&nbsp;</label>
+            <div id="fcAlertEcheance" style="padding:8px 12px;border-radius:7px;font-size:12px;font-weight:600;"></div>
+          </div>
+          <div class="field">
+            <label>Motif d'insatisfaction</label>
+            <input type="text" id="fcPrestataireMotif" placeholder="Qualité, prix, réactivité…"/>
+          </div>
+        </div>
+      </div>
+
       <!-- LOCAUX & INFRASTRUCTURES -->
       <div class="card">
         <div class="card-title">🏗️ Locaux & infrastructures</div>
@@ -1235,6 +1275,33 @@ function getFreqLabel() {
     return v.toFixed(1) + ' passages/mois';
   }
   return sel.options[sel.selectedIndex]?.text || sel.value + ' passages/mois';
+}
+
+// ── PRESTATAIRE ACTUEL ───────────────────────────────────────────────────────
+function majAlertEcheance() {
+  const val = document.getElementById('fcPrestataireEcheance')?.value;
+  const row = document.getElementById('fcAlertEcheanceRow');
+  const box = document.getElementById('fcAlertEcheance');
+  if (!val || !row || !box) return;
+  const echeance = new Date(val);
+  const now      = new Date();
+  const seuil7m  = new Date(); seuil7m.setMonth(seuil7m.getMonth() + 7);
+  const jours    = Math.round((echeance - now) / 86400000);
+  if (isNaN(jours)) { row.style.display = 'none'; return; }
+  row.style.display = '';
+  if (echeance < now) {
+    box.style.background = '#FEF2F2'; box.style.color = '#991B1B';
+    box.style.border = '1.5px solid #FCA5A5';
+    box.textContent = '⚠️ Contrat expiré depuis ' + Math.abs(jours) + ' j.';
+  } else if (echeance <= seuil7m) {
+    box.style.background = '#FFFBEB'; box.style.color = '#92400E';
+    box.style.border = '1.5px solid #FCD34D';
+    box.textContent = '⏰ Échéance dans ' + jours + ' j. — Envoyer la résiliation !';
+  } else {
+    box.style.background = '#F0FDF4'; box.style.color = '#1A3D28';
+    box.style.border = '1.5px solid #86EFAC';
+    box.textContent = '✅ Contrat valide — ' + jours + ' j. restants';
+  }
 }
 
 // ── DISTRIBUTEURS ────────────────────────────────────────────────────────────
@@ -2474,6 +2541,11 @@ async function sauvegarder(silencieux = false) {
     frequence_semaine: parseFloat(document.getElementById('fcFrequence').value || 5),
     jours_intervention: Object.keys(JOURS_IDS).filter(j => document.getElementById(JOURS_IDS[j])?.checked),
     horaires: document.getElementById('fcHoraires').value,
+    prestataire_nom:      document.getElementById('fcPrestataireNom')?.value      || '',
+    prestataire_tarif:    parseFloat(document.getElementById('fcPrestataireTarif')?.value || 0),
+    prestataire_contrat:  document.getElementById('fcPrestataireContrat')?.value  || '',
+    prestataire_echeance: document.getElementById('fcPrestataireEcheance')?.value || '',
+    prestataire_motif:    document.getElementById('fcPrestataireMotif')?.value    || '',
     local_menage: document.getElementById('fcLocalMenage')?.value || '',
     eau_usee: document.getElementById('fcEauUsee')?.value || '',
     arrivee_eau: document.getElementById('fcArriveeEau')?.value || '',
@@ -2530,6 +2602,11 @@ async function chargerChiffrage(id) {
   } else {
     proposerJours(String(data.frequence_semaine || '21.65'));
   }
+  if (document.getElementById('fcPrestataireNom'))      document.getElementById('fcPrestataireNom').value      = data.prestataire_nom      || '';
+  if (document.getElementById('fcPrestataireTarif'))    document.getElementById('fcPrestataireTarif').value    = data.prestataire_tarif    || '';
+  if (document.getElementById('fcPrestataireContrat'))  document.getElementById('fcPrestataireContrat').value  = data.prestataire_contrat  || '';
+  if (document.getElementById('fcPrestataireEcheance')) { document.getElementById('fcPrestataireEcheance').value = data.prestataire_echeance || ''; majAlertEcheance(); }
+  if (document.getElementById('fcPrestataireMotif'))    document.getElementById('fcPrestataireMotif').value    = data.prestataire_motif    || '';
   if (document.getElementById('fcLocalMenage'))    document.getElementById('fcLocalMenage').value    = data.local_menage     || '';
   if (document.getElementById('fcEauUsee'))        document.getElementById('fcEauUsee').value        = data.eau_usee         || '';
   if (document.getElementById('fcArriveeEau'))     document.getElementById('fcArriveeEau').value     = data.arrivee_eau      || '';
