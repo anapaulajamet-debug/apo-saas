@@ -388,6 +388,38 @@
                 <option value="21h00">21h00</option><option value="22h00">22h00</option>
               </select>
             </div>
+            <!-- Créneau 2 -->
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <select id="fcHeureDebut2" onchange="majHoraires()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff;">
+                <option value="">Début (opt.)</option>
+                <option value="05h00">05h00</option><option value="05h30">05h30</option>
+                <option value="06h00">06h00</option><option value="06h30">06h30</option>
+                <option value="07h00">07h00</option><option value="07h30">07h30</option>
+                <option value="08h00">08h00</option><option value="08h30">08h30</option>
+                <option value="09h00">09h00</option><option value="09h30">09h30</option>
+                <option value="10h00">10h00</option><option value="10h30">10h30</option>
+                <option value="11h00">11h00</option><option value="11h30">11h30</option>
+                <option value="12h00">12h00</option><option value="13h00">13h00</option>
+                <option value="14h00">14h00</option><option value="15h00">15h00</option>
+                <option value="16h00">16h00</option><option value="17h00">17h00</option>
+                <option value="18h00">18h00</option><option value="19h00">19h00</option>
+                <option value="20h00">20h00</option><option value="21h00">21h00</option>
+              </select>
+              <span style="font-size:12px;color:var(--gray);">→</span>
+              <select id="fcHeureFin2" onchange="majHoraires()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff;">
+                <option value="">Fin (opt.)</option>
+                <option value="06h00">06h00</option><option value="06h30">06h30</option>
+                <option value="07h00">07h00</option><option value="07h30">07h30</option>
+                <option value="08h00">08h00</option><option value="08h30">08h30</option>
+                <option value="09h00">09h00</option><option value="09h30">09h30</option>
+                <option value="10h00">10h00</option><option value="10h30">10h30</option>
+                <option value="11h00">11h00</option><option value="12h00">12h00</option>
+                <option value="13h00">13h00</option><option value="14h00">14h00</option>
+                <option value="17h00">17h00</option><option value="18h00">18h00</option>
+                <option value="19h00">19h00</option><option value="20h00">20h00</option>
+                <option value="21h00">21h00</option><option value="22h00">22h00</option>
+              </select>
+            </div>
             <input type="hidden" id="fcHoraires"/>
           </div>
           <div class="field">
@@ -759,7 +791,7 @@
           <div>
             <div class="partie-label">Émetteur</div>
             <div class="partie-name">CAPPOLIA PROPRETÉ</div>
-            <div style="font-size:12px;color:var(--gray);margin-top:4px;">Allauch (13190) — Bouches-du-Rhône<br/>contact@cappolia.fr</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:4px;">Allauch (13190) — Bouches-du-Rhône<br/>o.jamet@cappolia-proprete.fr</div>
           </div>
           <div>
             <div class="partie-label">Client / Prospect</div>
@@ -1214,10 +1246,15 @@ function sauverFreqTache(gid, idx, val) {
 }
 
 function majHoraires() {
-  const debut = document.getElementById('fcHeureDebut')?.value || '';
-  const fin = document.getElementById('fcHeureFin')?.value || '';
+  const d1 = document.getElementById('fcHeureDebut')?.value || '';
+  const f1 = document.getElementById('fcHeureFin')?.value || '';
+  const d2 = document.getElementById('fcHeureDebut2')?.value || '';
+  const f2 = document.getElementById('fcHeureFin2')?.value || '';
+  const c1 = d1 && f1 ? d1 + ' - ' + f1 : (d1 || f1);
+  const c2 = d2 && f2 ? d2 + ' - ' + f2 : (d2 || f2);
+  const val = [c1, c2].filter(Boolean).join(' / ');
   const hidden = document.getElementById('fcHoraires');
-  if (hidden) hidden.value = debut && fin ? debut + ' - ' + fin : debut || fin;
+  if (hidden) hidden.value = val;
 }
 
 function supprimerPrestation(gid, idx) {
@@ -1590,12 +1627,12 @@ function genererDevisPDF() {
 
   let lignesHTML = '';
   if (hEC > 0) {
-    lignesHTML += `<tr><td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;">${'Entretien courant — ' + hEC.toFixed(2) + ' h/mois'}</td>
+    lignesHTML += `<tr><td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;">Entretien courant — nettoyage régulier des locaux</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:center;">${getFreqLabel()}</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:right;">${fmt(prix.prixHT)}</td></tr>`;
   }
   if (hREE > 0) {
-    lignesHTML += `<tr><td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;">${'Prestations ponctuelles — ' + hREE.toFixed(2) + ' h/mois'}</td>
+    lignesHTML += `<tr><td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;">Prestations ponctuelles</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:center;">Selon planning</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:right;">Inclus</td></tr>`;
   }
@@ -1632,7 +1669,7 @@ function genererDevisPDF() {
       <div style="background:#F0FDF4;border-radius:8px;padding:14px 18px;">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6B7280;margin-bottom:6px;">Émetteur</div>
         <div style="font-size:14px;font-weight:900;color:#1A3D28;">CAPPOLIA PROPRETÉ</div>
-        <div style="font-size:12px;color:#6B7280;margin-top:4px;">Allauch (13190) — Bouches-du-Rhône<br/>contact@cappolia.fr</div>
+        <div style="font-size:12px;color:#6B7280;margin-top:4px;">Allauch (13190) — Bouches-du-Rhône<br/>o.jamet@cappolia-proprete.fr</div>
       </div>
       <div style="background:#F0FDF4;border-radius:8px;padding:14px 18px;">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6B7280;margin-bottom:6px;">Client / Prospect</div>
@@ -1939,10 +1976,18 @@ async function chargerChiffrage(id) {
   const hiddenHor = document.getElementById('fcHoraires');
   if (hiddenHor) hiddenHor.value = horSaved;
   const horParts = horSaved.split(' - ');
+  // créneau 1 : "06h00 - 08h00 / 18h00 - 20h00" → split sur " / "
+  const creneaux = horSaved.split(' / ');
+  const c1Parts = (creneaux[0] || '').split(' - ');
+  const c2Parts = (creneaux[1] || '').split(' - ');
   const selDebut = document.getElementById('fcHeureDebut');
   const selFin = document.getElementById('fcHeureFin');
-  if (selDebut && horParts[0]) selDebut.value = horParts[0].trim();
-  if (selFin && horParts[1]) selFin.value = horParts[1].trim();
+  const selDebut2 = document.getElementById('fcHeureDebut2');
+  const selFin2 = document.getElementById('fcHeureFin2');
+  if (selDebut && c1Parts[0]) selDebut.value = c1Parts[0].trim();
+  if (selFin && c1Parts[1]) selFin.value = c1Parts[1].trim();
+  if (selDebut2 && c2Parts[0]) selDebut2.value = c2Parts[0].trim();
+  if (selFin2 && c2Parts[1]) selFin2.value = c2Parts[1].trim();
   if (data.prospect_id) document.getElementById('fcProspect').value = data.prospect_id;
 }
 
