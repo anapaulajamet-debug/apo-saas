@@ -451,8 +451,10 @@
             <input type="number" id="fcSanitaires" placeholder="0" min="0" value="0" oninput="majPreconisations()"/>
           </div>
         </div>
-        <div style="margin-bottom:10px;font-size:12px;font-weight:700;color:var(--green-dark);">Consommables à gérer</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div style="margin-bottom:10px;font-size:12px;font-weight:700;color:var(--green-dark);">Consommables & équipements à gérer</div>
+
+        <!-- Checkboxes consommables -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
             <input type="checkbox" id="csooPapier" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Papier toilette
           </label>
@@ -460,7 +462,7 @@
             <input type="checkbox" id="csooSavon" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Savon / gel hydroalcoolique
           </label>
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" id="csooEssuie" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Essuie-mains (papier ou électrique)
+            <input type="checkbox" id="csooEssuie" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Essuie-mains papier
           </label>
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
             <input type="checkbox" id="csooSacs" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Sacs poubelle
@@ -468,6 +470,26 @@
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
             <input type="checkbox" id="csooDesinfect" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Désinfectant surfaces
           </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="csooVadrouilles" onchange="majPreconisations()" style="accent-color:#16A34A;width:15px;height:15px;"> Gestion des vadrouilles / MOP
+          </label>
+        </div>
+
+        <!-- Nombre de distributeurs -->
+        <div style="margin-bottom:8px;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;">Nombre de distributeurs sur site</div>
+        <div class="form-grid cols3" style="margin-bottom:14px;">
+          <div class="field">
+            <label>Distributeurs papier toilette</label>
+            <input type="number" id="fcDistribPapier" placeholder="0" min="0" value="0" oninput="majPreconisations()"/>
+          </div>
+          <div class="field">
+            <label>Distributeurs savon / SHA</label>
+            <input type="number" id="fcDistribSavon" placeholder="0" min="0" value="0" oninput="majPreconisations()"/>
+          </div>
+          <div class="field">
+            <label>Distributeurs essuie-mains</label>
+            <input type="number" id="fcDistribEssuie" placeholder="0" min="0" value="0" oninput="majPreconisations()"/>
+          </div>
         </div>
         <div id="preconisationUsagers" style="display:none;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:8px;padding:12px 16px;">
           <div style="font-size:12px;font-weight:800;color:#1A3D28;margin-bottom:8px;">💡 Préconisations basées sur le volume d'usagers</div>
@@ -1294,54 +1316,83 @@ function majPreconisations() {
   const occ    = parseInt(document.getElementById('fcUsagersOcc')?.value || 0);
   const sanit  = parseInt(document.getElementById('fcSanitaires')?.value || 0);
   const total  = fixes + occ;
+  const dPapier  = parseInt(document.getElementById('fcDistribPapier')?.value || 0);
+  const dSavon   = parseInt(document.getElementById('fcDistribSavon')?.value || 0);
+  const dEssuie  = parseInt(document.getElementById('fcDistribEssuie')?.value || 0);
 
-  const papier    = document.getElementById('csooPapier')?.checked;
-  const savon     = document.getElementById('csooSavon')?.checked;
-  const essuie    = document.getElementById('csooEssuie')?.checked;
-  const sacs      = document.getElementById('csooSacs')?.checked;
-  const desinfect = document.getElementById('csooDesinfect')?.checked;
+  const papier      = document.getElementById('csooPapier')?.checked;
+  const savon       = document.getElementById('csooSavon')?.checked;
+  const essuie      = document.getElementById('csooEssuie')?.checked;
+  const sacs        = document.getElementById('csooSacs')?.checked;
+  const desinfect   = document.getElementById('csooDesinfect')?.checked;
+  const vadrouilles = document.getElementById('csooVadrouilles')?.checked;
 
   const el = document.getElementById('preconisationUsagers');
-  if (total === 0 && !papier && !savon && !essuie && !sacs && !desinfect) { el.style.display = 'none'; return; }
+  const hasData = total > 0 || sanit > 0 || dPapier > 0 || dSavon > 0 || dEssuie > 0 || papier || savon || essuie || sacs || desinfect || vadrouilles;
+  if (!hasData) { el.style.display = 'none'; return; }
 
   const lignes = [];
 
-  // Fréquence d'intervention selon volume
+  // Fréquence selon volume
   if (total > 0) {
-    let freqReco = '';
-    if (total <= 10)       freqReco = '2 à 3 fois/semaine';
-    else if (total <= 30)  freqReco = '5 fois/semaine (quotidien jours ouvrés)';
-    else if (total <= 80)  freqReco = 'quotidien (5j/sem) avec passage supplémentaire en journée';
-    else                   freqReco = 'quotidien (5–6j/sem) + agent en régie ou passages multiples/jour';
+    let freqReco = total <= 10 ? '2 à 3 fois/semaine' : total <= 30 ? '5 fois/semaine (quotidien jours ouvrés)' : total <= 80 ? 'quotidien + passage intermédiaire en journée' : 'quotidien (5–6j/sem) + passages multiples/jour ou agent en régie';
     lignes.push(`👥 <strong>${total} usager${total>1?'s':''}/jour</strong> (${fixes} fixes + ${occ} occasionnels) → fréquence recommandée : <strong>${freqReco}</strong>`);
   }
 
-  // Sanitaires
+  // Ratio sanitaires
   if (sanit > 0 && total > 0) {
     const ratio = Math.round(total / sanit);
-    let etatSanit = ratio <= 10 ? 'confortable' : ratio <= 20 ? 'standard' : 'chargé — prévoir passage intermédiaire';
-    lignes.push(`🚻 ${sanit} sanitaire${sanit>1?'s':''} pour ${total} usagers → ratio ${ratio} pers./sanitaire (${etatSanit})`);
+    const etat = ratio <= 10 ? 'confortable' : ratio <= 20 ? 'standard' : 'chargé — prévoir passage intermédiaire';
+    lignes.push(`🚻 ${sanit} sanitaire${sanit>1?'s':''} · ratio ${ratio} pers./sanitaire (${etat})`);
   }
 
-  // Consommables
+  // Papier toilette
   if (papier && total > 0) {
-    const rouleauxMois = Math.ceil(total * 0.04 * 22); // ~4 passages/rouleaux/pers/jour × 22j
-    lignes.push(`🧻 Papier toilette : environ <strong>${rouleauxMois} rouleaux/mois</strong> (base ${total} usagers × 22j ouvrés)`);
+    const rouleauxMois = Math.ceil(total * 0.04 * 22);
+    const base = dPapier > 0 ? ` · ${dPapier} distributeur${dPapier>1?'s':''}` : '';
+    lignes.push(`🧻 Papier toilette : <strong>~${rouleauxMois} rouleaux/mois</strong>${base} (base ${total} usagers × 22j)`);
+  } else if (dPapier > 0) {
+    lignes.push(`🧻 ${dPapier} distributeur${dPapier>1?'s':''} papier toilette à approvisionner`);
   }
+
+  // Savon
   if (savon && total > 0) {
-    const flacMois = Math.ceil(total * 22 * 2 / 300); // 2 utilisations/jour, ~300 doses/flacon
-    lignes.push(`🧴 Savon : environ <strong>${Math.max(1,flacMois)} flacon${flacMois>1?'s':''}/mois</strong> (300 doses/flacon)`);
+    const flac = Math.max(1, Math.ceil(total * 22 * 2 / 300));
+    const base = dSavon > 0 ? ` · ${dSavon} distributeur${dSavon>1?'s':''}` : '';
+    lignes.push(`🧴 Savon : <strong>~${flac} flacon${flac>1?'s':''}/mois</strong>${base} (300 doses/flacon)`);
+  } else if (dSavon > 0) {
+    lignes.push(`🧴 ${dSavon} distributeur${dSavon>1?'s':''} savon/SHA à approvisionner`);
   }
+
+  // Essuie-mains
   if (essuie && total > 0) {
-    const feuilles = Math.ceil(total * 22 * 3); // 3 feuilles/lavage/jour
-    lignes.push(`🤲 Essuie-mains papier : environ <strong>${feuilles} feuilles/mois</strong>`);
+    const feuilles = Math.ceil(total * 22 * 3);
+    const base = dEssuie > 0 ? ` · ${dEssuie} distributeur${dEssuie>1?'s':''}` : '';
+    lignes.push(`🤲 Essuie-mains : <strong>~${feuilles} feuilles/mois</strong>${base}`);
+  } else if (dEssuie > 0) {
+    lignes.push(`🤲 ${dEssuie} distributeur${dEssuie>1?'s':''} essuie-mains à approvisionner`);
   }
-  if (sacs && sanit > 0) {
-    const sacsMois = sanit * 22 * 2; // 2 vidages/jour
-    lignes.push(`🗑️ Sacs poubelle : environ <strong>${sacsMois} sacs/mois</strong> (2 vidages/jour × ${sanit} corbeilles sanitaires)`);
+
+  // Sacs poubelle
+  if (sacs) {
+    const base = sanit > 0 ? sanit * 22 * 2 : null;
+    lignes.push(`🗑️ Sacs poubelle${base ? ` : <strong>~${base} sacs/mois</strong> (2 vidages/jour × ${sanit} sanitaires)` : ' : quantité à définir selon nombre de corbeilles'}`);
   }
-  if (desinfect && total > 0) {
-    lignes.push(`🧼 Désinfectant : prévoir recharge hebdomadaire selon rotation des surfaces — à valider lors de la visite de site`);
+
+  // Désinfectant
+  if (desinfect) {
+    lignes.push(`🧼 Désinfectant surfaces : recharge hebdomadaire — quantité à valider en visite de site`);
+  }
+
+  // Vadrouilles / MOP
+  if (vadrouilles) {
+    const surfTotale = parseInt(document.getElementById('fcSurface')?.value || 0);
+    let mopReco = '';
+    if (surfTotale > 0) {
+      const nbMops = Math.max(1, Math.ceil(surfTotale / 500));
+      mopReco = ` → prévoir <strong>${nbMops} set${nbMops>1?'s':''} MOP</strong> (base 1 set/500 m²)`;
+    }
+    lignes.push(`🪣 Gestion des vadrouilles / MOP${mopReco} · prévoir rotation et lavage selon planning d'intervention`);
   }
 
   document.getElementById('preconisationContenu').innerHTML = lignes.join('<br>');
