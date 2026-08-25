@@ -2797,16 +2797,83 @@ async function envoyerDevis() {
   }
 }
 
+// ── Extraction des données DOM pour sauvegarde ───────────────────────────
+function extraireREE() {
+  const rows = [];
+  document.querySelectorAll('#tbodyREE tr').forEach(tr => {
+    const id = tr.id;
+    const sels = tr.querySelectorAll('select');
+    rows.push({
+      local:    sels[0]?.value || '',
+      prestation: sels[1]?.value || '',
+      surface:  parseFloat(tr.querySelector('.surf-ree')?.value || 0),
+      freq:     parseFloat(document.getElementById(id + '_freq')?.value || 1),
+    });
+  });
+  return rows;
+}
+function extraireMateriel() {
+  const rows = [];
+  document.querySelectorAll('#tbodyMateriel tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    rows.push({
+      designation: inputs[0]?.value || '',
+      cout:        parseFloat(inputs[1]?.value || 0),
+      duree:       parseFloat(inputs[2]?.value || 0),
+    });
+  });
+  return rows;
+}
+function extraireEquipe() {
+  const rows = [];
+  document.querySelectorAll('#tbodyEquipe tr').forEach(tr => {
+    rows.push({
+      niveau: tr.querySelector('.eq-niveau')?.value || '',
+      nb:     parseFloat(tr.querySelector('.eq-nb')?.value || 1),
+      h:      parseFloat(tr.querySelector('.eq-h')?.value || 0),
+    });
+  });
+  return rows;
+}
+function extraireConso() {
+  const rows = [];
+  document.querySelectorAll('#tbodyConsommables tr').forEach(tr => {
+    const id = tr.id;
+    const inputs = tr.querySelectorAll('input');
+    rows.push({
+      nom:   inputs[0]?.value || '',
+      unite: inputs[1]?.value || '',
+      qte:   parseFloat(document.getElementById(id + '_qte')?.value || 0),
+      pu:    parseFloat(document.getElementById(id + '_pu')?.value  || 0),
+    });
+  });
+  return rows;
+}
+
 async function sauvegarder(silencieux = false) {
   const prix = calculerPrix();
   const prospectId = document.getElementById('fcProspect').value || null;
 
-  const surfaces_ec = [];
-  document.querySelectorAll('#tbodyEC tr').forEach(tr => {
-    const sels = tr.querySelectorAll('select');
-    const surf = tr.querySelector('.surf-ec')?.value;
-    surfaces_ec.push({ locaux: sels[0]?.value, prestation: sels[1]?.value, surface: parseFloat(surf || 0) });
-  });
+  // Toute la structure métier dans le champ "surfaces" (JSONB existant)
+  const donnees = {
+    groupesEC,
+    ree: extraireREE(),
+    reeNbDeplacement:  parseFloat(document.getElementById('reeNbDeplacement')?.value  || 0),
+    reeCoutDeplacement:parseFloat(document.getElementById('reeCoutDeplacement')?.value|| 15),
+    materiel: extraireMateriel(),
+    equipe:   extraireEquipe(),
+    conso:    extraireConso(),
+    pvParams: {
+      produits:     document.getElementById('pvProduits')?.value     || '2',
+      fournitures:  document.getElementById('pvFournitures')?.value  || '5',
+      amortissement:document.getElementById('pvAmortissement')?.value|| '0',
+      structure:    document.getElementById('pvStructure')?.value    || '12',
+      marge:        document.getElementById('pvMarge')?.value        || '30',
+      allegement:   document.getElementById('pvAllegement')?.value   || '82',
+      heuresEC:     document.getElementById('pvHeuresEC')?.value     || '0',
+      heuresREE:    document.getElementById('pvHeuresREE')?.value    || '0',
+    },
+  };
 
   const payload = {
     tenant_id: TENANT,
@@ -2833,14 +2900,14 @@ async function sauvegarder(silencieux = false) {
     acces_verticaux: document.getElementById('fcAccesVerticaux')?.value || '',
     commentaire: document.getElementById('fcCommentaire')?.value || '',
     distributeurs: lireDistributeurs(),
-    surfaces: surfaces_ec,
-    heures_mensuel_ec: parseFloat(document.getElementById('pvHeuresEC').value || 0),
-    heures_mensuel_ree: parseFloat(document.getElementById('pvHeuresREE').value || 0),
-    masse_salariale: prix.masseSalariale,
-    prix_ht: prix.prixHT,
-    tva: prix.tva,
-    prix_ttc: prix.prixTTC,
-    commentaires: document.getElementById('devisCommentaires').value,
+    surfaces: donnees,
+    heures_mensuel_ec: parseFloat(document.getElementById('pvHeuresEC')?.value || 0),
+    heures_mensuel_ree: parseFloat(document.getElementById('pvHeuresREE')?.value || 0),
+    masse_salariale: prix?.masseSalariale || 0,
+    prix_ht: prix?.prixHT || 0,
+    tva: prix?.tva || 0,
+    prix_ttc: prix?.prixTTC || 0,
+    commentaires: document.getElementById('devisCommentaires')?.value || '',
     updated_at: new Date().toISOString(),
   };
 
@@ -2913,6 +2980,87 @@ async function chargerChiffrage(id) {
   if (selDebut2 && c2Parts[0]) selDebut2.value = c2Parts[0].trim();
   if (selFin2 && c2Parts[1]) selFin2.value = c2Parts[1].trim();
   if (data.prospect_id) document.getElementById('fcProspect').value = data.prospect_id;
+
+  // ── Restaurer la structure métier depuis data.surfaces ─────────────────
+  const d = data.surfaces || {};
+
+  // EC : groupes locaux
+  if (Array.isArray(d.groupesEC) && d.groupesEC.length > 0) {
+    groupesEC = d.groupesEC;
+    rendreGroupes();
+    calculerEC();
+  }
+
+  // REE : prestations ponctuelles
+  if (Array.isArray(d.ree) && d.ree.length > 0) {
+    lignesREE = 0;
+    document.getElementById('tbodyREE').innerHTML = '';
+    d.ree.forEach(r => {
+      ajouterLigneREE();
+      const id = 'ree' + lignesREE;
+      const tr = document.getElementById(id);
+      if (!tr) return;
+      const sels = tr.querySelectorAll('select');
+      if (sels[0]) sels[0].value = r.local || '';
+      if (sels[1]) { sels[1].value = r.prestation || ''; majCadenceREE(id); }
+      const surfEl = tr.querySelector('.surf-ree');
+      if (surfEl) surfEl.value = r.surface || 0;
+      const freqEl = document.getElementById(id + '_freq');
+      if (freqEl) freqEl.value = r.freq || 1;
+      calculerREE();
+    });
+  }
+  // Déplacements REE
+  if (document.getElementById('reeNbDeplacement'))   document.getElementById('reeNbDeplacement').value   = d.reeNbDeplacement  ?? 0;
+  if (document.getElementById('reeCoutDeplacement')) document.getElementById('reeCoutDeplacement').value = d.reeCoutDeplacement ?? 15;
+
+  // Matériel
+  if (Array.isArray(d.materiel) && d.materiel.length > 0) {
+    lignesMateriel = 0;
+    document.getElementById('tbodyMateriel').innerHTML = '';
+    d.materiel.forEach(m => {
+      ajouterLigneMateriel();
+      const id = 'mat' + lignesMateriel;
+      const tr = document.getElementById(id);
+      if (!tr) return;
+      const inputs = tr.querySelectorAll('input');
+      if (inputs[0]) inputs[0].value = m.designation || '';
+      if (inputs[1]) inputs[1].value = m.cout || 0;
+      if (inputs[2]) inputs[2].value = m.duree || 0;
+      calculerMateriel();
+    });
+  }
+
+  // Équipe
+  if (Array.isArray(d.equipe) && d.equipe.length > 0) {
+    document.getElementById('tbodyEquipe').innerHTML = '';
+    d.equipe.forEach(e => {
+      ajouterLigneEquipe(parseFloat(e.niveau) || CCN_NIVEAUX[0].taux, parseFloat(e.nb) || 1, parseFloat(e.h) || 0);
+    });
+  }
+
+  // Consommables
+  if (Array.isArray(d.conso) && d.conso.length > 0) {
+    lignesConso = 0;
+    document.getElementById('tbodyConsommables').innerHTML = '';
+    d.conso.forEach(c => ajouterLigneConso(c.nom, c.unite, c.qte, c.pu));
+  }
+
+  // Paramètres prix
+  if (d.pvParams) {
+    const p = d.pvParams;
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+    set('pvProduits',      p.produits);
+    set('pvFournitures',   p.fournitures);
+    set('pvAmortissement', p.amortissement);
+    set('pvStructure',     p.structure);
+    set('pvMarge',         p.marge);
+    set('pvAllegement',    p.allegement);
+    set('pvHeuresEC',      p.heuresEC);
+    set('pvHeuresREE',     p.heuresREE);
+  }
+
+  calculerPrix();
 }
 
 function toast(msg) {
