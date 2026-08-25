@@ -1500,8 +1500,11 @@ async function dropProspect(e, nouveauStatut) {
   if (nouveauStatut === 'a_relancer')   payload.date_prochain_contact = dateRelanceDefaut(7);
   if (nouveauStatut === 'offre_envoyee') payload.date_prochain_contact = dateRelanceDefaut(14);
   if (nouveauStatut === 'relance_offre') payload.date_prochain_contact = dateRelanceDefaut(7);
-  await sb.from('prospects').update(payload).eq('id', draggedId);
+  const movedId = draggedId;
+  await sb.from('prospects').update(payload).eq('id', movedId);
   draggedId = null;
+  const act = STATUT_ACT[nouveauStatut];
+  if (act) logActiviteAuto(movedId, act.type, act.label);
   await chargerProspects();
   toast('Statut mis à jour ✓');
 }
@@ -1581,10 +1584,13 @@ async function enregistrerProspect() {
 
   const id = document.getElementById('pId').value;
   let error;
+  let newId = id;
   if (id) {
     ({ error } = await sb.from('prospects').update(payload).eq('id', id));
   } else {
-    ({ error } = await sb.from('prospects').insert(payload));
+    let data;
+    ({ data, error } = await sb.from('prospects').insert(payload).select('id').single());
+    if (data?.id) newId = data.id;
   }
 
   if (error) {
@@ -1595,6 +1601,9 @@ async function enregistrerProspect() {
   }
   const elErr = document.getElementById('prospectErreur');
   if (elErr) elErr.style.display = 'none';
+
+  // Log auto : 1er contact à la création
+  if (!id && newId) logActiviteAuto(newId, 'premier_contact', `Prospect créé : ${raisonSociale}`);
 
   fermerModalProspect();
   await chargerProspects();
@@ -1665,6 +1674,19 @@ function fermerFicheProspect() {
   currentProspectId = null;
 }
 
+const STATUT_ACT = {
+  a_contacter:   null,
+  contacte:      { type: 'appel',           label: 'Contact établi' },
+  rdv_planifie:  { type: 'rdv',             label: 'RDV planifié' },
+  visite_site:   { type: 'visite',          label: 'Visite site effectuée' },
+  a_relancer:    { type: 'relance',         label: 'Mise en relance' },
+  offre_envoyee: { type: 'offre',           label: 'Offre envoyée' },
+  relance_offre: { type: 'relance',         label: 'Relance offre effectuée' },
+  chiffrage:     { type: 'chiffrage',       label: 'Chiffrage en cours' },
+  gagne:         { type: 'premier_contact', label: '🎉 Contrat gagné !' },
+  perdu:         { type: 'note',            label: 'Prospect perdu' },
+};
+
 async function changerStatut(val) {
   if (!currentProspectId) return;
   const payload = { statut: val, updated_at: new Date().toISOString() };
@@ -1673,6 +1695,9 @@ async function changerStatut(val) {
   if (val === 'offre_envoyee' && !p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut(14);
   if (val === 'relance_offre' && !p?.date_prochain_contact) payload.date_prochain_contact = dateRelanceDefaut(7);
   await sb.from('prospects').update(payload).eq('id', currentProspectId);
+  // Log auto du changement de statut
+  const act = STATUT_ACT[val];
+  if (act) logActiviteAuto(currentProspectId, act.type, act.label);
   await chargerProspects();
   const updated = allProspects.find(x => x.id === currentProspectId);
   if (updated?.date_prochain_contact) document.getElementById('ficheProchainContact').textContent = new Date(updated.date_prochain_contact).toLocaleDateString('fr-FR');
@@ -1682,6 +1707,20 @@ async function changerStatut(val) {
 function ouvrirModificationProspect() {
   fermerFicheProspect();
   if (currentProspectId) setTimeout(() => ouvrirModifDirect(currentProspectId), 100);
+}
+
+// ── LOG AUTO D'ACTIVITÉ ────────────────────────────────────────────────
+async function logActiviteAuto(prospectId, type, description) {
+  try {
+    await sb.from('activites_crm').insert({
+      tenant_id: TENANT,
+      prospect_id: prospectId,
+      type,
+      description: description || null,
+      date_activite: new Date().toISOString()
+    });
+    await chargerToutesActivites();
+  } catch(e) { /* table peut ne pas encore exister */ }
 }
 
 // ── ACTIVITÉS ──────────────────────────────────────────────────────────
@@ -1788,6 +1827,7 @@ async function allerChiffrage() {
   if (!currentProspectId) return;
   // Chercher un chiffrage existant pour ce prospect
   const { data } = await sb.from('chiffrages').select('id').eq('prospect_id', currentProspectId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (!data?.id) logActiviteAuto(currentProspectId, 'chiffrage', 'Nouveau chiffrage lancé');
   if (data?.id) {
     window.location.href = '/chiffrage?chiffrage=' + data.id;
   } else {
