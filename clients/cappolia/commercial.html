@@ -834,14 +834,19 @@
 
     <div class="add-activite">
       <select id="newActiviteType">
+        <option value="premier_contact">🤝 1er contact</option>
         <option value="appel">📞 Appel</option>
         <option value="email">✉️ Email</option>
         <option value="rdv">📅 RDV</option>
-        <option value="visite">🏢 Visite</option>
-        <option value="note">📝 Note</option>
+        <option value="visite">🏢 Visite site</option>
+        <option value="chiffrage">📊 Chiffrage</option>
+        <option value="offre">📄 Offre envoyée</option>
+        <option value="relance">🔁 Relance</option>
+        <option value="note">📝 Note interne</option>
       </select>
-      <input type="text" id="newActiviteDesc" placeholder="Ajouter une note ou activité…"/>
-      <button class="btn-sm" onclick="ajouterActivite()">Ajouter</button>
+      <input type="date" id="newActiviteDate" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;"/>
+      <input type="text" id="newActiviteDesc" placeholder="Détail de l'activité…"/>
+      <button class="btn-sm" onclick="ajouterActivite()">+ Ajouter</button>
     </div>
 
     <div class="modal-footer" style="margin-top:16px;">
@@ -1146,6 +1151,7 @@ async function init() {
   if (!user) { window.location.href = '/'; return; }
   document.getElementById('userEmail').textContent = user.email;
   await chargerProspects();
+  chargerToutesActivites(); // non bloquant — pour le calendrier
   afficherSecteurs();
   chargerGoogleMaps();
   const mois = new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
@@ -1324,7 +1330,7 @@ function renderCalendrier() {
   const offset = (premier.getDay() + 6) % 7; // lundi=0
   const nbJours = new Date(calAnnee, calMois + 1, 0).getDate();
   const today = new Date(); today.setHours(0,0,0,0);
-  // Index prospects par date
+  // Index prospects à relancer par date
   const byDate = {};
   allProspects.filter(p => p.date_prochain_contact).forEach(p => {
     const d = new Date(p.date_prochain_contact);
@@ -1334,6 +1340,16 @@ function renderCalendrier() {
       byDate[key].push(p);
     }
   });
+  // Index activités par date
+  const actByDate = {};
+  allActivites.forEach(a => {
+    const d = new Date(a.date_activite);
+    if (d.getMonth() === calMois && d.getFullYear() === calAnnee) {
+      const key = d.getDate();
+      if (!actByDate[key]) actByDate[key] = [];
+      actByDate[key].push(a);
+    }
+  });
   // Cases vides avant le 1er
   for (let i = 0; i < offset; i++) {
     const v = document.createElement('div'); v.style.minHeight = '70px'; grille.appendChild(v);
@@ -1341,15 +1357,28 @@ function renderCalendrier() {
   for (let d = 1; d <= nbJours; d++) {
     const isToday = new Date(calAnnee, calMois, d).getTime() === today.getTime();
     const pList = byDate[d] || [];
+    const aList = actByDate[d] || [];
     const cell = document.createElement('div');
-    cell.style.cssText = `min-height:70px;border-radius:8px;border:1.5px solid ${isToday ? 'var(--green)' : '#E5E7EB'};background:${isToday ? '#F0FDF4' : '#fff'};padding:5px;font-size:11px;`;
+    cell.style.cssText = `min-height:80px;border-radius:8px;border:1.5px solid ${isToday ? 'var(--green)' : '#E5E7EB'};background:${isToday ? '#F0FDF4' : '#fff'};padding:5px;font-size:11px;overflow:hidden;`;
     const numStyle = isToday ? 'font-weight:900;color:var(--green);' : 'font-weight:700;color:#374151;';
-    let html = `<div style="${numStyle}margin-bottom:3px;">${d}</div>`;
+    // Compteur activités du jour
+    const actBadge = aList.length > 0
+      ? `<span title="${aList.length} activité(s)" style="background:#EDE9FE;color:#7C3AED;border-radius:10px;padding:0 5px;font-size:10px;font-weight:800;margin-left:4px;">${aList.length}</span>`
+      : '';
+    let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;"><span style="${numStyle}">${d}</span>${actBadge}</div>`;
+    // Activités du jour (résumé)
+    aList.slice(0, 2).forEach(a => {
+      const m = ACT_META[a.type] || { icon:'📝', color:'#6B7280' };
+      const nom = allProspects.find(p => p.id === a.prospect_id)?.raison_sociale || '';
+      html += `<div title="${m.icon} ${nom}${a.description ? ' — ' + a.description : ''}" style="background:${m.color}15;color:${m.color};border-radius:4px;padding:2px 5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-weight:600;" onclick="ouvrirFicheProspect('${a.prospect_id}')">${m.icon} ${nom}</div>`;
+    });
+    if (aList.length > 2) html += `<div style="color:#9CA3AF;font-size:10px;">+${aList.length - 2} activité(s)</div>`;
+    // Relances prévues
     pList.forEach(p => {
       const urg = urgenceRelance(p.date_prochain_contact);
       const bg = urg ? urg.bg : '#EFF6FF';
       const col = urg ? urg.color : '#1E40AF';
-      html += `<div onclick="ouvrirFicheProspect('${p.id}')" title="${p.raison_sociale}" style="background:${bg};color:${col};border-radius:4px;padding:2px 5px;margin-bottom:2px;cursor:pointer;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.raison_sociale}</div>`;
+      html += `<div onclick="ouvrirFicheProspect('${p.id}')" title="🔔 Relance : ${p.raison_sociale}" style="background:${bg};color:${col};border-radius:4px;padding:2px 5px;margin-bottom:2px;cursor:pointer;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🔔 ${p.raison_sociale}</div>`;
     });
     cell.innerHTML = html;
     grille.appendChild(cell);
@@ -1607,6 +1636,10 @@ async function ouvrirFicheProspect(id) {
   if (p.notes) { notesEl.textContent = p.notes; notesEl.style.display = 'block'; }
   else { notesEl.style.display = 'none'; }
 
+  // Pré-remplir la date d'activité à aujourd'hui
+  const dateInput = document.getElementById('newActiviteDate');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
   await chargerActivites(id);
 
   // Adapter le bouton chiffrage selon qu'un chiffrage existe déjà
@@ -1644,29 +1677,67 @@ function ouvrirModificationProspect() {
 }
 
 // ── ACTIVITÉS ──────────────────────────────────────────────────────────
+const ACT_META = {
+  premier_contact: { icon:'🤝', label:'1er contact',    color:'#7C3AED' },
+  appel:           { icon:'📞', label:'Appel',           color:'#2563EB' },
+  email:           { icon:'✉️', label:'Email',           color:'#0891B2' },
+  rdv:             { icon:'📅', label:'RDV',             color:'#F59E0B' },
+  visite:          { icon:'🏢', label:'Visite site',     color:'#059669' },
+  chiffrage:       { icon:'📊', label:'Chiffrage',       color:'#16A34A' },
+  offre:           { icon:'📄', label:'Offre envoyée',   color:'#EA580C' },
+  relance:         { icon:'🔁', label:'Relance',         color:'#DC2626' },
+  note:            { icon:'📝', label:'Note interne',    color:'#6B7280' },
+};
+
+let allActivites = []; // cache global pour calendrier
+
+async function chargerToutesActivites() {
+  const { data } = await sb.from('activites_crm').select('*').eq('tenant_id', TENANT).order('date_activite', { ascending: false });
+  allActivites = data || [];
+}
+
 async function chargerActivites(prospectId) {
-  const { data } = await sb.from('activites_crm').select('*').eq('prospect_id', prospectId).order('date_activite', { ascending: false });
+  const { data, error } = await sb.from('activites_crm').select('*').eq('prospect_id', prospectId).order('date_activite', { ascending: false });
+  if (error) { console.warn('activites_crm:', error.message); }
   const list = data || [];
   const el = document.getElementById('ficheActivites');
   el.innerHTML = list.length === 0
-    ? '<div style="color:#CBD5E1;font-size:12px;padding:10px 0;">Aucune activité enregistrée.</div>'
-    : list.map(a => `
-        <div class="activite-item">
-          <span class="activite-icon">${ACTIVITE_ICONS[a.type] || '📝'}</span>
-          <div>
-            <div>${a.description}</div>
-            <div class="activite-date">${new Date(a.date_activite).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+    ? '<div style="color:#CBD5E1;font-size:12px;padding:10px 0;">Aucune activité enregistrée. Ajoutez la première ci-dessous.</div>'
+    : list.map(a => {
+        const m = ACT_META[a.type] || { icon:'📝', label:a.type, color:'#6B7280' };
+        const d = new Date(a.date_activite);
+        const dateStr = d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+        const heureStr = d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+        return `<div class="activite-item" style="border-left:3px solid ${m.color};">
+          <span class="activite-icon" style="background:${m.color}20;color:${m.color};border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${m.icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:12px;color:${m.color};">${m.label}</div>
+            ${a.description ? `<div style="font-size:12px;color:#374151;margin-top:1px;">${a.description}</div>` : ''}
+            <div class="activite-date">${dateStr} à ${heureStr}</div>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
 }
 
 async function ajouterActivite() {
   const desc = document.getElementById('newActiviteDesc').value.trim();
-  if (!desc || !currentProspectId) return;
+  if (!currentProspectId) return;
   const type = document.getElementById('newActiviteType').value;
-  await sb.from('activites_crm').insert({ prospect_id: currentProspectId, type, description: desc, date_activite: new Date().toISOString() });
+  const dateVal = document.getElementById('newActiviteDate').value;
+  const dateActivite = dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : new Date().toISOString();
+  const { error } = await sb.from('activites_crm').insert({
+    tenant_id: TENANT,
+    prospect_id: currentProspectId,
+    type,
+    description: desc || null,
+    date_activite: dateActivite
+  });
+  if (error) { toast('❌ ' + error.message); return; }
   document.getElementById('newActiviteDesc').value = '';
+  document.getElementById('newActiviteDate').value = '';
   await chargerActivites(currentProspectId);
+  await chargerToutesActivites();
+  if (vueActive === 'calendrier') renderCalendrier();
   toast('Activité ajoutée ✓');
 }
 
