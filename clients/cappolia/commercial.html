@@ -1242,8 +1242,9 @@ function carteHTML(p) {
 
 async function supprimerProspect(id, nom) {
   if (!confirm(`Supprimer "${nom}" ? Cette action est irréversible.`)) return;
-  const { error } = await sb.from('prospects').delete().eq('id', id);
-  if (error) { toast('Erreur suppression : ' + error.message); return; }
+  const { data, error } = await sb.from('prospects').delete().eq('id', id).eq('tenant_id', TENANT).select();
+  if (error) { toast('❌ Erreur suppression : ' + error.message); return; }
+  if (!data || data.length === 0) { toast('❌ Suppression refusée (vérifier les droits RLS Supabase)'); return; }
   allProspects = allProspects.filter(p => p.id !== id);
   majKPIs();
   renderKanban();
