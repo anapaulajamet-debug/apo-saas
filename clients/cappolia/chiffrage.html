@@ -2911,11 +2911,20 @@ async function sauvegarder(silencieux = false) {
     updated_at: new Date().toISOString(),
   };
 
+  let saveError;
   if (currentChiffrageId) {
-    await sb.from('chiffrages').update(payload).eq('id', currentChiffrageId);
+    const res = await sb.from('chiffrages').update(payload).eq('id', currentChiffrageId);
+    saveError = res.error;
   } else {
-    const { data } = await sb.from('chiffrages').insert(payload).select().single();
-    if (data) currentChiffrageId = data.id;
+    const res = await sb.from('chiffrages').insert(payload).select().single();
+    saveError = res.error;
+    if (res.data) currentChiffrageId = res.data.id;
+  }
+
+  if (saveError) {
+    console.error('Erreur sauvegarde chiffrage:', saveError);
+    toast('❌ ' + (saveError.message || JSON.stringify(saveError)));
+    return;
   }
 
   // Mettre à jour statut prospect
