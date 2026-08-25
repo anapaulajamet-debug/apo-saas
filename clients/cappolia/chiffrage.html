@@ -2165,12 +2165,11 @@ function calculerEC() {
     subTotaux[gid].mensuel  += tpsPresta * freqMoisTache;
   });
 
-  // Mise à jour des sous-totaux par local
+  // Mise à jour des sous-totaux par local — temps brut sans arrondi pour éviter les 0h 00min
   Object.entries(subTotaux).forEach(([gid, st]) => {
-    const arrondi = h => Math.floor(h * 2) / 2; // 30min pour l'affichage local
     const elP = document.getElementById(gid + '_sub_passage');
     const elM = document.getElementById(gid + '_sub_mensuel');
-    if (elP) elP.textContent = fmtH(arrondi(st.rawTps));
+    if (elP) elP.textContent = fmtH(st.rawTps);
     if (elM) elM.textContent = fmtH(st.mensuel);
   });
 
@@ -2193,11 +2192,14 @@ function calculerEC() {
 
   // Fréquence effective (passages/mois) = total brut mensuel ÷ temps brut/passage
   const freqEffectiveMois = rawTps > 0 ? totalMensuel / rawTps : freqGlobale;
-  // Semaine = passage ARRONDI × fréquence effective/semaine
-  const freqEffectiveSem = freqEffectiveMois * 12 / 52;
-  const totalTpsSemaine = totalTpsPassage * freqEffectiveSem;
-  // Mensuel = semaine × 52 ÷ 12
-  const totalMensuelFinal = totalTpsSemaine * 52 / 12;
+
+  // Mensuel réel = somme des temps de chaque tâche × sa propre fréquence (calcul ligne par ligne)
+  const totalMensuelFinal = totalMensuel;
+  // Semaine = mensuel réel × 12 ÷ 52
+  const totalTpsSemaine = totalMensuelFinal * 12 / 52;
+
+  // Passage facturé = arrondi 30min du temps brut cumulé (inchangé)
+  const freqEffectiveSem = freqEffectiveMois * 12 / 52; // conservé pour syncHeuresVersCalc
 
   const elMensuel = document.getElementById('totalTpsMensuel');
   if (elMensuel) elMensuel.textContent = fmtH(totalMensuelFinal);
