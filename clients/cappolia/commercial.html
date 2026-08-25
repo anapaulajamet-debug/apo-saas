@@ -553,7 +553,14 @@
         <button class="filter-btn" onclick="filtrerSecteur('sport', this)">Sport / Fitness</button>
         <input class="search-box" type="text" placeholder="Rechercher un prospect…" oninput="rechercher(this.value)"/>
       </div>
-      <button class="btn-primary" onclick="ouvrirModalNouveauProspect()">+ Nouveau prospect</button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+          <button id="vueBtn-kanban"   onclick="changerVue('kanban')"    style="padding:6px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:var(--green);color:#fff;">⬜ Kanban</button>
+          <button id="vueBtn-liste"    onclick="changerVue('liste')"     style="padding:6px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#F1F5F9;color:var(--text);">☰ Liste</button>
+          <button id="vueBtn-calendrier" onclick="changerVue('calendrier')" style="padding:6px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#F1F5F9;color:var(--text);">📅 Calendrier</button>
+        </div>
+        <button class="btn-primary" onclick="ouvrirModalNouveauProspect()">+ Nouveau prospect</button>
+      </div>
     </div>
 
     <!-- ALERTE RÉSILIATIONS -->
@@ -570,6 +577,34 @@
     <!-- KANBAN -->
     <div class="kanban" id="kanban">
       <!-- columns rendered by JS -->
+    </div>
+
+    <!-- VUE LISTE -->
+    <div id="vue-liste" style="display:none;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        <thead>
+          <tr style="background:var(--green-dark);color:#fff;">
+            <th style="padding:10px 12px;text-align:left;cursor:pointer;" onclick="trierListe('raison_sociale')">Prospect ↕</th>
+            <th style="padding:10px 12px;text-align:left;cursor:pointer;" onclick="trierListe('secteur')">Secteur ↕</th>
+            <th style="padding:10px 12px;text-align:left;cursor:pointer;" onclick="trierListe('statut')">Statut ↕</th>
+            <th style="padding:10px 12px;text-align:left;cursor:pointer;" onclick="trierListe('date_prochain_contact')">Date relance ↕</th>
+            <th style="padding:10px 12px;text-align:left;">Contact</th>
+            <th style="padding:10px 12px;text-align:center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyListe"></tbody>
+      </table>
+    </div>
+
+    <!-- VUE CALENDRIER -->
+    <div id="vue-calendrier" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <button onclick="navCalendrier(-1)" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-weight:700;">◀</button>
+        <span id="calTitre" style="font-weight:800;font-size:15px;color:var(--green-dark);min-width:180px;text-align:center;"></span>
+        <button onclick="navCalendrier(1)"  style="padding:6px 12px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-weight:700;">▶</button>
+        <button onclick="navCalendrier(0)"  style="padding:6px 12px;border:1.5px solid var(--border);border-radius:7px;background:#F1F5F9;cursor:pointer;font-size:12px;">Aujourd'hui</button>
+      </div>
+      <div id="calGrille" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
     </div>
 
   </div>
@@ -1208,6 +1243,129 @@ function renderKanban() {
   kanban.onscroll   = () => { if (!kanban._syncing)   { topScroll._syncing = true; topScroll.scrollLeft = kanban.scrollLeft; topScroll._syncing = false; } };
 }
 
+// ── GESTION DES VUES ─────────────────────────────────────────────────────
+let vueActive = 'kanban';
+let listeSortCol = 'date_prochain_contact';
+let listeSortAsc = true;
+let calMois = new Date().getMonth();
+let calAnnee = new Date().getFullYear();
+
+function changerVue(vue) {
+  vueActive = vue;
+  const els = { kanban: document.getElementById('kanban'), liste: document.getElementById('vue-liste'), calendrier: document.getElementById('vue-calendrier') };
+  const scroll = document.getElementById('kanbanTopScroll');
+  Object.entries(els).forEach(([k, el]) => { if (el) el.style.display = k === vue ? (k === 'kanban' ? 'flex' : 'block') : 'none'; });
+  if (scroll) scroll.style.display = vue === 'kanban' ? '' : 'none';
+  ['kanban','liste','calendrier'].forEach(k => {
+    const btn = document.getElementById('vueBtn-' + k);
+    if (btn) { btn.style.background = k === vue ? 'var(--green)' : '#F1F5F9'; btn.style.color = k === vue ? '#fff' : 'var(--text)'; }
+  });
+  if (vue === 'liste') renderListe();
+  if (vue === 'calendrier') renderCalendrier();
+}
+
+function renderListe() {
+  let prospects = [...allProspects];
+  if (filtreStatut !== 'tous') prospects = prospects.filter(p => p.secteur === filtreStatut);
+  if (filtreRecherche) prospects = prospects.filter(p => p.raison_sociale.toLowerCase().includes(filtreRecherche.toLowerCase()));
+  prospects.sort((a, b) => {
+    let va = a[listeSortCol] || '', vb = b[listeSortCol] || '';
+    if (!va && !vb) return 0;
+    if (!va) return 1; if (!vb) return -1;
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return listeSortAsc ? cmp : -cmp;
+  });
+  const STAT_LABELS = { a_contacter:'À contacter', rdv_planifie:'RDV planifié', a_relancer:'À relancer', offre_envoyee:'Offre envoyée', relance_offre:'Relance offre', chiffrage:'Chiffrage', gagne:'Gagné', perdu:'Perdu' };
+  const STAT_COLORS = { a_contacter:'#6366F1', rdv_planifie:'#F59E0B', a_relancer:'#7C3AED', offre_envoyee:'#2563EB', relance_offre:'#0891B2', chiffrage:'#059669', gagne:'#16A34A', perdu:'#DC2626' };
+  const tbody = document.getElementById('tbodyListe');
+  if (!prospects.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#9CA3AF;">Aucun prospect</td></tr>'; return; }
+  tbody.innerHTML = prospects.map((p,i) => {
+    const sec = SECTEURS[p.secteur] || { emoji:'📌', label: p.secteur||'' };
+    const urg = urgenceRelance(p.date_prochain_contact);
+    const dateStr = p.date_prochain_contact ? new Date(p.date_prochain_contact).toLocaleDateString('fr-FR') : '—';
+    const dateCell = urg
+      ? `<span style="background:${urg.bg};color:${urg.color};padding:2px 7px;border-radius:5px;font-weight:700;font-size:11px;">⚠️ ${dateStr}</span>`
+      : `<span style="color:#6B7280;">${dateStr}</span>`;
+    const col = STAT_COLORS[p.statut] || '#6B7280';
+    return `<tr style="background:${i%2?'#F9FAFB':'#fff'};cursor:pointer;" onclick="ouvrirFicheProspect('${p.id}')">
+      <td style="padding:9px 12px;font-weight:700;color:var(--green-dark);">${p.raison_sociale}</td>
+      <td style="padding:9px 12px;">${sec.emoji} ${sec.label}</td>
+      <td style="padding:9px 12px;"><span style="background:${col}20;color:${col};padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">${STAT_LABELS[p.statut]||p.statut}</span></td>
+      <td style="padding:9px 12px;">${dateCell}</td>
+      <td style="padding:9px 12px;color:#6B7280;">${p.contact||'—'}</td>
+      <td style="padding:9px 12px;text-align:center;">
+        <button onclick="event.stopPropagation();ouvrirModifDirect('${p.id}')" style="padding:4px 8px;border:none;border-radius:5px;background:#F1F5F9;cursor:pointer;font-size:12px;">✏️</button>
+        <button onclick="event.stopPropagation();supprimerProspect('${p.id}','${p.raison_sociale.replace(/'/g,"\\'")}') " style="padding:4px 8px;border:none;border-radius:5px;background:#FEE2E2;cursor:pointer;font-size:12px;">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function trierListe(col) {
+  if (listeSortCol === col) listeSortAsc = !listeSortAsc;
+  else { listeSortCol = col; listeSortAsc = true; }
+  renderListe();
+}
+
+function renderCalendrier() {
+  const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const JOURS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  document.getElementById('calTitre').textContent = `${MOIS[calMois]} ${calAnnee}`;
+  const grille = document.getElementById('calGrille');
+  grille.innerHTML = '';
+  // En-têtes jours
+  JOURS.forEach(j => {
+    const h = document.createElement('div');
+    h.style.cssText = 'text-align:center;font-size:11px;font-weight:800;color:var(--green-dark);padding:4px;';
+    h.textContent = j;
+    grille.appendChild(h);
+  });
+  const premier = new Date(calAnnee, calMois, 1);
+  const offset = (premier.getDay() + 6) % 7; // lundi=0
+  const nbJours = new Date(calAnnee, calMois + 1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Index prospects par date
+  const byDate = {};
+  allProspects.filter(p => p.date_prochain_contact).forEach(p => {
+    const d = new Date(p.date_prochain_contact);
+    if (d.getMonth() === calMois && d.getFullYear() === calAnnee) {
+      const key = d.getDate();
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(p);
+    }
+  });
+  // Cases vides avant le 1er
+  for (let i = 0; i < offset; i++) {
+    const v = document.createElement('div'); v.style.minHeight = '70px'; grille.appendChild(v);
+  }
+  for (let d = 1; d <= nbJours; d++) {
+    const isToday = new Date(calAnnee, calMois, d).getTime() === today.getTime();
+    const pList = byDate[d] || [];
+    const cell = document.createElement('div');
+    cell.style.cssText = `min-height:70px;border-radius:8px;border:1.5px solid ${isToday ? 'var(--green)' : '#E5E7EB'};background:${isToday ? '#F0FDF4' : '#fff'};padding:5px;font-size:11px;`;
+    const numStyle = isToday ? 'font-weight:900;color:var(--green);' : 'font-weight:700;color:#374151;';
+    let html = `<div style="${numStyle}margin-bottom:3px;">${d}</div>`;
+    pList.forEach(p => {
+      const urg = urgenceRelance(p.date_prochain_contact);
+      const bg = urg ? urg.bg : '#EFF6FF';
+      const col = urg ? urg.color : '#1E40AF';
+      html += `<div onclick="ouvrirFicheProspect('${p.id}')" title="${p.raison_sociale}" style="background:${bg};color:${col};border-radius:4px;padding:2px 5px;margin-bottom:2px;cursor:pointer;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.raison_sociale}</div>`;
+    });
+    cell.innerHTML = html;
+    grille.appendChild(cell);
+  }
+}
+
+function navCalendrier(dir) {
+  if (dir === 0) { calMois = new Date().getMonth(); calAnnee = new Date().getFullYear(); }
+  else {
+    calMois += dir;
+    if (calMois > 11) { calMois = 0; calAnnee++; }
+    if (calMois < 0)  { calMois = 11; calAnnee--; }
+  }
+  renderCalendrier();
+}
+
 function urgenceRelance(dateStr) {
   if (!dateStr) return null;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -1316,11 +1474,16 @@ function filtrerSecteur(secteur, btn) {
   filtreStatut = secteur;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderKanban();
+  rafraichirVue();
 }
 function rechercher(val) {
   filtreRecherche = val;
-  renderKanban();
+  rafraichirVue();
+}
+function rafraichirVue() {
+  if (vueActive === 'kanban') renderKanban();
+  else if (vueActive === 'liste') renderListe();
+  else if (vueActive === 'calendrier') renderCalendrier();
 }
 
 // ── MODAL NOUVEAU PROSPECT ─────────────────────────────────────────────
