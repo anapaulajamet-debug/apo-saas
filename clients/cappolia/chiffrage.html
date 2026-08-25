@@ -1039,7 +1039,38 @@
               <span class="calcul-label">PRIX DE VENTE HT</span>
               <span class="calcul-val" id="cPrixHT">—</span>
             </div>
-            <div id="forfaitMsg" class="info-box" style="display:none;">⚠️ Forfait minimum de 250 € HT appliqué</div>
+            <div id="forfaitMsg" style="display:none;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:8px;padding:12px 14px;margin-top:8px;font-size:13px;">
+              <div style="font-weight:700;color:#92400E;margin-bottom:6px;">⚠️ Forfait minimum 250 € HT appliqué</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span style="color:#78350F;">Prix calculé (sans forfait)</span>
+                <span id="forfaitPrixCalc" style="font-weight:600;color:#78350F;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span style="color:#78350F;">Marge réelle avec forfait</span>
+                <span id="forfaitMargeReelle" style="font-weight:700;color:#065F46;">—</span>
+              </div>
+            </div>
+
+            <!-- Comparaison prestataire actuel -->
+            <div id="compPrestataire" style="display:none;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:12px 14px;margin-top:8px;font-size:13px;">
+              <div style="font-weight:700;color:#1E40AF;margin-bottom:6px;">📊 Comparaison prestataire actuel</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span>Prestataire actuel</span>
+                <span id="compPrestNom" style="font-weight:600;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span>Tarif actuel HT / mois</span>
+                <span id="compPrestTarif" style="font-weight:700;color:#1E40AF;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span>Notre prix HT / mois</span>
+                <span id="compNotrePrix" style="font-weight:700;color:#065F46;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;border-top:1px dashed #BFDBFE;padding-top:6px;margin-top:4px;">
+                <span style="font-weight:700;">Écart</span>
+                <span id="compEcart" style="font-weight:700;font-size:14px;">—</span>
+              </div>
+            </div>
           </div>
 
           <div class="prix-final-box">
@@ -2430,8 +2461,36 @@ function calculerPrix() {
 
   document.getElementById('finalHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
   document.getElementById('finalTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
-  document.getElementById('forfaitMsg').style.display = forfaitApplique ? 'block' : 'none';
+  // Forfait minimum — détail
+  const forfaitMsgEl = document.getElementById('forfaitMsg');
+  if (forfaitMsgEl) forfaitMsgEl.style.display = forfaitApplique ? 'block' : 'none';
   document.getElementById('finalForfait').style.display = forfaitApplique ? 'block' : 'none';
+  if (forfaitApplique) {
+    const margeReelle = coutTotal > 0 ? ((250 - coutTotal) / 250 * 100) : 0;
+    const elPC = document.getElementById('forfaitPrixCalc');
+    const elMR = document.getElementById('forfaitMargeReelle');
+    if (elPC) elPC.textContent = fmt(prixHTCalc);
+    if (elMR) elMR.textContent = margeReelle.toFixed(1) + '%';
+  }
+
+  // Comparaison prestataire actuel
+  const tarifPrest = parseFloat(document.getElementById('fcPrestataireTarif')?.value || 0);
+  const nomPrest   = document.getElementById('fcPrestataireNom')?.value?.trim() || '';
+  const compEl = document.getElementById('compPrestataire');
+  if (compEl) {
+    if (tarifPrest > 0) {
+      compEl.style.display = 'block';
+      document.getElementById('compPrestNom').textContent   = nomPrest || 'Prestataire actuel';
+      document.getElementById('compPrestTarif').textContent = fmt(tarifPrest);
+      document.getElementById('compNotrePrix').textContent  = fmt(prixHT);
+      const ecart = prixHT - tarifPrest;
+      const ecartEl = document.getElementById('compEcart');
+      ecartEl.textContent = (ecart >= 0 ? '+' : '') + fmt(ecart) + ' (' + (ecart >= 0 ? '+' : '') + ((ecart / tarifPrest) * 100).toFixed(1) + '%)';
+      ecartEl.style.color = ecart <= 0 ? '#065F46' : '#DC2626';
+    } else {
+      compEl.style.display = 'none';
+    }
+  }
   const heuresMois = parseFloat(document.getElementById('kpiTpsMois')?.textContent) || 0;
   const tauxHoraireEl = document.getElementById('tauxHoraireVendu');
   if (tauxHoraireEl) tauxHoraireEl.textContent = heuresMois > 0 ? (prixHT / heuresMois).toFixed(2).replace('.', ',') + ' €/h' : '— €/h';
