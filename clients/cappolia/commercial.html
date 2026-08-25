@@ -1174,6 +1174,13 @@ function renderKanban() {
     let prospects = allProspects.filter(p => p.statut === s.key);
     if (filtreStatut !== 'tous') prospects = prospects.filter(p => p.secteur === filtreStatut);
     if (filtreRecherche) prospects = prospects.filter(p => p.raison_sociale.toLowerCase().includes(filtreRecherche.toLowerCase()));
+    // Tri par date de relance : les plus urgents en premier, sans date à la fin
+    prospects.sort((a, b) => {
+      if (!a.date_prochain_contact && !b.date_prochain_contact) return 0;
+      if (!a.date_prochain_contact) return 1;
+      if (!b.date_prochain_contact) return -1;
+      return new Date(a.date_prochain_contact) - new Date(b.date_prochain_contact);
+    });
 
     const col = document.createElement('div');
     col.className = 'kanban-col';
@@ -1201,15 +1208,30 @@ function renderKanban() {
   kanban.onscroll   = () => { if (!kanban._syncing)   { topScroll._syncing = true; topScroll.scrollLeft = kanban.scrollLeft; topScroll._syncing = false; } };
 }
 
+function urgenceRelance(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const date  = new Date(dateStr); date.setHours(0,0,0,0);
+  const jours = Math.round((date - today) / 86400000);
+  if (jours < 0)  return { niveau: 'depasse', jours, label: `${Math.abs(jours)}j de retard`, bg: '#FEE2E2', color: '#DC2626', border: '#DC2626' };
+  if (jours === 0) return { niveau: 'urgent',  jours, label: "Aujourd'hui !", bg: '#FEF3C7', color: '#92400E', border: '#F59E0B' };
+  if (jours === 1) return { niveau: 'urgent',  jours, label: 'Demain',        bg: '#FEF3C7', color: '#92400E', border: '#F59E0B' };
+  if (jours <= 7)  return { niveau: 'proche',  jours, label: `Dans ${jours}j`, bg: '#FFFBEB', color: '#B45309', border: '#FCD34D' };
+  return null;
+}
+
 function carteHTML(p) {
   const sec = SECTEURS[p.secteur] || { label: p.secteur || '', emoji: '📌' };
   let dateLbl = '';
+  let alertHTML = '';
   if (p.date_prochain_contact) {
     const d = new Date(p.date_prochain_contact).toLocaleDateString('fr-FR');
     if (p.statut === 'offre_envoyee') dateLbl = `⏰ Réponse avant le ${d}`;
     else if (p.statut === 'relance_offre') dateLbl = `🔁 Relance le ${d}`;
     else if (p.statut === 'a_relancer') dateLbl = `🔔 Relance le ${d}`;
     else dateLbl = d;
+    const urg = urgenceRelance(p.date_prochain_contact);
+    if (urg) alertHTML = `<div style="margin-top:6px;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;background:${urg.bg};color:${urg.color};border:1px solid ${urg.border};display:inline-block;">⚠️ ${urg.label}</div>`;
   }
   let badgeResil = '';
   if (p.fin_contrat_concurrent) {
@@ -1228,6 +1250,7 @@ function carteHTML(p) {
       <div class="card-name">${p.raison_sociale}</div>
       <div class="card-contact">${p.contact || '—'}</div>
       ${badgeResil}
+      ${alertHTML}
       <div class="card-meta">
         <span class="tag-secteur">${sec.emoji} ${sec.label}</span>
         <span class="card-date">${dateLbl}</span>
