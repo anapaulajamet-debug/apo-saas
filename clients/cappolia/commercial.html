@@ -537,6 +537,14 @@
     </div>
   </div>
 
+  <!-- KPI ACTIVITÉS DU JOUR -->
+  <div id="kpiActivitesBar" style="background:#fff;border-bottom:1.5px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;">
+    <div style="font-weight:800;color:var(--green-dark);white-space:nowrap;">📋 Aujourd'hui :</div>
+    <div id="kpiActTotal" style="font-weight:700;color:#374151;">—</div>
+    <div id="kpiActDetails" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <div id="kpiActSemaine" style="margin-left:auto;color:#6B7280;white-space:nowrap;"></div>
+  </div>
+
   <!-- SECTION PIPELINE -->
   <div id="section-pipeline" class="section-hidden">
 
@@ -1694,6 +1702,41 @@ let allActivites = []; // cache global pour calendrier
 async function chargerToutesActivites() {
   const { data } = await sb.from('activites_crm').select('*').eq('tenant_id', TENANT).order('date_activite', { ascending: false });
   allActivites = data || [];
+  renderKpiActivites();
+}
+
+function renderKpiActivites() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const debutSemaine = new Date(today); debutSemaine.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+
+  const actAujourdhui = allActivites.filter(a => {
+    const d = new Date(a.date_activite); d.setHours(0,0,0,0);
+    return d.getTime() === today.getTime();
+  });
+  const actSemaine = allActivites.filter(a => new Date(a.date_activite) >= debutSemaine).length;
+
+  const totalEl = document.getElementById('kpiActTotal');
+  const detailEl = document.getElementById('kpiActDetails');
+  const semEl    = document.getElementById('kpiActSemaine');
+
+  if (!totalEl) return;
+
+  if (actAujourdhui.length === 0) {
+    totalEl.textContent = 'Aucune activité enregistrée aujourd\'hui';
+    detailEl.innerHTML = '';
+  } else {
+    // Compter par type
+    const counts = {};
+    actAujourdhui.forEach(a => { counts[a.type] = (counts[a.type] || 0) + 1; });
+    // Prospects uniques contactés
+    const uniqueProspects = new Set(actAujourdhui.map(a => a.prospect_id)).size;
+    totalEl.innerHTML = `<strong style="font-size:14px;color:var(--green-dark);">${actAujourdhui.length}</strong> action${actAujourdhui.length > 1 ? 's' : ''} sur <strong>${uniqueProspects}</strong> prospect${uniqueProspects > 1 ? 's' : ''}`;
+    detailEl.innerHTML = Object.entries(counts).map(([type, n]) => {
+      const m = ACT_META[type] || { icon:'📝', label:type, color:'#6B7280' };
+      return `<span style="background:${m.color}18;color:${m.color};padding:3px 9px;border-radius:20px;font-weight:700;font-size:11px;">${m.icon} ${m.label} <strong>${n}</strong></span>`;
+    }).join('');
+  }
+  semEl.textContent = `Cette semaine : ${actSemaine} action${actSemaine > 1 ? 's' : ''}`;
 }
 
 async function chargerActivites(prospectId) {
