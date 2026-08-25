@@ -2855,59 +2855,64 @@ async function sauvegarder(silencieux = false) {
   const prospectId = document.getElementById('fcProspect').value || null;
 
   // Toute la structure métier dans le champ "surfaces" (JSONB existant)
+  // Tout est stocké dans surfaces (JSONB) — pas de colonnes supplémentaires à créer
   const donnees = {
+    // Fiche client
+    ficheClient: {
+      raisonSociale: document.getElementById('fcRaisonSociale')?.value || '',
+      contact:       document.getElementById('fcContact')?.value || '',
+      adresse:       document.getElementById('fcAdresse')?.value || '',
+      typeSite:      document.getElementById('fcTypeSite')?.value || '',
+      surface:       document.getElementById('fcSurface')?.value || '',
+      frequence:     document.getElementById('fcFrequence')?.value || '21.65',
+      jours:         Object.keys(JOURS_IDS).filter(j => document.getElementById(JOURS_IDS[j])?.checked),
+      horaires:      document.getElementById('fcHoraires')?.value || '',
+      prestataireNom:      document.getElementById('fcPrestataireNom')?.value      || '',
+      prestataireTarif:    document.getElementById('fcPrestataireTarif')?.value    || '',
+      prestataireContrat:  document.getElementById('fcPrestataireContrat')?.value  || '',
+      prestataireEcheance: document.getElementById('fcPrestataireEcheance')?.value || '',
+      prestataireMotif:    document.getElementById('fcPrestataireMotif')?.value    || '',
+      localMenage:    document.getElementById('fcLocalMenage')?.value    || '',
+      eauUsee:        document.getElementById('fcEauUsee')?.value        || '',
+      arriveeEau:     document.getElementById('fcArriveeEau')?.value     || '',
+      electricite:    document.getElementById('fcElectricite')?.value    || '',
+      accesVerticaux: document.getElementById('fcAccesVerticaux')?.value || '',
+      commentaire:    document.getElementById('fcCommentaire')?.value    || '',
+      distributeurs:  lireDistributeurs(),
+    },
     groupesEC,
     ree: extraireREE(),
-    reeNbDeplacement:  parseFloat(document.getElementById('reeNbDeplacement')?.value  || 0),
-    reeCoutDeplacement:parseFloat(document.getElementById('reeCoutDeplacement')?.value|| 15),
+    reeNbDeplacement:   parseFloat(document.getElementById('reeNbDeplacement')?.value   || 0),
+    reeCoutDeplacement: parseFloat(document.getElementById('reeCoutDeplacement')?.value || 15),
     materiel: extraireMateriel(),
     equipe:   extraireEquipe(),
     conso:    extraireConso(),
     pvParams: {
-      produits:     document.getElementById('pvProduits')?.value     || '2',
-      fournitures:  document.getElementById('pvFournitures')?.value  || '5',
-      amortissement:document.getElementById('pvAmortissement')?.value|| '0',
-      structure:    document.getElementById('pvStructure')?.value    || '12',
-      marge:        document.getElementById('pvMarge')?.value        || '30',
-      allegement:   document.getElementById('pvAllegement')?.value   || '82',
-      heuresEC:     document.getElementById('pvHeuresEC')?.value     || '0',
-      heuresREE:    document.getElementById('pvHeuresREE')?.value    || '0',
+      produits:      document.getElementById('pvProduits')?.value      || '2',
+      fournitures:   document.getElementById('pvFournitures')?.value   || '5',
+      amortissement: document.getElementById('pvAmortissement')?.value || '0',
+      structure:     document.getElementById('pvStructure')?.value     || '12',
+      marge:         document.getElementById('pvMarge')?.value         || '30',
+      allegement:    document.getElementById('pvAllegement')?.value    || '82',
+      heuresEC:      document.getElementById('pvHeuresEC')?.value      || '0',
+      heuresREE:     document.getElementById('pvHeuresREE')?.value     || '0',
     },
+    devisCommentaires: document.getElementById('devisCommentaires')?.value || '',
   };
 
+  // Payload : uniquement les colonnes qui existent dans la table chiffrages
   const payload = {
     tenant_id: TENANT,
     prospect_id: prospectId,
     numero_devis: numeroDevis,
     statut: 'brouillon',
-    raison_sociale: document.getElementById('fcRaisonSociale').value,
-    contact: document.getElementById('fcContact').value,
-    adresse_site: document.getElementById('fcAdresse').value,
-    type_site: document.getElementById('fcTypeSite').value,
-    surface_totale: parseFloat(document.getElementById('fcSurface').value || 0),
-    frequence_semaine: parseFloat(document.getElementById('fcFrequence').value || 5),
-    jours_intervention: Object.keys(JOURS_IDS).filter(j => document.getElementById(JOURS_IDS[j])?.checked),
-    horaires: document.getElementById('fcHoraires').value,
-    prestataire_nom:      document.getElementById('fcPrestataireNom')?.value      || '',
-    prestataire_tarif:    parseFloat(document.getElementById('fcPrestataireTarif')?.value || 0),
-    prestataire_contrat:  document.getElementById('fcPrestataireContrat')?.value  || '',
-    prestataire_echeance: document.getElementById('fcPrestataireEcheance')?.value || '',
-    prestataire_motif:    document.getElementById('fcPrestataireMotif')?.value    || '',
-    local_menage: document.getElementById('fcLocalMenage')?.value || '',
-    eau_usee: document.getElementById('fcEauUsee')?.value || '',
-    arrivee_eau: document.getElementById('fcArriveeEau')?.value || '',
-    electricite: document.getElementById('fcElectricite')?.value || '',
-    acces_verticaux: document.getElementById('fcAccesVerticaux')?.value || '',
-    commentaire: document.getElementById('fcCommentaire')?.value || '',
-    distributeurs: lireDistributeurs(),
+    raison_sociale: document.getElementById('fcRaisonSociale')?.value || '',
+    surface_totale: parseFloat(document.getElementById('fcSurface')?.value || 0),
     surfaces: donnees,
-    heures_mensuel_ec: parseFloat(document.getElementById('pvHeuresEC')?.value || 0),
-    heures_mensuel_ree: parseFloat(document.getElementById('pvHeuresREE')?.value || 0),
     masse_salariale: prix?.masseSalariale || 0,
     prix_ht: prix?.prixHT || 0,
     tva: prix?.tva || 0,
     prix_ttc: prix?.prixTTC || 0,
-    commentaires: document.getElementById('devisCommentaires')?.value || '',
     updated_at: new Date().toISOString(),
   };
 
@@ -2943,55 +2948,60 @@ async function chargerChiffrage(id) {
   const { data } = await sb.from('chiffrages').select('*').eq('id', id).single();
   if (!data) return;
   currentChiffrageId = id;
-  numeroDevis = data.numero_devis;
-  document.getElementById('fcRaisonSociale').value = data.raison_sociale || '';
-  document.getElementById('fcContact').value = data.contact || '';
-  document.getElementById('fcAdresse').value = data.adresse_site || '';
-  document.getElementById('fcTypeSite').value = data.type_site || '';
-  document.getElementById('fcSurface').value = data.surface_totale || '';
-  document.getElementById('fcFrequence').value = data.frequence_semaine || 5;
-  if (Array.isArray(data.jours_intervention) && data.jours_intervention.length > 0) {
-    Object.keys(JOURS_IDS).forEach(j => {
-      const el = document.getElementById(JOURS_IDS[j]);
-      if (el) el.checked = data.jours_intervention.includes(j);
-    });
+  numeroDevis = data.numero_devis || '';
+
+  // Tout est dans data.surfaces (JSONB)
+  const d = data.surfaces || {};
+  const fc = d.ficheClient || {};
+
+  // Fiche client
+  const set = (eid, v) => { const el = document.getElementById(eid); if (el) el.value = v || ''; };
+  set('fcRaisonSociale', fc.raisonSociale || data.raison_sociale);
+  set('fcContact',       fc.contact);
+  set('fcAdresse',       fc.adresse);
+  set('fcTypeSite',      fc.typeSite);
+  set('fcSurface',       fc.surface || data.surface_totale);
+  set('fcFrequence',     fc.frequence || '21.65');
+  set('fcPrestataireNom',      fc.prestataireNom);
+  set('fcPrestataireTarif',    fc.prestataireTarif);
+  set('fcPrestataireContrat',  fc.prestataireContrat);
+  set('fcPrestataireEcheance', fc.prestataireEcheance);
+  set('fcPrestataireMotif',    fc.prestataireMotif);
+  set('fcLocalMenage',    fc.localMenage);
+  set('fcEauUsee',        fc.eauUsee);
+  set('fcArriveeEau',     fc.arriveeEau);
+  set('fcElectricite',    fc.electricite);
+  set('fcAccesVerticaux', fc.accesVerticaux);
+  set('fcCommentaire',    fc.commentaire);
+  if (document.getElementById('fcPrestataireEcheance')?.value) majAlertEcheance();
+
+  // Jours
+  const jours = fc.jours || [];
+  if (jours.length > 0) {
+    Object.keys(JOURS_IDS).forEach(j => { const el = document.getElementById(JOURS_IDS[j]); if (el) el.checked = jours.includes(j); });
   } else {
-    proposerJours(String(data.frequence_semaine || '21.65'));
+    proposerJours(fc.frequence || '21.65');
   }
-  if (document.getElementById('fcPrestataireNom'))      document.getElementById('fcPrestataireNom').value      = data.prestataire_nom      || '';
-  if (document.getElementById('fcPrestataireTarif'))    document.getElementById('fcPrestataireTarif').value    = data.prestataire_tarif    || '';
-  if (document.getElementById('fcPrestataireContrat'))  document.getElementById('fcPrestataireContrat').value  = data.prestataire_contrat  || '';
-  if (document.getElementById('fcPrestataireEcheance')) { document.getElementById('fcPrestataireEcheance').value = data.prestataire_echeance || ''; majAlertEcheance(); }
-  if (document.getElementById('fcPrestataireMotif'))    document.getElementById('fcPrestataireMotif').value    = data.prestataire_motif    || '';
-  if (document.getElementById('fcLocalMenage'))    document.getElementById('fcLocalMenage').value    = data.local_menage     || '';
-  if (document.getElementById('fcEauUsee'))        document.getElementById('fcEauUsee').value        = data.eau_usee         || '';
-  if (document.getElementById('fcArriveeEau'))     document.getElementById('fcArriveeEau').value     = data.arrivee_eau      || '';
-  if (document.getElementById('fcElectricite'))    document.getElementById('fcElectricite').value    = data.electricite      || '';
-  if (document.getElementById('fcAccesVerticaux')) document.getElementById('fcAccesVerticaux').value = data.acces_verticaux  || '';
-  if (document.getElementById('fcCommentaire'))    document.getElementById('fcCommentaire').value    = data.commentaire      || '';
-  document.getElementById('listeDistributeurs').innerHTML = '';
-  distribIdx = 0;
-  (data.distributeurs || []).forEach(d => ajouterDistributeur(d));
-  const horSaved = data.horaires || '';
-  const hiddenHor = document.getElementById('fcHoraires');
-  if (hiddenHor) hiddenHor.value = horSaved;
-  const horParts = horSaved.split(' - ');
-  // créneau 1 : "06h00 - 08h00 / 18h00 - 20h00" → split sur " / "
+
+  // Horaires
+  const horSaved = fc.horaires || '';
+  set('fcHoraires', horSaved);
   const creneaux = horSaved.split(' / ');
   const c1Parts = (creneaux[0] || '').split(' - ');
   const c2Parts = (creneaux[1] || '').split(' - ');
-  const selDebut = document.getElementById('fcHeureDebut');
-  const selFin = document.getElementById('fcHeureFin');
-  const selDebut2 = document.getElementById('fcHeureDebut2');
-  const selFin2 = document.getElementById('fcHeureFin2');
-  if (selDebut && c1Parts[0]) selDebut.value = c1Parts[0].trim();
-  if (selFin && c1Parts[1]) selFin.value = c1Parts[1].trim();
-  if (selDebut2 && c2Parts[0]) selDebut2.value = c2Parts[0].trim();
-  if (selFin2 && c2Parts[1]) selFin2.value = c2Parts[1].trim();
-  if (data.prospect_id) document.getElementById('fcProspect').value = data.prospect_id;
+  set('fcHeureDebut',  c1Parts[0]?.trim());
+  set('fcHeureFin',    c1Parts[1]?.trim());
+  set('fcHeureDebut2', c2Parts[0]?.trim());
+  set('fcHeureFin2',   c2Parts[1]?.trim());
+
+  // Distributeurs
+  document.getElementById('listeDistributeurs').innerHTML = '';
+  distribIdx = 0;
+  (fc.distributeurs || []).forEach(dist => ajouterDistributeur(dist));
+
+  if (data.prospect_id) set('fcProspect', data.prospect_id);
 
   // ── Restaurer la structure métier depuis data.surfaces ─────────────────
-  const d = data.surfaces || {};
 
   // EC : groupes locaux
   if (Array.isArray(d.groupesEC) && d.groupesEC.length > 0) {
@@ -3058,15 +3068,20 @@ async function chargerChiffrage(id) {
   // Paramètres prix
   if (d.pvParams) {
     const p = d.pvParams;
-    const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
-    set('pvProduits',      p.produits);
-    set('pvFournitures',   p.fournitures);
-    set('pvAmortissement', p.amortissement);
-    set('pvStructure',     p.structure);
-    set('pvMarge',         p.marge);
-    set('pvAllegement',    p.allegement);
-    set('pvHeuresEC',      p.heuresEC);
-    set('pvHeuresREE',     p.heuresREE);
+    const setv = (eid, v) => { const el = document.getElementById(eid); if (el && v !== undefined) el.value = v; };
+    setv('pvProduits',      p.produits);
+    setv('pvFournitures',   p.fournitures);
+    setv('pvAmortissement', p.amortissement);
+    setv('pvStructure',     p.structure);
+    setv('pvMarge',         p.marge);
+    setv('pvAllegement',    p.allegement);
+    setv('pvHeuresEC',      p.heuresEC);
+    setv('pvHeuresREE',     p.heuresREE);
+  }
+
+  if (d.devisCommentaires) {
+    const el = document.getElementById('devisCommentaires');
+    if (el) el.value = d.devisCommentaires;
   }
 
   calculerPrix();
