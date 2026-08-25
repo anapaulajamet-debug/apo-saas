@@ -1330,8 +1330,8 @@ function fermerModalProspect() {
 
 async function enregistrerProspect() {
   const raisonSociale = document.getElementById('pRaisonSociale').value.trim();
-  const secteur = document.getElementById('pSecteur').value;
-  if (!raisonSociale || !secteur) { toast('Raison sociale et secteur obligatoires'); return; }
+  if (!raisonSociale) { toast('La raison sociale est obligatoire'); return; }
+  const secteur = document.getElementById('pSecteur').value || 'autre';
 
   const payload = {
     tenant_id: TENANT,
