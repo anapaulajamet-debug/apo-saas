@@ -1241,7 +1241,11 @@ function carteHTML(p) {
 }
 
 async function supprimerProspect(id, nom) {
-  if (!confirm(`Supprimer "${nom}" ? Cette action est irréversible.`)) return;
+  if (!confirm(`Supprimer "${nom}" et tous ses chiffrages associés ? Cette action est irréversible.`)) return;
+  // Supprimer d'abord les chiffrages liés (contrainte FK)
+  const { error: errChiff } = await sb.from('chiffrages').delete().eq('prospect_id', id).eq('tenant_id', TENANT);
+  if (errChiff) { toast('❌ Erreur suppression chiffrages : ' + errChiff.message); return; }
+  // Puis supprimer le prospect
   const { data, error } = await sb.from('prospects').delete().eq('id', id).eq('tenant_id', TENANT).select();
   if (error) { toast('❌ Erreur suppression : ' + error.message); return; }
   if (!data || data.length === 0) { toast('❌ Suppression refusée (vérifier les droits RLS Supabase)'); return; }
@@ -1249,7 +1253,7 @@ async function supprimerProspect(id, nom) {
   majKPIs();
   renderKanban();
   if (gmap) placerMarqueurs();
-  toast('Prospect supprimé');
+  toast('Prospect et chiffrages supprimés');
 }
 
 // ── DRAG & DROP ─────────────────────────────────────────────────────────
