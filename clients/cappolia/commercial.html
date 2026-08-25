@@ -1352,10 +1352,17 @@ async function enregistrerProspect() {
   if (inputAdresse._lat) { payload.lat = inputAdresse._lat; payload.lng = inputAdresse._lng; }
 
   const id = document.getElementById('pId').value;
+  let error;
   if (id) {
-    await sb.from('prospects').update(payload).eq('id', id);
+    ({ error } = await sb.from('prospects').update(payload).eq('id', id));
   } else {
-    await sb.from('prospects').insert(payload);
+    ({ error } = await sb.from('prospects').insert(payload));
+  }
+
+  if (error) {
+    console.error('Supabase error:', error);
+    toast('❌ Erreur : ' + (error.message || JSON.stringify(error)));
+    return;
   }
 
   fermerModalProspect();
