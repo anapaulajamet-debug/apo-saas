@@ -1716,16 +1716,61 @@ function initEquipe() {
   });
 
   const tbody = document.getElementById('tbodyEquipe');
+
+  // Bannière alerte si heures ont changé depuis le dernier auto-remplissage
+  let alertBanner = document.getElementById('equipeAlertChangement');
+  if (!alertBanner) {
+    alertBanner = document.createElement('div');
+    alertBanner.id = 'equipeAlertChangement';
+    alertBanner.style.cssText = 'display:none;background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#92400E;';
+    tbody.parentElement.insertBefore(alertBanner, tbody.parentElement.querySelector('table') || tbody.parentElement.firstChild);
+  }
+
   if (tbody.rows.length === 0 && totalH > 0) {
-    // Heure EC → AS1A, heures REE qualifiées → ATQS3A
+    alertBanner.style.display = 'none';
     const hEC_equipe = arrondiQuartH(hEC);
-    const hREE_std = arrondiQuartH(hREE - hREEQualif);
-    const hREE_qual = arrondiQuartH(hREEQualif);
+    const hREE_std   = arrondiQuartH(hREE - hREEQualif);
+    const hREE_qual  = arrondiQuartH(hREEQualif);
     if (hEC_equipe > 0 || hREE_std > 0) ajouterLigneEquipe(CCN_NIVEAUX[0].taux, 1, hEC_equipe + hREE_std);
     if (hREE_qual > 0) ajouterLigneEquipe(CCN_NIVEAUX[4].taux, 1, hREE_qual); // ATQS3A
+    window._equipeHTotal = totalH;
   } else if (tbody.rows.length > 0) {
     recalcEquipeTotaux();
+    // Détecter si les heures ont changé depuis le dernier auto-remplissage
+    const prevH = window._equipeHTotal ?? null;
+    if (prevH !== null && Math.abs(totalH - prevH) > 0.01) {
+      alertBanner.innerHTML = `⚠️ <strong>Les besoins ont changé</strong> — Heures calculées : <strong>${totalH.toFixed(2)} h/mois</strong> (précédent : ${prevH.toFixed(2)} h/mois).<br>
+        Le tableau ci-dessous n'a pas été mis à jour automatiquement pour ne pas écraser vos modifications.&nbsp;
+        <button onclick="recalculerEquipeAuto()" style="margin-left:8px;padding:4px 10px;border:none;border-radius:5px;background:#92400E;color:#fff;font-weight:700;cursor:pointer;font-size:12px;">↺ Recalculer automatiquement</button>`;
+      alertBanner.style.display = 'block';
+    } else {
+      alertBanner.style.display = 'none';
+    }
   }
+}
+
+function recalculerEquipeAuto() {
+  syncHeuresVersCalc();
+  const hEC  = parseFloat(document.getElementById('pvHeuresEC')?.value  || 0);
+  const hREE = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
+  const totalH = hEC + hREE;
+  const REE_QUALIF = ['Décapage sol thermoplastique', "Pose d'émulsion sol thermoplastique", 'Récurage carrelage', 'Shampooing moquette', 'Nettoyage des vitres'];
+  let hREEQualif = 0;
+  document.querySelectorAll('#tbodyREE tr').forEach(tr => {
+    const selPresta = tr.querySelectorAll('select')[1];
+    if (selPresta && REE_QUALIF.includes(selPresta.value)) {
+      hREEQualif += parseFloat(tr.querySelector('input[id$="_mensuel"]')?.value || 0);
+    }
+  });
+  const tbody = document.getElementById('tbodyEquipe');
+  tbody.innerHTML = '';
+  window._equipeHTotal = totalH;
+  const hEC_equipe = arrondiQuartH(hEC);
+  const hREE_std   = arrondiQuartH(hREE - hREEQualif);
+  const hREE_qual  = arrondiQuartH(hREEQualif);
+  if (hEC_equipe > 0 || hREE_std > 0) ajouterLigneEquipe(CCN_NIVEAUX[0].taux, 1, hEC_equipe + hREE_std);
+  if (hREE_qual > 0) ajouterLigneEquipe(CCN_NIVEAUX[4].taux, 1, hREE_qual);
+  document.getElementById('equipeAlertChangement').style.display = 'none';
 }
 
 // ── CONSOMMABLES HYGIÉNIQUES ─────────────────────────────────────────────
@@ -3245,6 +3290,10 @@ async function chargerChiffrage(id) {
   }
 
   calculerPrix();
+  // Mémoriser les heures chargées comme référence pour la détection de changement (étape Équipe)
+  const hECLoad  = parseFloat(document.getElementById('pvHeuresEC')?.value  || 0);
+  const hREELoad = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
+  window._equipeHTotal = hECLoad + hREELoad;
 }
 
 function toast(msg) {
