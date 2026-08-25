@@ -810,7 +810,7 @@
     </div>
 
     <div class="modal-footer" style="margin-top:16px;">
-      <button class="btn-primary" onclick="allerChiffrage()" style="background:var(--orange);">📊 Lancer le chiffrage</button>
+      <button class="btn-primary" id="btnChiffrage" onclick="allerChiffrage()" style="background:var(--orange);">📊 Lancer le chiffrage</button>
     </div>
   </div>
 </div>
@@ -1417,6 +1417,14 @@ async function ouvrirFicheProspect(id) {
   else { notesEl.style.display = 'none'; }
 
   await chargerActivites(id);
+
+  // Adapter le bouton chiffrage selon qu'un chiffrage existe déjà
+  const btnC = document.getElementById('btnChiffrage');
+  if (btnC) {
+    const { data: chiffExist } = await sb.from('chiffrages').select('id').eq('prospect_id', id).limit(1).maybeSingle();
+    btnC.textContent = chiffExist?.id ? '📄 Ouvrir le chiffrage' : '📊 Lancer le chiffrage';
+  }
+
   document.getElementById('modalFicheProspect').classList.add('open');
 }
 
@@ -1471,9 +1479,15 @@ async function ajouterActivite() {
   toast('Activité ajoutée ✓');
 }
 
-function allerChiffrage() {
+async function allerChiffrage() {
   if (!currentProspectId) return;
-  window.location.href = '/chiffrage?prospect=' + currentProspectId;
+  // Chercher un chiffrage existant pour ce prospect
+  const { data } = await sb.from('chiffrages').select('id').eq('prospect_id', currentProspectId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (data?.id) {
+    window.location.href = '/chiffrage?chiffrage=' + data.id;
+  } else {
+    window.location.href = '/chiffrage?prospect=' + currentProspectId;
+  }
 }
 
 // ── GOOGLE MAPS ────────────────────────────────────────────────────────
