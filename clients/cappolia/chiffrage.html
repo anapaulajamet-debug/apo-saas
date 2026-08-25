@@ -2857,16 +2857,22 @@ async function sauvegarder(silencieux = false) {
   // Toute la structure métier dans le champ "surfaces" (JSONB existant)
   // Tout est stocké dans surfaces (JSONB) — pas de colonnes supplémentaires à créer
   const donnees = {
-    // Fiche client
+    // Fiche client — tous les champs
     ficheClient: {
       raisonSociale: document.getElementById('fcRaisonSociale')?.value || '',
       contact:       document.getElementById('fcContact')?.value || '',
+      telephone:     document.getElementById('fcTelephone')?.value || '',
+      email:         document.getElementById('fcEmail')?.value || '',
       adresse:       document.getElementById('fcAdresse')?.value || '',
       typeSite:      document.getElementById('fcTypeSite')?.value || '',
       surface:       document.getElementById('fcSurface')?.value || '',
+      niveaux:       document.getElementById('fcNiveaux')?.value || '1',
       frequence:     document.getElementById('fcFrequence')?.value || '21.65',
+      frequenceAutres: document.getElementById('fcFrequenceAutres')?.value || '',
       jours:         Object.keys(JOURS_IDS).filter(j => document.getElementById(JOURS_IDS[j])?.checked),
       horaires:      document.getElementById('fcHoraires')?.value || '',
+      acces:         document.getElementById('fcAcces')?.value || '',
+      dateVisite:    document.getElementById('fcDateVisite')?.value || '',
       prestataireNom:      document.getElementById('fcPrestataireNom')?.value      || '',
       prestataireTarif:    document.getElementById('fcPrestataireTarif')?.value    || '',
       prestataireContrat:  document.getElementById('fcPrestataireContrat')?.value  || '',
@@ -2878,6 +2884,12 @@ async function sauvegarder(silencieux = false) {
       electricite:    document.getElementById('fcElectricite')?.value    || '',
       accesVerticaux: document.getElementById('fcAccesVerticaux')?.value || '',
       commentaire:    document.getElementById('fcCommentaire')?.value    || '',
+      usagersFixes:   document.getElementById('fcUsagersFixes')?.value   || '0',
+      usagersOcc:     document.getElementById('fcUsagersOcc')?.value     || '0',
+      sanitaires:     document.getElementById('fcSanitaires')?.value     || '0',
+      distribPapier:  document.getElementById('fcDistribPapier')?.value  || '0',
+      distribSavon:   document.getElementById('fcDistribSavon')?.value   || '0',
+      distribEssuie:  document.getElementById('fcDistribEssuie')?.value  || '0',
       distributeurs:  lireDistributeurs(),
     },
     groupesEC,
@@ -2888,12 +2900,15 @@ async function sauvegarder(silencieux = false) {
     equipe:   extraireEquipe(),
     conso:    extraireConso(),
     pvParams: {
+      niveauEC:      document.getElementById('pvNiveauEC')?.value      || '',
+      niveauREE:     document.getElementById('pvNiveauREE')?.value     || '',
+      charges:       document.getElementById('pvCharges')?.value       || '44',
+      allegement:    document.getElementById('pvAllegement')?.value    || '82',
       produits:      document.getElementById('pvProduits')?.value      || '2',
       fournitures:   document.getElementById('pvFournitures')?.value   || '5',
       amortissement: document.getElementById('pvAmortissement')?.value || '0',
       structure:     document.getElementById('pvStructure')?.value     || '12',
       marge:         document.getElementById('pvMarge')?.value         || '30',
-      allegement:    document.getElementById('pvAllegement')?.value    || '82',
       heuresEC:      document.getElementById('pvHeuresEC')?.value      || '0',
       heuresREE:     document.getElementById('pvHeuresREE')?.value     || '0',
     },
@@ -2956,12 +2971,18 @@ async function chargerChiffrage(id) {
 
   // Fiche client
   const set = (eid, v) => { const el = document.getElementById(eid); if (el) el.value = v || ''; };
-  set('fcRaisonSociale', fc.raisonSociale || data.raison_sociale);
-  set('fcContact',       fc.contact);
-  set('fcAdresse',       fc.adresse);
-  set('fcTypeSite',      fc.typeSite);
-  set('fcSurface',       fc.surface || data.surface_totale);
-  set('fcFrequence',     fc.frequence || '21.65');
+  set('fcRaisonSociale',    fc.raisonSociale || data.raison_sociale);
+  set('fcContact',          fc.contact);
+  set('fcTelephone',        fc.telephone);
+  set('fcEmail',            fc.email);
+  set('fcAdresse',          fc.adresse);
+  set('fcTypeSite',         fc.typeSite);
+  set('fcSurface',          fc.surface || data.surface_totale);
+  set('fcNiveaux',          fc.niveaux || '1');
+  set('fcFrequence',        fc.frequence || '21.65');
+  set('fcFrequenceAutres',  fc.frequenceAutres);
+  set('fcAcces',            fc.acces);
+  set('fcDateVisite',       fc.dateVisite);
   set('fcPrestataireNom',      fc.prestataireNom);
   set('fcPrestataireTarif',    fc.prestataireTarif);
   set('fcPrestataireContrat',  fc.prestataireContrat);
@@ -2973,6 +2994,12 @@ async function chargerChiffrage(id) {
   set('fcElectricite',    fc.electricite);
   set('fcAccesVerticaux', fc.accesVerticaux);
   set('fcCommentaire',    fc.commentaire);
+  set('fcUsagersFixes',   fc.usagersFixes || '0');
+  set('fcUsagersOcc',     fc.usagersOcc   || '0');
+  set('fcSanitaires',     fc.sanitaires   || '0');
+  set('fcDistribPapier',  fc.distribPapier|| '0');
+  set('fcDistribSavon',   fc.distribSavon || '0');
+  set('fcDistribEssuie',  fc.distribEssuie|| '0');
   if (document.getElementById('fcPrestataireEcheance')?.value) majAlertEcheance();
 
   // Jours
@@ -3069,14 +3096,20 @@ async function chargerChiffrage(id) {
   if (d.pvParams) {
     const p = d.pvParams;
     const setv = (eid, v) => { const el = document.getElementById(eid); if (el && v !== undefined) el.value = v; };
+    setv('pvNiveauEC',      p.niveauEC);
+    setv('pvNiveauREE',     p.niveauREE);
+    setv('pvCharges',       p.charges);
+    setv('pvAllegement',    p.allegement);
     setv('pvProduits',      p.produits);
     setv('pvFournitures',   p.fournitures);
     setv('pvAmortissement', p.amortissement);
     setv('pvStructure',     p.structure);
     setv('pvMarge',         p.marge);
-    setv('pvAllegement',    p.allegement);
     setv('pvHeuresEC',      p.heuresEC);
     setv('pvHeuresREE',     p.heuresREE);
+    // Mettre à jour l'affichage du slider allegement
+    const alvVal = document.getElementById('pvAllegementVal');
+    if (alvVal && p.allegement) alvVal.textContent = p.allegement + '%';
   }
 
   if (d.devisCommentaires) {
