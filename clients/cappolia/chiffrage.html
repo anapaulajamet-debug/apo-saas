@@ -117,6 +117,10 @@
     }
     .calcul-label { font-size: 13px; color: #475569; }
     .calcul-val { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+    .calcul-val-edit { font-size: 13px; font-weight: 700; color: var(--green-dark); text-align: right; width: 90px; border: 1.5px dashed #A7F3D0; border-radius: 5px; padding: 3px 6px; background: #F0FDF4; outline: none; font-family: inherit; transition: border-color 0.15s, background 0.15s; }
+    .calcul-val-edit:focus { border-color: var(--green); background: #ECFDF5; box-shadow: 0 0 0 2px #A7F3D033; }
+    .calcul-val-edit::-webkit-inner-spin-button, .calcul-val-edit::-webkit-outer-spin-button { opacity: 0; }
+    .calcul-val-edit[data-modified] { border-color: #2563EB; background: #EFF6FF; color: #1E40AF; }
     .calcul-row.total { border-top: 2px solid var(--green-dark); border-bottom: none; padding-top: 14px; margin-top: 4px; }
     .calcul-row.total .calcul-label { font-weight: 700; color: var(--green-dark); font-size: 14px; }
     .calcul-row.total .calcul-val { font-size: 18px; color: var(--green); }
@@ -1022,18 +1026,18 @@
         <div>
           <!-- Calcul détaillé -->
           <div class="card">
-            <div class="card-title">Détail du calcul</div>
+            <div class="card-title">Détail du calcul <span style="font-size:11px;font-weight:400;color:#6B7280;">— cliquer sur une valeur € pour la modifier directement</span></div>
             <div class="calcul-row"><span class="calcul-label">Masse salariale brute</span><span class="calcul-val" id="cMasseSalariale">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Charges patronales <span class="taux-badge" id="badgeCharges">30%</span></span><span class="calcul-val" id="cCharges">—</span></div>
             <div class="calcul-row" id="rowAllegement" style="display:none;color:#166534;"><span class="calcul-label">↳ Allègement RGDU <span class="taux-badge" id="badgeAllegement" style="background:#DCFCE7;color:#166534;">0%</span></span><span class="calcul-val" id="cAllegement" style="color:#166534;">—</span></div>
             <div class="calcul-row" style="background:#F0FDF4;padding:10px;border-radius:6px;border:1px solid #86EFAC;margin:8px 0;"><span class="calcul-label" style="font-weight:700;color:#1A3D28;">Coût de la masse salariale</span><span class="calcul-val" id="cCoutMasseSalariale" style="font-weight:700;color:#1A3D28;">—</span></div>
-            <div class="calcul-row"><span class="calcul-label">Coût produits nettoyage <span class="taux-badge" id="badgeProduits">15%</span></span><span class="calcul-val" id="cProduits">—</span></div>
-            <div class="calcul-row"><span class="calcul-label">Autres fournitures <span class="taux-badge" id="badgeFournitures">5%</span></span><span class="calcul-val" id="cFournitures">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Coût produits nettoyage <span class="taux-badge" id="badgeProduits">15%</span></span><input class="calcul-val-edit" id="cProduits" type="number" min="0" step="0.01" oninput="onTargetInput('produits',this.value)" title="Saisir une valeur cible €"/></div>
+            <div class="calcul-row"><span class="calcul-label">Autres fournitures <span class="taux-badge" id="badgeFournitures">5%</span></span><input class="calcul-val-edit" id="cFournitures" type="number" min="0" step="0.01" oninput="onTargetInput('fournitures',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">Amortissement matériel</span><span class="calcul-val" id="cAmortissement">—</span></div>
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (hors structure)</span><span class="calcul-val" id="cCoutChantier">—</span></div>
-            <div class="calcul-row"><span class="calcul-label">Frais de structure <span class="taux-badge" id="badgeStructure">12%</span></span><span class="calcul-val" id="cStructure">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Frais de structure <span class="taux-badge" id="badgeStructure">12%</span></span><input class="calcul-val-edit" id="cStructure" type="number" min="0" step="0.01" oninput="onTargetInput('structure',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (avec structure)</span><span class="calcul-val" id="cCoutTotal">—</span></div>
-            <div class="calcul-row"><span class="calcul-label">Marge <span class="taux-badge" id="badgeMarge">30%</span></span><span class="calcul-val" id="cMarge">—</span></div>
+            <div class="calcul-row"><span class="calcul-label">Marge <span class="taux-badge" id="badgeMarge">30%</span></span><input class="calcul-val-edit" id="cMarge" type="number" min="0" step="0.01" oninput="onTargetInput('marge',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">TVA (20%)</span><span class="calcul-val" id="cTVA">—</span></div>
             <div class="calcul-row total">
               <span class="calcul-label">PRIX DE VENTE HT</span>
@@ -2432,6 +2436,43 @@ function supprimerLigne(id, tbody) {
   if (tr) tr.remove();
 }
 
+// ── VALEURS CIBLES (édition euro → rétro-calcul %) ───────────────────────
+function setCalcEdit(id, val) {
+  const el = document.getElementById(id);
+  if (!el || document.activeElement === el) return; // ne pas écraser pendant la saisie
+  el.value = val.toFixed(2);
+  el.removeAttribute('data-modified');
+}
+
+function onTargetInput(field, rawVal) {
+  const val = parseFloat(rawVal);
+  if (isNaN(val) || val < 0) return;
+
+  // Récupère masse salariale et coût chantier depuis les derniers éléments calculés
+  const masseSalariale = parseFloat(document.getElementById('cMasseSalariale')?.textContent?.replace(',', '.').replace(/[^\d.]/g, '') || 0);
+  const coutChantier   = parseFloat(document.getElementById('cCoutChantier')?.textContent?.replace(',', '.').replace(/[^\d.]/g, '') || 0);
+  const coutTotal      = parseFloat(document.getElementById('cCoutTotal')?.textContent?.replace(',', '.').replace(/[^\d.]/g, '') || 0);
+
+  if (field === 'produits' && masseSalariale > 0) {
+    document.getElementById('pvProduits').value = (val / masseSalariale * 100).toFixed(2);
+  } else if (field === 'fournitures' && masseSalariale > 0) {
+    document.getElementById('pvFournitures').value = (val / masseSalariale * 100).toFixed(2);
+  } else if (field === 'structure') {
+    const base = coutChantier > 0 ? coutChantier : masseSalariale;
+    if (base > 0) document.getElementById('pvStructure').value = (val / base * 100).toFixed(2);
+  } else if (field === 'marge' && coutTotal > 0) {
+    // marge% sur prix HT = marge / (coutTotal + marge)
+    const margeP = val / (coutTotal + val) * 100;
+    document.getElementById('pvMarge').value = margeP.toFixed(2);
+  }
+
+  // Marquer le champ comme modifié manuellement
+  const elId = { produits: 'cProduits', fournitures: 'cFournitures', structure: 'cStructure', marge: 'cMarge' }[field];
+  if (elId) document.getElementById(elId)?.setAttribute('data-modified', '1');
+
+  calculerPrix();
+}
+
 // ── CALCUL PRIX ──────────────────────────────────────────────────────────
 let _hEC_brut = 0; // valeur numérique brute, mise à jour par calculerEC()
 
@@ -2512,13 +2553,13 @@ function calculerPrix() {
   } else {
     rowAlleg.style.display = 'none';
   }
-  document.getElementById('cProduits').textContent = fmt(produits);
-  document.getElementById('cFournitures').textContent = fmt(fournitures);
+  setCalcEdit('cProduits',    produits);
+  setCalcEdit('cFournitures', fournitures);
   document.getElementById('cAmortissement').textContent = fmt(amortissement);
   document.getElementById('cCoutChantier').textContent = fmt(coutChantier);
-  document.getElementById('cStructure').textContent = fmt(structure);
+  setCalcEdit('cStructure', structure);
   document.getElementById('cCoutTotal').textContent = fmt(coutTotal);
-  document.getElementById('cMarge').textContent = fmt(marge);
+  setCalcEdit('cMarge', marge);
   document.getElementById('cTVA').textContent = fmt(tva);
   document.getElementById('cPrixHT').textContent = fmt(prixHT);
 
