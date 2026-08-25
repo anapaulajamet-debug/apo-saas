@@ -262,13 +262,18 @@
       <div><div class="step-label">Équipe & Temps</div><div class="step-sub">Composition & heures</div></div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" onclick="allerEtape(4)" id="step4">
+    <div class="step-item" onclick="allerEtape(8)" id="step8">
       <div class="step-num">6</div>
+      <div><div class="step-label">Consommables</div><div class="step-sub">Hygiéniques & dotation</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item" onclick="allerEtape(4)" id="step4">
+      <div class="step-num">7</div>
       <div><div class="step-label">Prix de vente</div><div class="step-sub">Calcul automatique</div></div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" onclick="allerEtape(6)" id="step6">
-      <div class="step-num">7</div>
+      <div class="step-num">8</div>
       <div><div class="step-label">Devis client</div><div class="step-sub">Génération & envoi</div></div>
     </div>
 
@@ -748,6 +753,24 @@
         <div class="info-box" style="margin-top:16px;">ℹ️ Section optionnelle. Si aucune prestation ponctuelle n'est prévue, passez directement à l'étape suivante.</div>
       </div>
 
+      <div class="card">
+        <div class="card-title">Coût de déplacement — Prestations ponctuelles</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="field" style="flex:1;min-width:160px;">
+            <label>Nb de déplacements / mois</label>
+            <input type="number" id="reeNbDeplacement" min="0" step="1" value="0" oninput="calculerREE()" style="width:100%;">
+          </div>
+          <div class="field" style="flex:1;min-width:160px;">
+            <label>Coût unitaire / déplacement (€)</label>
+            <input type="number" id="reeCoutDeplacement" min="0" step="0.5" value="15" oninput="calculerREE()" style="width:100%;">
+          </div>
+          <div class="field" style="flex:1;min-width:160px;">
+            <label>Total déplacements / mois</label>
+            <div id="reeTotalDeplacement" style="font-weight:700;font-size:15px;padding:10px 0;color:var(--green-dark);">0,00 €</div>
+          </div>
+        </div>
+      </div>
+
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(2)">← Retour</button>
         <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
@@ -800,6 +823,12 @@
       <div class="section-title">Équipe & Temps passé</div>
       <div class="section-sub">Composition de l'équipe — proposition automatique modifiable</div>
 
+      <!-- Résumé des besoins -->
+      <div class="card" id="resumeBesoinsCard" style="background:var(--green-light);border:1.5px solid var(--green-mid);">
+        <div class="card-title" style="color:var(--green-dark);">Résumé des besoins</div>
+        <div id="resumeBesoins" style="font-size:13px;line-height:2;color:var(--text);"></div>
+      </div>
+
       <div class="card">
         <div class="card-title">Heures calculées en amont</div>
         <div id="equipeInfoBox" style="background:var(--bg);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--text-muted);line-height:1.9;"></div>
@@ -836,11 +865,56 @@
       <div class="nav-btns">
         <button class="btn-secondary" onclick="allerEtape(5)">← Retour</button>
         <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
+        <button class="btn-primary" onclick="allerEtape(8)">Étape suivante →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 6 : CONSOMMABLES HYGIÉNIQUES -->
+    <div class="section" id="section-8">
+      <div class="section-title">Consommables hygiéniques</div>
+      <div class="section-sub">Dotation en papier toilette, essuie-mains, savon — selon les usagers et distributeurs</div>
+
+      <div class="card" id="consommablesInfoCard" style="background:var(--green-light);border:1.5px solid var(--green-mid);margin-bottom:0;">
+        <div class="card-title" style="color:var(--green-dark);">Données issues de la fiche client</div>
+        <div id="consoInfoBox" style="font-size:13px;line-height:2;color:var(--text);"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Produits consommables</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;" id="tableConsommables">
+            <thead>
+              <tr style="background:var(--bg);text-align:left;">
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Produit</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Unité</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Qté / mois</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Prix unitaire (€)</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);">Total / mois (€)</th>
+                <th style="padding:8px 10px;border-bottom:1px solid var(--border);width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyConsommables"></tbody>
+            <tfoot>
+              <tr style="font-weight:700;background:var(--bg);">
+                <td colspan="4" style="padding:8px 10px;border-top:2px solid var(--border);">TOTAL / mois</td>
+                <td id="consoTotalMensuel" style="padding:8px 10px;border-top:2px solid var(--border);color:var(--green-dark);">0,00 €</td>
+                <td style="border-top:2px solid var(--border);"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button class="btn-secondary" style="margin-top:12px;" onclick="ajouterLigneConso()">+ Ajouter un produit</button>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-secondary" onclick="allerEtape(7)">← Retour</button>
+        <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(4)">Étape suivante →</button>
       </div>
     </div>
 
-    <!-- ÉTAPE 6 : PRIX DE VENTE -->
+    <!-- ÉTAPE 7 : PRIX DE VENTE -->
+    <!-- section-4 = Prix de vente (id conservé pour compatibilité données sauvegardées) -->
     <div class="section" id="section-4">
       <div class="section-title">Prix de vente mensuel</div>
       <div class="section-sub">Calcul automatique — CCN Propreté 2026 — Forfait minimum 250 € HT</div>
@@ -917,7 +991,7 @@
               </div>
               <div class="field">
                 <label>Coût produits nettoyage (%)</label>
-                <input type="number" id="pvProduits" value="15" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+                <input type="number" id="pvProduits" value="2" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
               </div>
               <div class="field">
                 <label>Autres fournitures (%)</label>
@@ -982,7 +1056,7 @@
       </div>
 
       <div class="nav-btns">
-        <button class="btn-secondary" onclick="allerEtape(7)">← Retour</button>
+        <button class="btn-secondary" onclick="allerEtape(8)">← Retour</button>
         <button class="btn-secondary" onclick="sauvegarder()" style="background:#F0FDF4;color:#1A3D28;border:1.5px solid #86EFAC;">💾 Enregistrer</button>
         <button class="btn-primary" onclick="allerEtape(6)">Générer le devis →</button>
       </div>
@@ -1453,6 +1527,7 @@ function allerEtape(n, sauver = true) {
   document.getElementById('section-' + n).classList.add('active');
   document.getElementById('step' + n).classList.add('active');
   if (n === 7) { initEquipe(); }
+  if (n === 8) { initConsommables(); }
   if (n === 4) { calculerPrix(); }
   if (n === 6) { genererDevis(); }
   window.scrollTo(0, 0);
@@ -1547,12 +1622,113 @@ function initEquipe() {
     📊 <strong>Total calculé :</strong> ${totalH.toFixed(2)} h/mois
     ${totalH > 0 ? ' — proposition automatique ci-dessous (modifiable)' : ' — aucune heure détectée, ajoutez des lignes manuellement'}`;
 
+  // Résumé des besoins
+  const resumeEl = document.getElementById('resumeBesoins');
+  if (resumeEl) {
+    // Jours d'intervention
+    const JOURS_LABELS = { fcJourLun:'Lun', fcJourMar:'Mar', fcJourMer:'Mer', fcJourJeu:'Jeu', fcJourVen:'Ven', fcJourSam:'Sam', fcJourDim:'Dim' };
+    const joursActifs = Object.entries(JOURS_LABELS).filter(([id]) => document.getElementById(id)?.checked).map(([,l]) => l);
+    // Fréquence EC globale
+    const freqSem = (getFreqMois() * 12 / 52).toFixed(1);
+    // Heures hebdo EC
+    const hECSem = _hEC_brut * 12 / 52;
+    // Groupes EC
+    const locauxEC = groupesEC.map(g => g.local).filter(Boolean).join(', ');
+    // REE lignes
+    const nbREE = document.querySelectorAll('#tbodyREE tr').length;
+    let lines = '';
+    if (locauxEC) lines += `<div>🏢 <strong>Locaux EC :</strong> ${locauxEC}</div>`;
+    lines += `<div>📅 <strong>Fréquence EC :</strong> ${freqSem}×/semaine</div>`;
+    if (joursActifs.length) lines += `<div>📆 <strong>Jours d'intervention :</strong> ${joursActifs.join(' · ')}</div>`;
+    lines += `<div>⏱️ <strong>Heures EC/semaine :</strong> ${fmtH(hECSem)}</div>`;
+    if (hREE > 0) lines += `<div>🔧 <strong>Prestations ponctuelles :</strong> ${nbREE} ligne(s) — ${hREE.toFixed(2)} h/mois</div>`;
+    lines += `<div style="margin-top:6px;font-weight:700;color:var(--green-dark);">Total : ${fmtH(totalH / (52/12))} / semaine · ${totalH.toFixed(2)} h/mois</div>`;
+    resumeEl.innerHTML = lines;
+  }
+
+  // ATQS auto : si REE contient des prestations qualifiées
+  const REE_QUALIF = ['Décapage sol thermoplastique', "Pose d'émulsion sol thermoplastique", 'Récurage carrelage', 'Shampooing moquette', 'Nettoyage des vitres'];
+  let hREEQualif = 0;
+  document.querySelectorAll('#tbodyREE tr').forEach(tr => {
+    const selPresta = tr.querySelectorAll('select')[1];
+    if (selPresta && REE_QUALIF.includes(selPresta.value)) {
+      const hMensuel = parseFloat(tr.querySelector('input[id$="_mensuel"]')?.value || 0);
+      hREEQualif += hMensuel;
+    }
+  });
+
   const tbody = document.getElementById('tbodyEquipe');
   if (tbody.rows.length === 0 && totalH > 0) {
-    ajouterLigneEquipe(CCN_NIVEAUX[0].taux, 1, totalH);
+    // Heure EC → AS1A, heures REE qualifiées → ATQS3A
+    const hEC_equipe = arrondiQuartH(hEC);
+    const hREE_std = arrondiQuartH(hREE - hREEQualif);
+    const hREE_qual = arrondiQuartH(hREEQualif);
+    if (hEC_equipe > 0 || hREE_std > 0) ajouterLigneEquipe(CCN_NIVEAUX[0].taux, 1, hEC_equipe + hREE_std);
+    if (hREE_qual > 0) ajouterLigneEquipe(CCN_NIVEAUX[4].taux, 1, hREE_qual); // ATQS3A
   } else if (tbody.rows.length > 0) {
     recalcEquipeTotaux();
   }
+}
+
+// ── CONSOMMABLES HYGIÉNIQUES ─────────────────────────────────────────────
+const CONSO_DEFAULTS = [
+  { nom: 'Papier toilette (rouleaux)', unite: 'rouleau', qte: 0, pu: 0.35 },
+  { nom: 'Essuie-mains papier (feuilles)', unite: 'feuille', qte: 0, pu: 0.02 },
+  { nom: 'Savon liquide (L)', unite: 'litre', qte: 0, pu: 4.50 },
+  { nom: 'Gel hydroalcoolique (L)', unite: 'litre', qte: 0, pu: 6.00 },
+  { nom: 'Sacs poubelles (unités)', unite: 'unité', qte: 0, pu: 0.15 },
+];
+let lignesConso = 0;
+
+function initConsommables() {
+  // Info box : usagers et distributeurs de la fiche client
+  const nbUsagers = document.getElementById('fcUsagers')?.value || '—';
+  const distribsPT = document.querySelectorAll('.distrib-item[data-type="PT"]').length;
+  const distribsEM = document.querySelectorAll('.distrib-item[data-type="EM"]').length;
+  const el = document.getElementById('consoInfoBox');
+  if (el) {
+    el.innerHTML = `<div>👤 <strong>Usagers :</strong> ${nbUsagers}</div>
+      <div>🧻 <strong>Distributeurs papier toilette :</strong> ${distribsPT || '—'}</div>
+      <div>🫧 <strong>Distributeurs essuie-mains :</strong> ${distribsEM || '—'}</div>`;
+  }
+  // Pré-remplir le tableau si vide
+  const tbody = document.getElementById('tbodyConsommables');
+  if (tbody && tbody.rows.length === 0) {
+    CONSO_DEFAULTS.forEach(d => ajouterLigneConso(d.nom, d.unite, d.qte, d.pu));
+  } else {
+    calculerConso();
+  }
+}
+
+function ajouterLigneConso(nom = '', unite = 'unité', qte = 0, pu = 0) {
+  lignesConso++;
+  const id = 'conso' + lignesConso;
+  const tr = document.createElement('tr');
+  tr.id = id;
+  tr.innerHTML = `
+    <td><input type="text" value="${nom}" style="width:100%;min-width:180px;" oninput="calculerConso()"/></td>
+    <td><input type="text" value="${unite}" style="width:80px;" oninput="calculerConso()"/></td>
+    <td><input type="number" id="${id}_qte" min="0" step="1" value="${qte}" oninput="calculerConso()" style="width:80px;"/></td>
+    <td><input type="number" id="${id}_pu" min="0" step="0.01" value="${pu}" oninput="calculerConso()" style="width:90px;"/></td>
+    <td id="${id}_total" style="font-weight:600;padding:6px 10px;">0,00 €</td>
+    <td><button class="btn-del" onclick="this.closest('tr').remove(); calculerConso()">✕</button></td>`;
+  document.getElementById('tbodyConsommables').appendChild(tr);
+  calculerConso();
+}
+
+function calculerConso() {
+  let total = 0;
+  document.querySelectorAll('#tbodyConsommables tr').forEach(tr => {
+    const id = tr.id;
+    const qte = parseFloat(document.getElementById(id + '_qte')?.value || 0);
+    const pu  = parseFloat(document.getElementById(id + '_pu')?.value  || 0);
+    const ligne = qte * pu;
+    total += ligne;
+    const elT = document.getElementById(id + '_total');
+    if (elT) elT.textContent = ligne.toFixed(2).replace('.', ',') + ' €';
+  });
+  const elTot = document.getElementById('consoTotalMensuel');
+  if (elTot) elTot.textContent = total.toFixed(2).replace('.', ',') + ' €';
 }
 
 // ── MATRICE PRESTATIONS PAR LOCAL × SOL ─────────────────────────────────
@@ -1733,6 +1909,19 @@ function rendreGroupes() {
         </td>`;
       tbody.appendChild(tr);
     });
+    // Sous-total par local
+    const trSub = document.createElement('tr');
+    trSub.id = g.id + '_subtotal';
+    trSub.style.cssText = 'background:var(--green-light);font-size:11px;font-weight:700;color:var(--green-dark);';
+    trSub.innerHTML = `
+      <td colspan="5" style="padding:4px 14px 4px 18px;text-align:right;font-size:11px;opacity:.8;">
+        Sous-total ${g.local} (${g.surface} m²)
+      </td>
+      <td id="${g.id}_sub_passage" style="padding:4px 8px;text-align:right;">—</td>
+      <td style="padding:4px 4px;text-align:center;font-size:10px;opacity:.7;">/passage</td>
+      <td id="${g.id}_sub_mensuel" style="padding:4px 8px;text-align:right;">—</td>
+      <td></td>`;
+    tbody.appendChild(trSub);
   });
 }
 
@@ -1953,6 +2142,9 @@ function calculerEC() {
   let totalMensuel = 0;
   const surfacesTotales = groupesEC.reduce((sum, g) => sum + (parseFloat(g.surface) || 0), 0);
 
+  // Calcul par groupe pour les sous-totaux
+  const subTotaux = {}; // gid → { rawTps, mensuel }
+
   document.querySelectorAll('#tbodyEC tr[data-surface]').forEach(tr => {
     const rid = tr.id.replace('row_', '');
     const gid = tr.dataset.gid;
@@ -1961,8 +2153,6 @@ function calculerEC() {
     const cadence = cadenceInput ? parseFloat(cadenceInput.value) || 1 : 200;
     const freqInputGroupe = document.getElementById(gid + '_freqInput');
     const freqMoisGroupe = freqInputGroupe ? parseFloat(freqInputGroupe.value) * 4.33 || freqGlobale : freqGlobale;
-    // Fréquence de la tâche individuelle (input /sem × 4.33)
-    const idxTache = rid.replace(gid + '_', '');
     const freqTacheInput = document.getElementById(rid + '_freqTache');
     const freqMoisTache = freqTacheInput ? parseFloat(freqTacheInput.value) * 4.33 || freqMoisGroupe : freqMoisGroupe;
     const tpsPresta = surf > 0 ? surf / cadence : 0;
@@ -1970,6 +2160,18 @@ function calculerEC() {
     if (document.getElementById(rid + '_mensuel')) document.getElementById(rid + '_mensuel').textContent = fmtH(tpsPresta * freqMoisTache);
     rawTps += tpsPresta;
     totalMensuel += tpsPresta * freqMoisTache;
+    if (!subTotaux[gid]) subTotaux[gid] = { rawTps: 0, mensuel: 0 };
+    subTotaux[gid].rawTps   += tpsPresta;
+    subTotaux[gid].mensuel  += tpsPresta * freqMoisTache;
+  });
+
+  // Mise à jour des sous-totaux par local
+  Object.entries(subTotaux).forEach(([gid, st]) => {
+    const arrondi = h => Math.floor(h * 2) / 2; // 30min pour l'affichage local
+    const elP = document.getElementById(gid + '_sub_passage');
+    const elM = document.getElementById(gid + '_sub_mensuel');
+    if (elP) elP.textContent = fmtH(arrondi(st.rawTps));
+    if (elM) elM.textContent = fmtH(st.mensuel);
   });
 
   const elSurf = document.getElementById('totalSurfaces');
@@ -2032,14 +2234,19 @@ function ajouterLigneREE() {
     <td><input type="number" id="${id}_cadence" value="${Object.values(CADENCES)[0]}" readonly/></td>
     <td><input type="number" id="${id}_tps" readonly/></td>
     <td>
-      <select id="${id}_freq" onchange="calculerREE()" style="min-width:140px;font-size:12px;">
-        <option value="0.23">1 fois / trimestre</option>
+      <select id="${id}_freq" onchange="calculerREE()" style="min-width:160px;font-size:12px;">
+        <option value="${1/12}">1 fois / an</option>
+        <option value="${2/12}">2 fois / an (semestriel)</option>
+        <option value="${3/12}">3 fois / an</option>
+        <option value="0.5">1 fois tous les 2 mois (bimensuel)</option>
+        <option value="0.77">1 fois / trimestre</option>
         <option value="1" selected>1 fois / mois</option>
         <option value="2">2 fois / mois</option>
-        <option value="4">1 fois / semaine</option>
-        <option value="8">2 fois / semaine</option>
-        <option value="12">3 fois / semaine</option>
-        <option value="20">5 fois / semaine (j. ouvrés)</option>
+        <option value="4.33">1 fois / semaine</option>
+        <option value="8.66">2 fois / semaine</option>
+        <option value="13">3 fois / semaine</option>
+        <option value="17.33">4 fois / semaine</option>
+        <option value="21.65">5 fois / semaine (j. ouvrés)</option>
       </select>
     </td>
     <td><input type="number" id="${id}_mensuel" readonly/></td>
@@ -2070,6 +2277,12 @@ function calculerREE() {
     total += mensuel;
   });
   document.getElementById('totalREE').textContent = total.toFixed(2);
+  // Coût déplacement
+  const nbDep = parseFloat(document.getElementById('reeNbDeplacement')?.value || 0);
+  const coutDep = parseFloat(document.getElementById('reeCoutDeplacement')?.value || 15);
+  const totalDep = nbDep * coutDep;
+  const elDep = document.getElementById('reeTotalDeplacement');
+  if (elDep) elDep.textContent = totalDep.toFixed(2) + ' €';
   syncHeuresVersCalc();
   calculerPrix();
 }
@@ -2117,9 +2330,12 @@ function supprimerLigne(id, tbody) {
 // ── CALCUL PRIX ──────────────────────────────────────────────────────────
 let _hEC_brut = 0; // valeur numérique brute, mise à jour par calculerEC()
 
+// Arrondi au quart d'heure supérieur, minimum 1h
+const arrondiQuartH = h => h <= 0 ? 0 : Math.max(1, Math.ceil(h * 4) / 4);
+
 function syncHeuresVersCalc() {
-  const hEC  = _hEC_brut;
-  const hREE = parseFloat(document.getElementById('totalREE')?.textContent || 0);
+  const hEC  = arrondiQuartH(_hEC_brut);
+  const hREE = arrondiQuartH(parseFloat(document.getElementById('totalREE')?.textContent || 0));
   const elEC  = document.getElementById('pvHeuresEC');
   const elREE = document.getElementById('pvHeuresREE');
   if (elEC)  elEC.value  = hEC.toFixed(2);
@@ -2151,7 +2367,7 @@ function calculerPrix() {
   const pctExoneration = noAlleg ? 0 : parseFloat(document.getElementById('pvAllegement')?.value || 82) / 100;
   const tauxAllegement = tauxCharges * pctExoneration; // ex: 44% × 82% = 36,08% du brut
   const tauxChargesNet = tauxCharges - tauxAllegement; // charges patronales nettes
-  const tauxProduits   = parseFloat(document.getElementById('pvProduits')?.value || 15) / 100;
+  const tauxProduits   = parseFloat(document.getElementById('pvProduits')?.value || 2) / 100;
   const tauxFournitures= parseFloat(document.getElementById('pvFournitures')?.value || 5) / 100;
   const amortissement  = parseFloat(document.getElementById('pvAmortissement')?.value || 0);
   const tauxStructure  = parseFloat(document.getElementById('pvStructure')?.value || 12) / 100;
@@ -2162,7 +2378,10 @@ function calculerPrix() {
   const charges        = masseSalariale * tauxChargesNet;
   const produits       = masseSalariale * tauxProduits;
   const fournitures    = masseSalariale * tauxFournitures;
-  const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement;
+  const nbDep = parseFloat(document.getElementById('reeNbDeplacement')?.value || 0);
+  const coutDep = parseFloat(document.getElementById('reeCoutDeplacement')?.value || 15);
+  const deplacement = nbDep * coutDep;
+  const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement;
   const structure = coutChantier * tauxStructure;
   const coutTotal = coutChantier + structure;
   const marge = coutTotal * (tauxMarge / (1 - tauxMarge));
