@@ -738,6 +738,7 @@
       </div>
     </div>
     <input type="hidden" id="pId"/>
+    <div id="prospectErreur" style="display:none;background:#FEE2E2;color:#991B1B;border:1.5px solid #FCA5A5;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:13px;line-height:1.5;"></div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="fermerModalProspect()">Annuler</button>
       <button class="btn-primary" onclick="enregistrerProspect()">Enregistrer</button>
@@ -1344,7 +1345,6 @@ async function enregistrerProspect() {
     secteur,
     statut: document.getElementById('pStatut').value,
     date_prochain_contact: document.getElementById('pDateContact').value || null,
-    fin_contrat_concurrent: document.getElementById('pFinContrat').value || null,
     updated_at: new Date().toISOString(),
   };
 
@@ -1361,9 +1361,12 @@ async function enregistrerProspect() {
 
   if (error) {
     console.error('Supabase error:', error);
-    toast('❌ Erreur : ' + (error.message || JSON.stringify(error)));
+    const elErr = document.getElementById('prospectErreur');
+    if (elErr) { elErr.style.display = ''; elErr.textContent = '❌ ' + (error.message || JSON.stringify(error)); }
     return;
   }
+  const elErr = document.getElementById('prospectErreur');
+  if (elErr) elErr.style.display = 'none';
 
   fermerModalProspect();
   await chargerProspects();
