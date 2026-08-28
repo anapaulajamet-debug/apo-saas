@@ -502,7 +502,7 @@
 
       // Agents affectés à ce site (avec photo)
       const { data:agents } = await sb.from('agents')
-        .select('id, nom, prenom, telephone, email, photo_url, volume_horaire')
+        .select('id, nom, prenom, telephone, email, photo_url, volume_horaire, jours_travailles, heures_par_jour')
         .eq('site_principal_id', siteId)
         .order('nom');
 
@@ -573,20 +573,24 @@
              </div>`
           : `<div class="agent-avatar">${esc(initiales)}</div>`;
 
-        // Horaires : tous les jours regroupés par créneau
+        // Horaires : planning d'abord, sinon jours_travailles+heures_par_jour, sinon volume
         const ordreJours = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-        const horaireHtml = plans.length
-          ? `<div class="agent-horaire">` +
+        let horaireHtml = '';
+        if(plans.length){
+          horaireHtml = `<div class="agent-horaire">` +
             plans.map(p => {
               const h1 = p.heure_debut?.slice(0,5) || '';
               const h2 = p.heure_fin?.slice(0,5)   || '';
               const joursStr = ordreJours.filter(j => p.jours.has(j)).join(' ');
               return `<span style="margin-right:10px;"><strong>${joursStr}</strong> 🕐 ${h1} – ${h2}</span>`;
-            }).join('') +
-            `</div>`
-          : a.volume_horaire
-            ? `<div class="agent-horaire">📋 ${esc(String(a.volume_horaire))} h/semaine</div>`
-            : '';
+            }).join('') + `</div>`;
+        } else if(a.jours_travailles?.length){
+          const joursStr = ordreJours.filter(j => (a.jours_travailles||[]).includes(j)).join(' ');
+          const hLabel = a.heures_par_jour ? ` • ${a.heures_par_jour}h/j` : '';
+          horaireHtml = `<div class="agent-horaire"><span><strong>${joursStr}</strong>${hLabel}</span></div>`;
+        } else if(a.volume_horaire){
+          horaireHtml = `<div class="agent-horaire">📋 ${esc(String(a.volume_horaire))} h/semaine</div>`;
+        }
 
         return `<div class="agent-card">
           ${avatarHtml}
