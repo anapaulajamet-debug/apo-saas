@@ -986,16 +986,22 @@ async function chargerPlanning(c) {
       kpiPresent++; kpiHeures += hContrat;
       const crens = planParDate[dateStr];
       if (crens?.length) {
-        const h1 = crens[0].heure_debut.slice(0,5), h2 = crens[crens.length-1].heure_fin.slice(0,5);
-        heuresHtml = `<span class="cal-heures">${h1}–${h2}</span>`;
+        const h1 = crens[0].heure_debut?.slice(0,5)||'', h2 = crens[crens.length-1].heure_fin?.slice(0,5)||'';
+        heuresHtml = h1 ? `<span class="cal-heures">${h1}–${h2}</span>`
+                        : `<span class="cal-heures">${hContrat ? hContrat.toFixed(1)+' h' : 'Contrat'}</span>`;
         siteHtml   = `<span class="cal-site">🏢 ${crens[0].sites?.nom || nomSiteFallback}</span>`;
       } else {
         heuresHtml = `<span class="cal-heures">${hContrat ? hContrat.toFixed(1)+' h' : 'Contrat'}</span>`;
+        if(nomSiteFallback) siteHtml = `<span class="cal-site">🏢 ${nomSiteFallback}</span>`;
       }
       onclick = `ouvrirGestionJour('${dateStr}')`;
     } else if (estTravaille && futur) {
       cls += estWE ? ' we-travaille' : ' travaille';
-      heuresHtml = `<span class="cal-heures" style="opacity:0.5;">${hContrat ? hContrat.toFixed(1)+' h' : '—'}</span>`;
+      const crensFut = planParDate[dateStr];
+      const nomFut = crensFut?.[0]?.sites?.nom || nomSiteFallback;
+      const h1f = crensFut?.[0]?.heure_debut?.slice(0,5)||'', h2f = crensFut?.[crensFut.length-1]?.heure_fin?.slice(0,5)||'';
+      heuresHtml = `<span class="cal-heures" style="opacity:0.5;">${h1f ? h1f+'–'+h2f : (hContrat ? hContrat.toFixed(1)+' h' : '—')}</span>`;
+      if(nomFut) siteHtml = `<span class="cal-site" style="opacity:0.5;">🏢 ${nomFut}</span>`;
     } else {
       cls += ' hors-contrat';
     }
