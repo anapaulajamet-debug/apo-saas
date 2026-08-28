@@ -305,7 +305,7 @@
             <div class="equipe-section-title">
               <span>TITULAIRES</span>
               <span class="count-badge" id="nbTitulaires">0</span>
-              <button class="btn-add">+ Ajouter</button>
+              <button class="btn-add" onclick="ouvrirModalAgent('titulaire')">+ Ajouter</button>
             </div>
             <div id="titulairesContainer">
               <div class="loader">Chargement…</div>
@@ -315,7 +315,7 @@
             <div class="equipe-section-title">
               <span>REMPLAÇANTS</span>
               <span class="count-badge" id="nbRemplacants">0</span>
-              <button class="btn-add">+ Ajouter</button>
+              <button class="btn-add" onclick="ouvrirModalAgent('remplacant')">+ Ajouter</button>
             </div>
             <div id="remplacantsContainer">
               <div class="empty-section">Aucun remplaçant renseigné</div>
@@ -698,6 +698,210 @@
     }
 
     init();
+
+    // ══════════════════════════════════════════════════════
+    // ── MODAL ONBOARDING AGENT ────────────────────────────
+    // ══════════════════════════════════════════════════════
+    let _roleModal = 'titulaire';
+
+    function ouvrirModalAgent(role) {
+      _roleModal = role;
+      document.getElementById('modalAgentTitle').textContent =
+        role === 'titulaire' ? 'Ajouter un agent titulaire' : 'Ajouter un remplaçant';
+      document.getElementById('formAgent').reset();
+      document.getElementById('rechercheAgentResult').innerHTML = '';
+      document.getElementById('tabNouveauAgent').click();
+      document.getElementById('modalAgent').style.display = 'flex';
+    }
+    function fermerModalAgent() {
+      document.getElementById('modalAgent').style.display = 'none';
+    }
+
+    // Recherche agent existant
+    let _rechTimer;
+    async function rechercherAgent(val) {
+      clearTimeout(_rechTimer);
+      if(val.length < 2) { document.getElementById('rechercheAgentResult').innerHTML = ''; return; }
+      _rechTimer = setTimeout(async () => {
+        const { data } = await sb.from('agents')
+          .select('id, nom, prenom, site_principal_id')
+          .or(`nom.ilike.%${val}%,prenom.ilike.%${val}%`)
+          .eq('tenant_id', TENANT)
+          .limit(10);
+        const el = document.getElementById('rechercheAgentResult');
+        if(!data?.length){ el.innerHTML = '<div style="padding:10px;color:var(--gris-doux);font-size:13px;">Aucun résultat</div>'; return; }
+        el.innerHTML = data.map(a => `
+          <div class="agent-result-item" onclick="selectionnerAgent('${a.id}','${esc(a.prenom||'')}','${esc(a.nom||'')}')">
+            <strong>${esc(a.prenom||'')} ${esc(a.nom||'')}</strong>
+            <span style="font-size:11px;color:var(--gris-doux);margin-left:8px;">${a.site_principal_id?'Déjà affecté':'Disponible'}</span>
+          </div>`).join('');
+      }, 300);
+    }
+
+    async function selectionnerAgent(agentId, prenom, nom) {
+      if(!confirm(`Affecter ${prenom} ${nom} à ce site comme ${_roleModal} ?`)) return;
+      const { error } = await sb.from('agents')
+        .update({ site_principal_id: siteId })
+        .eq('id', agentId);
+      if(error){ alert('Erreur : ' + error.message); return; }
+      fermerModalAgent();
+      chargerEquipe();
+      toast(`✅ ${prenom} ${nom} affecté(e) au site`);
+    }
+
+    // Création nouvel agent
+    async function creerAgent(e) {
+      e.preventDefault();
+      const nom    = document.getElementById('agNom').value.trim();
+      const prenom = document.getElementById('agPrenom').value.trim();
+      const ddn    = document.getElementById('agDDN').value;
+      const tel    = document.getElementById('agTel').value.trim();
+      const email  = document.getElementById('agEmail').value.trim();
+      const jours  = [...document.querySelectorAll('.ag-jour:checked')].map(cb => cb.value);
+      const hj     = parseFloat(document.getElementById('agHJ').value)||0;
+
+      if(!nom||!prenom){ alert('Nom et prénom obligatoires'); return; }
+
+      const { data, error } = await sb.from('agents').insert({
+        tenant_id:         TENANT,
+        nom, prenom,
+        date_naissance:    ddn || null,
+        telephone:         tel || null,
+        email:             email || null,
+        site_principal_id: siteId,
+        jours_travailles:  jours,
+        heures_par_jour:   hj || null,
+      }).select().single();
+
+      if(error){ alert('Erreur création : ' + error.message); return; }
+      fermerModalAgent();
+      chargerEquipe();
+      toast(`✅ ${prenom} ${nom} créé(e) et affecté(e) au site`);
+    }
+
+    // Tabs du modal
+    function switchTabModal(tab) {
+      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.modal-tab-panel').forEach(p => p.style.display='none');
+      document.getElementById('tab'+tab).classList.add('active');
+      document.getElementById('panel'+tab).style.display='block';
+    }
+  </script>
+
+  <!-- ═══ MODAL AGENT ═══ -->
+  <div id="modalAgent" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--blanc);border-radius:14px;width:min(600px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--bordure);display:flex;justify-content:space-between;align-items:center;">
+        <h3 id="modalAgentTitle" style="margin:0;font-size:17px;color:var(--gris-texte);">Ajouter un agent</h3>
+        <button onclick="fermerModalAgent()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--gris-doux);">✕</button>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--bordure);">
+        <button id="tabNouveauAgent" class="modal-tab active" onclick="switchTabModal('NouveauAgent')">➕ Nouvel agent</button>
+        <button id="tabExistant" class="modal-tab" onclick="switchTabModal('Existant')">🔍 Agent existant</button>
+      </div>
+
+      <!-- Panel Nouvel agent -->
+      <div id="panelNouveauAgent" class="modal-tab-panel" style="padding:20px 24px;">
+        <form id="formAgent" onsubmit="creerAgent(event)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">NOM *</label>
+              <input id="agNom" type="text" required placeholder="Dupont"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">PRÉNOM *</label>
+              <input id="agPrenom" type="text" required placeholder="Marie"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">DATE DE NAISSANCE</label>
+              <input id="agDDN" type="date"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">TÉLÉPHONE</label>
+              <input id="agTel" type="tel" placeholder="06 00 00 00 00"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">EMAIL</label>
+              <input id="agEmail" type="email" placeholder="marie.dupont@email.com"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+          </div>
+
+          <!-- Jours travaillés -->
+          <div style="margin-top:18px;">
+            <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">JOURS TRAVAILLÉS SUR CE SITE</label>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+              ${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(j=>`
+                <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;">
+                  <input type="checkbox" class="ag-jour" value="${j}"> ${j}
+                </label>`).join('')}
+            </div>
+          </div>
+
+          <div style="margin-top:14px;max-width:180px;">
+            <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">HEURES / JOUR</label>
+            <input id="agHJ" type="number" step="0.5" min="0" max="24" placeholder="ex: 2.5"
+              style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+          </div>
+
+          <!-- Documents (upload futur) -->
+          <div style="margin-top:18px;padding:14px;background:var(--gris-fond);border-radius:10px;border:1.5px dashed var(--bordure);">
+            <div style="font-size:12px;font-weight:700;color:var(--gris-doux);margin-bottom:10px;">📎 DOCUMENTS D'IDENTITÉ <span style="font-weight:400;font-style:italic;">(optionnel — à compléter ultérieurement)</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              ${[['docCNI','🪪 Carte d\'identité'],['docVitale','💳 Carte Vitale'],['docRIB','🏦 RIB'],['docPermis','🚗 Permis de conduire'],['docDomicile','📄 Justificatif domicile']].map(([id,label])=>`
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                  <input type="file" id="${id}" accept="image/*,.pdf" style="display:none;" onchange="aperçuDoc(this,'${id}Prev')">
+                  <span onclick="document.getElementById('${id}').click()"
+                    style="padding:7px 12px;border:1.5px solid var(--bordure);border-radius:7px;background:var(--blanc);cursor:pointer;font-size:12px;">
+                    ${label}
+                  </span>
+                  <span id="${id}Prev" style="font-size:11px;color:var(--teal);"></span>
+                </label>`).join('')}
+            </div>
+          </div>
+
+          <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" onclick="fermerModalAgent()"
+              style="padding:10px 20px;border:1.5px solid var(--bordure);border-radius:8px;background:var(--blanc);cursor:pointer;font-size:14px;">
+              Annuler
+            </button>
+            <button type="submit"
+              style="padding:10px 22px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">
+              ✅ Créer et affecter
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Panel Agent existant -->
+      <div id="panelExistant" class="modal-tab-panel" style="padding:20px 24px;display:none;">
+        <input type="text" placeholder="Rechercher par nom ou prénom…" oninput="rechercherAgent(this.value)"
+          style="width:100%;padding:10px 14px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+        <div id="rechercheAgentResult" style="margin-top:10px;border:1px solid var(--bordure);border-radius:8px;overflow:hidden;"></div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .modal-tab { padding:12px 20px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--gris-doux);border-bottom:2px solid transparent;font-family:Arial,sans-serif; }
+    .modal-tab.active { color:var(--teal);border-bottom-color:var(--teal); }
+    .modal-tab-panel { }
+    .agent-result-item { padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--bordure);font-size:13px; }
+    .agent-result-item:hover { background:var(--gris-fond); }
+    .agent-result-item:last-child { border-bottom:none; }
+  </style>
+
+  <script>
+    function aperçuDoc(input, prevId) {
+      const el = document.getElementById(prevId);
+      if(input.files[0]) el.textContent = '✓ ' + input.files[0].name.slice(0,20);
+    }
   </script>
 </body>
 </html>
