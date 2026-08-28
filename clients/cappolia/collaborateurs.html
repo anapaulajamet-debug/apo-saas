@@ -538,9 +538,9 @@ async function initProfil() {
 // ── LISTE ──
 async function chargerListe() {
   const { data, error } = await sb.from('agents')
-    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, adresse, type_contrat, volume_horaire, taux_horaire, coefficient, filiere_ccn, date_entree, solde_cp, numero_ss, qualification, site_principal_id, documents_agent')
+    .select('*')
     .order('nom');
-  if (error) { console.error(error); toast('❌ Erreur chargement collaborateurs'); return; }
+  if (error) { console.error(error); toast('❌ Erreur chargement collaborateurs : ' + error.message); return; }
   _collabs = data || [];
   document.getElementById('listeSous').textContent = _collabs.length + ' collaborateur' + (_collabs.length > 1 ? 's' : '');
   rendreListeHTML(_collabs);
