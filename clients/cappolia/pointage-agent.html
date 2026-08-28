@@ -731,7 +731,7 @@
 
       // Toutes les missions du jour triées par heure
       const { data: missionsDuJour } = await supabaseClient.from('planning')
-        .select('heure_debut, heure_fin, site_id, sites(nom, adresse, latitude, longitude)')
+        .select('heure_debut, heure_fin, site_id, sites(nom, adresse)')
         .eq('agent_id', agentId)
         .eq('date', aujourd_hui)
         .order('heure_debut');
@@ -800,9 +800,10 @@
       const jourSem = auj.getDay() === 0 ? 7 : auj.getDay(); // 1=lun, 7=dim
       const lundi = new Date(auj); lundi.setDate(auj.getDate() - (jourSem - 1));
       const dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
-      const lundiStr    = lundi.toISOString().split('T')[0];
-      const dimancheStr = dimanche.toISOString().split('T')[0];
-      const aujourdStr  = auj.toISOString().split('T')[0];
+      const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const lundiStr    = fmtDate(lundi);
+      const dimancheStr = fmtDate(dimanche);
+      const aujourdStr  = fmtDate(auj);
 
       const { data: planning } = await supabaseClient.from('planning')
         .select('date, heure_debut, heure_fin, sites(nom, adresse)')
