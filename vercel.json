@@ -16,6 +16,7 @@
     { "source": "/coffre-fort", "destination": "/clients/cappolia/coffre-fort.html" },
     { "source": "/pointage-agent", "destination": "/clients/cappolia/pointage-agent.html" },
     { "source": "/collaborateurs", "destination": "/clients/cappolia/collaborateurs.html" },
-    { "source": "/login", "destination": "/clients/cappolia/login.html" }
+    { "source": "/login", "destination": "/clients/cappolia/login.html" },
+    { "source": "/qualite-audits", "destination": "/clients/cappolia/qualite-audits.html" }
   ]
 }
