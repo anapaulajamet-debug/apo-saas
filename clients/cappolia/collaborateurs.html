@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="icon" type="image/png" href="/clients/cappolia/assets/favicon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAPPOLIA — Collaborateurs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:#2D6A3F; --teal-dark:#1A3D28; --teal-light:#E8F5ED;
+      --rouge:#C0392B; --rouge-light:#FDECEA;
+      --orange:#E67E22; --orange-light:#FEF3CD;
+      --vert:#1E8449; --vert-light:#E8F5E9;
+      --bleu:#2563EB; --bleu-light:#EFF6FF;
+      --violet:#7C3AED; --violet-light:#F5F3FF;
+      --gris-texte:#374151; --gris-doux:#6B7280;
+      --gris-fond:#F3F6F8; --blanc:#FFFFFF; --bordure:#DDE3E8;
+    }
+    body { font-family:Arial,sans-serif; background:var(--gris-fond); color:var(--gris-texte); min-height:100vh; display:flex; }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar { width:220px; min-height:100vh; background:var(--teal-dark); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+    .sidebar-logo { padding:20px 16px 14px; border-bottom:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; gap:10px; }
+    .sidebar-logo img { max-width:36px; max-height:36px; object-fit:contain; }
+    .sidebar-logo-txt { font-size:13px; font-weight:900; color:#fff; letter-spacing:1px; line-height:1.2; }
+    .sidebar-logo-sub { font-size:9px; color:rgba(255,255,255,0.55); text-transform:uppercase; letter-spacing:0.5px; }
+    .sidebar-profil { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.1); }
+    .profil-avatar { width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.2); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+    .profil-nom { font-size:12px; font-weight:700; color:#fff; }
+    .profil-role { font-size:10px; color:rgba(255,255,255,0.55); }
+    .sidebar-nav { flex:1; padding:8px 0; overflow-y:auto; }
+    .nav-section { font-size:9px; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px; padding:12px 16px 4px; }
+    .nav-item { display:flex; align-items:center; gap:8px; padding:8px 16px; color:rgba(255,255,255,0.75); font-size:12px; text-decoration:none; transition:background 0.15s; }
+    .nav-item:hover, .nav-item.active { background:rgba(255,255,255,0.12); color:#fff; }
+    .nav-icon { font-size:15px; width:18px; text-align:center; }
+    .sidebar-footer { padding:14px 16px; border-top:1px solid rgba(255,255,255,0.1); }
+    .btn-deco { width:100%; padding:8px; background:rgba(255,255,255,0.1); color:#fff; border:none; border-radius:8px; font-size:12px; cursor:pointer; }
+
+    /* ══ LAYOUT ══ */
+    .main { margin-left:220px; flex:1; display:flex; min-height:100vh; }
+
+    /* ══ COLONNE LISTE ══ */
+    .col-liste { width:300px; min-width:260px; background:#fff; border-right:1px solid var(--bordure); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow:hidden; }
+    .liste-header { padding:16px 16px 10px; border-bottom:1px solid var(--bordure); }
+    .liste-titre-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .liste-titre { font-size:14px; font-weight:800; }
+    .btn-nouveau { padding:5px 12px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; }
+    .liste-search { width:100%; padding:7px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:12px; outline:none; }
+    .liste-search:focus { border-color:var(--teal); }
+    .liste-sous { font-size:11px; color:var(--gris-doux); margin-top:6px; }
+    .liste-scroll { flex:1; overflow-y:auto; }
+    .collab-ligne { display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid var(--bordure); cursor:pointer; transition:background 0.12s; }
+    .collab-ligne:hover { background:var(--teal-light); }
+    .collab-ligne.actif { background:var(--teal-light); border-left:3px solid var(--teal); }
+    .collab-avatar { width:38px; height:38px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; overflow:hidden; }
+    .collab-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+    .collab-info { flex:1; min-width:0; }
+    .collab-nom { font-size:13px; font-weight:700; }
+    .collab-qualif { font-size:11px; color:var(--gris-doux); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .collab-contrat { font-size:10px; margin-top:3px; }
+    .badge-cdi { background:var(--vert-light); color:var(--vert); padding:1px 7px; border-radius:6px; font-weight:700; }
+    .badge-cdd { background:var(--orange-light); color:var(--orange); padding:1px 7px; border-radius:6px; font-weight:700; }
+    .badge-temps { background:var(--bleu-light); color:var(--bleu); padding:1px 7px; border-radius:6px; font-weight:700; }
+
+    /* ══ COLONNE FICHE ══ */
+    .col-fiche { flex:1; padding:24px 28px; overflow-y:auto; }
+    .fiche-vide { display:flex; flex-direction:column; align-items:center; justify-content:center; height:60vh; color:var(--gris-doux); text-align:center; gap:10px; }
+    .fiche-vide-ico { font-size:48px; opacity:0.3; }
+    .fiche-detail { display:none; }
+    .fiche-detail.visible { display:block; }
+
+    /* Identité header */
+    .fiche-identite { background:#fff; border-radius:14px; border:1px solid var(--bordure); padding:20px; display:flex; gap:16px; align-items:flex-start; margin-bottom:14px; }
+    .fiche-photo { width:72px; height:72px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:24px; flex-shrink:0; overflow:hidden; border:3px solid var(--teal-light); cursor:pointer; position:relative; }
+    .fiche-photo:hover::after { content:'📷'; position:absolute; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:20px; }
+    .fiche-photo img { width:100%; height:100%; object-fit:cover; }
+    .fiche-nom-bloc { flex:1; }
+    .fiche-nom { font-size:19px; font-weight:900; color:var(--gris-texte); }
+    .fiche-sous-nom { font-size:12px; color:var(--gris-doux); margin-top:2px; }
+    .fiche-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .fiche-tag { font-size:11px; font-weight:700; padding:3px 10px; border-radius:8px; background:var(--teal-light); color:var(--teal-dark); }
+    .fiche-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .btn-edit { padding:6px 14px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; color:var(--gris-texte); }
+    .btn-edit:hover { border-color:var(--teal); color:var(--teal); }
+
+    /* Grilles infos */
+    .section-card { background:#fff; border-radius:12px; border:1px solid var(--bordure); padding:16px 18px; margin-bottom:12px; }
+    .section-titre { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); margin-bottom:12px; }
+    .info-grille { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .info-grille-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .info-item { }
+    .info-item.full { grid-column:1/-1; }
+    .info-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--gris-doux); margin-bottom:3px; }
+    .info-val { font-size:13px; font-weight:600; color:var(--gris-texte); }
+    .info-val.vide { color:var(--gris-doux); font-weight:400; font-style:italic; }
+    .badge-inline { display:inline-block; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700; }
+
+    /* Client positionné */
+    .client-chip { display:inline-flex; align-items:center; gap:6px; background:var(--teal-light); color:var(--teal-dark); border-radius:8px; padding:5px 12px; font-size:12px; font-weight:700; margin:3px; }
+
+    /* Onglets */
+    .onglets { display:flex; gap:0; border-bottom:2px solid var(--bordure); margin-top:20px; margin-bottom:0; overflow-x:auto; }
+    .onglet { padding:9px 16px; font-size:12px; font-weight:600; color:var(--gris-doux); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap; }
+    .onglet.actif { color:var(--teal); border-bottom-color:var(--teal); }
+    .onglet-contenu { display:none; background:#fff; border:1px solid var(--bordure); border-top:none; border-radius:0 0 12px 12px; }
+    .onglet-contenu.visible { display:block; }
+
+    /* Planning horaires */
+    .planning-jour { margin-bottom:10px; }
+    .planning-jour-titre { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; color:var(--teal-dark); padding:5px 0 3px; border-bottom:2px solid var(--teal-light); margin-bottom:5px; }
+    .planning-creneau { display:flex; align-items:center; gap:10px; padding:7px 10px; background:var(--gris-fond); border-radius:8px; margin-bottom:4px; font-size:12px; }
+    .planning-heure { font-weight:700; min-width:110px; }
+    .planning-site { color:var(--teal-dark); font-weight:600; }
+    .planning-duree { margin-left:auto; background:var(--teal-light); color:var(--teal-dark); font-size:10px; font-weight:700; padding:2px 8px; border-radius:6px; }
+
+    /* Documents */
+    .doc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; padding:16px; }
+    .doc-card { border:1.5px solid var(--bordure); border-radius:10px; padding:14px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; transition:border-color 0.15s, background 0.15s; text-align:center; }
+    .doc-card:hover { border-color:var(--teal); background:var(--teal-light); }
+    .doc-card.has-file { border-color:var(--vert); background:var(--vert-light); }
+    .doc-card.upload-zone { border-style:dashed; border-color:var(--bordure); }
+    .doc-ico { font-size:28px; }
+    .doc-cat { font-size:11px; font-weight:700; color:var(--gris-texte); }
+    .doc-status { font-size:10px; color:var(--gris-doux); }
+    .doc-status.ok { color:var(--vert); font-weight:700; }
+    .doc-status.missing { color:var(--rouge); }
+    .doc-list-item { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--bordure); font-size:12px; }
+    .doc-list-item:last-child { border-bottom:none; }
+    .doc-list-ico { font-size:20px; flex-shrink:0; }
+    .doc-list-info { flex:1; }
+    .doc-list-nom { font-weight:700; }
+    .doc-list-meta { font-size:10px; color:var(--gris-doux); }
+    .doc-list-actions { display:flex; gap:6px; }
+    .doc-btn { padding:4px 10px; border:1.5px solid var(--bordure); background:#fff; border-radius:6px; font-size:11px; cursor:pointer; }
+    .doc-btn:hover { border-color:var(--teal); color:var(--teal); }
+    .doc-add-section { padding:14px 16px; border-top:1px solid var(--bordure); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+    /* Absences/congés */
+    .mois-bar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--bordure); }
+    .mois-btn { padding:4px 10px; border:1.5px solid var(--bordure); background:#fff; border-radius:6px; font-size:12px; cursor:pointer; }
+    .mois-label { font-size:12px; font-weight:700; color:var(--teal-dark); min-width:120px; text-align:center; }
+    .kpi-grille { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:14px 16px; border-bottom:1px solid var(--bordure); }
+    .kpi-box { text-align:center; }
+    .kpi-val { font-size:22px; font-weight:900; line-height:1; }
+    .kpi-lbl { font-size:10px; color:var(--gris-doux); margin-top:2px; }
+    .kpi-rouge { color:var(--rouge); }
+    .kpi-orange { color:var(--orange); }
+    .kpi-vert { color:var(--vert); }
+    .kpi-teal { color:var(--teal); }
+    .table-wrap { padding:0 16px 16px; }
+    table.histo { width:100%; border-collapse:collapse; font-size:12px; margin-top:12px; }
+    table.histo th { text-align:left; padding:7px 9px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); border-bottom:2px solid var(--bordure); background:var(--gris-fond); }
+    table.histo td { padding:9px; border-bottom:1px solid var(--bordure); vertical-align:middle; }
+    table.histo tr:last-child td { border-bottom:none; }
+    .pill { padding:2px 8px; border-radius:8px; font-size:10px; font-weight:700; }
+    .pill-vert { background:var(--vert-light); color:var(--vert); }
+    .pill-rouge { background:var(--rouge-light); color:var(--rouge); }
+    .pill-orange { background:var(--orange-light); color:var(--orange); }
+    .pill-gris { background:#F3F4F6; color:var(--gris-doux); }
+    .vide-msg { padding:24px; text-align:center; color:var(--gris-doux); font-size:12px; }
+
+    /* Modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 0; }
+    .modal-overlay.visible { display:flex; }
+    .modal-box { background:#fff; border-radius:16px; padding:26px; width:560px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); margin:auto; }
+    .modal-titre { font-size:16px; font-weight:800; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; }
+    .modal-fermer { background:none; border:none; font-size:20px; cursor:pointer; color:var(--gris-doux); }
+    .form-grille { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-item { display:flex; flex-direction:column; gap:4px; }
+    .form-item.full { grid-column:1/-1; }
+    .form-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--gris-doux); }
+    .form-input { padding:8px 10px; border:1.5px solid var(--bordure); border-radius:8px; font-size:13px; outline:none; }
+    .form-input:focus { border-color:var(--teal); }
+    select.form-input { cursor:pointer; }
+    .form-sep { grid-column:1/-1; border:none; border-top:1px solid var(--bordure); margin:4px 0; }
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    .btn-annuler { padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer; }
+    .btn-sauver { padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:24px; right:24px; background:#1A3D28; color:#fff; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600; z-index:9999; display:none; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+    .toast.show { display:block; }
+
+    /* Modal upload doc */
+    .upload-zone { border:2px dashed var(--bordure); border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color 0.15s; }
+    .upload-zone:hover { border-color:var(--teal); background:var(--teal-light); }
+
+    @media(max-width:900px) {
+      .col-liste { width:260px; min-width:220px; }
+      .info-grille-3 { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="/clients/cappolia/assets/logo.png" alt="CAPPOLIA" onerror="this.style.display='none';" />
+    <div>
+      <div class="sidebar-logo-txt">CAPPOLIA</div>
+      <div class="sidebar-logo-sub">Propreté</div>
+    </div>
+  </div>
+  <div class="sidebar-profil">
+    <div class="profil-avatar" id="profilAvatar">—</div>
+    <div>
+      <div class="profil-nom" id="profilNom">—</div>
+      <div class="profil-role" id="profilRole">Directeur</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item" href="/dashboard"><span class="nav-icon">⊞</span> Tableau de bord</a>
+    <a class="nav-item" href="/clients"><span class="nav-icon">👥</span> Clients</a>
+    <div class="nav-section">Ressources humaines</div>
+    <a class="nav-item active" href="/collaborateurs"><span class="nav-icon">👷</span> Collaborateurs</a>
+    <a class="nav-item" href="#"><span class="nav-icon">📅</span> Planning</a>
+    <a class="nav-item" href="#"><span class="nav-icon">🕐</span> Pointage</a>
+    <div class="nav-section">Commercial</div>
+    <a class="nav-item" href="/commercial"><span class="nav-icon">🎯</span> Prospection & CRM</a>
+    <div class="nav-section">Exploitation</div>
+    <a class="nav-item" href="#"><span class="nav-icon">✅</span> Qualité / Audits</a>
+    <a class="nav-item" href="/documents"><span class="nav-icon">📄</span> Documents</a>
+    <a class="nav-item" href="/mon-profil"><span class="nav-icon">👤</span> Mon Profil</a>
+    <div class="nav-section">Finance</div>
+    <a class="nav-item" href="#"><span class="nav-icon">🧾</span> Facturation</a>
+    <a class="nav-item" href="#"><span class="nav-icon">💶</span> Paie (Silae)</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-deco" onclick="deconnexion()">Se déconnecter</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LISTE -->
+  <div class="col-liste">
+    <div class="liste-header">
+      <div class="liste-titre-row">
+        <div class="liste-titre">👷 Collaborateurs</div>
+        <button class="btn-nouveau" onclick="ouvrirModalNouveau()">+ Nouveau</button>
+      </div>
+      <input class="liste-search" type="text" id="searchInput" placeholder="Rechercher…" oninput="filtrerListe()" />
+      <div class="liste-sous" id="listeSous">Chargement…</div>
+    </div>
+    <div class="liste-scroll" id="listeCollabs">
+      <div class="vide-msg">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- FICHE -->
+  <div class="col-fiche">
+
+    <div class="fiche-vide" id="ficheVide">
+      <div class="fiche-vide-ico">👷</div>
+      <div style="font-size:14px;font-weight:700;color:var(--gris-texte);">Sélectionnez un collaborateur</div>
+      <div style="font-size:12px;">Cliquez dans la liste pour afficher sa fiche complète.</div>
+    </div>
+
+    <div class="fiche-detail" id="ficheDetail">
+
+      <!-- ═══ EN-TÊTE IDENTITÉ ═══ -->
+      <div class="fiche-identite">
+        <div class="fiche-photo" id="fichePhoto" onclick="demanderPhoto()" title="Changer la photo">—</div>
+        <div class="fiche-nom-bloc">
+          <div class="fiche-nom" id="ficheNom">—</div>
+          <div class="fiche-sous-nom" id="ficheSousTitre">—</div>
+          <div class="fiche-tags" id="ficheTags"></div>
+          <div class="fiche-actions">
+            <button class="btn-edit" onclick="ouvrirModalEdition()">✏️ Modifier la fiche</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ INFOS CONTACT ═══ -->
+      <div class="section-card">
+        <div class="section-titre">📋 Informations personnelles &amp; contact</div>
+        <div class="info-grille" id="ficheInfosContact"></div>
+      </div>
+
+      <!-- ═══ CONTRAT ═══ -->
+      <div class="section-card">
+        <div class="section-titre">📄 Contrat &amp; Convention collective</div>
+        <div class="info-grille" id="ficheContrat"></div>
+      </div>
+
+      <!-- ═══ CLIENT(S) POSITIONNÉ(S) ═══ -->
+      <div class="section-card" id="ficheClientsWrap">
+        <div class="section-titre" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>🏢 Client(s) positionné(s)</span>
+        </div>
+        <div id="ficheClients"></div>
+      </div>
+
+      <!-- ═══ ONGLETS ═══ -->
+      <div class="onglets">
+        <div class="onglet actif" onclick="switchOnglet('planning',this)">📅 Horaires</div>
+        <div class="onglet" onclick="switchOnglet('retards',this)">⏰ Retards</div>
+        <div class="onglet" onclick="switchOnglet('absences',this)">📋 Absences</div>
+        <div class="onglet" onclick="switchOnglet('conges',this)">🌴 Congés</div>
+        <div class="onglet" onclick="switchOnglet('documents',this)">📎 Documents</div>
+      </div>
+
+      <!-- Onglet Planning/Horaires -->
+      <div class="onglet-contenu visible" id="ongletPlanning">
+        <div class="mois-bar">
+          <button class="mois-btn" onclick="changerMois(-1)">◀</button>
+          <div class="mois-label" id="moisLabelPlanning">—</div>
+          <button class="mois-btn" onclick="changerMois(+1)">▶</button>
+        </div>
+        <div class="table-wrap" id="tablePlanning"><div class="vide-msg">Sélectionnez un collaborateur.</div></div>
+      </div>
+
+      <!-- Onglet Retards -->
+      <div class="onglet-contenu" id="ongletRetards">
+        <div class="mois-bar">
+          <button class="mois-btn" onclick="changerMois(-1)">◀</button>
+          <div class="mois-label" id="moisLabel">—</div>
+          <button class="mois-btn" onclick="changerMois(+1)">▶</button>
+        </div>
+        <div class="kpi-grille">
+          <div class="kpi-box"><div class="kpi-val kpi-orange" id="kpiRetards">—</div><div class="kpi-lbl">Retards</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiMinPerdu">—</div><div class="kpi-lbl">Min perdues</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiAbsences">—</div><div class="kpi-lbl">Absences</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-teal" id="kpiJoursAbs">—</div><div class="kpi-lbl">Jours absents</div></div>
+        </div>
+        <div class="table-wrap" id="tableRetards"><div class="vide-msg">Sélectionnez un collaborateur.</div></div>
+      </div>
+
+      <!-- Onglet Absences -->
+      <div class="onglet-contenu" id="ongletAbsences">
+        <div class="table-wrap" id="tableAbsences"><div class="vide-msg">Aucune absence enregistrée.</div></div>
+      </div>
+
+      <!-- Onglet Congés -->
+      <div class="onglet-contenu" id="ongletConges">
+        <div class="kpi-grille">
+          <div class="kpi-box"><div class="kpi-val kpi-vert" id="kpiCpN">—</div><div class="kpi-lbl">CP N restants</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-orange" id="kpiCpN1">—</div><div class="kpi-lbl">CP N-1 à solder</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-teal" id="kpiCongesValides">—</div><div class="kpi-lbl">Jours validés</div></div>
+          <div class="kpi-box"><div class="kpi-val kpi-rouge" id="kpiCongesAttente">—</div><div class="kpi-lbl">En attente</div></div>
+        </div>
+        <div style="padding:10px 16px; border-bottom:1px solid var(--bordure); display:flex; justify-content:flex-end;">
+          <button class="btn-sauver" style="font-size:11px;padding:6px 14px;background:var(--vert);" onclick="ouvrirModalConge()">+ Nouvelle demande</button>
+        </div>
+        <div class="table-wrap" id="tableConges"><div class="vide-msg">Aucune demande de congé.</div></div>
+      </div>
+
+      <!-- Onglet Documents -->
+      <div class="onglet-contenu" id="ongletDocuments">
+        <div style="padding:14px 16px 0; display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-size:13px; font-weight:700; color:var(--gris-texte);">Documents du collaborateur</div>
+          <button class="btn-sauver" style="font-size:11px;padding:6px 14px;" onclick="ouvrirModalUploadDoc()">+ Ajouter un document</button>
+        </div>
+
+        <!-- Catégories obligatoires -->
+        <div style="padding:14px 16px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); margin-bottom:4px;">Documents réglementaires</div>
+        <div class="doc-grid" id="docCategoriesGrid"></div>
+
+        <!-- Liste des documents -->
+        <div style="padding:8px 16px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux);">Tous les documents</div>
+        <div id="docListe"><div class="vide-msg">Aucun document joint.</div></div>
+      </div>
+
+    </div><!-- fin fiche-detail -->
+  </div><!-- fin col-fiche -->
+</div><!-- fin main -->
+
+<!-- ═══ MODAL NOUVEAU / ÉDITION ═══ -->
+<div class="modal-overlay" id="modalCollabOverlay">
+  <div class="modal-box">
+    <div class="modal-titre">
+      <span id="modalCollabTitre">➕ Nouveau collaborateur</span>
+      <button class="modal-fermer" onclick="fermerModalCollab()">×</button>
+    </div>
+    <div class="form-grille">
+      <div class="form-item"><label class="form-label">Prénom *</label><input class="form-input" id="fPrenom" placeholder="Marie" /></div>
+      <div class="form-item"><label class="form-label">Nom *</label><input class="form-input" id="fNom" placeholder="DUPONT" /></div>
+      <div class="form-item"><label class="form-label">Qualification / Poste</label><input class="form-input" id="fQualification" placeholder="Agent de service, Chef d'équipe…" /></div>
+      <div class="form-item"><label class="form-label">Date de naissance</label><input class="form-input" type="date" id="fDateNaissance" /></div>
+      <hr class="form-sep" />
+      <div class="form-item"><label class="form-label">Téléphone</label><input class="form-input" id="fTelephone" placeholder="06 xx xx xx xx" /></div>
+      <div class="form-item"><label class="form-label">Email</label><input class="form-input" id="fEmail" type="email" placeholder="marie@email.fr" /></div>
+      <div class="form-item full"><label class="form-label">Adresse postale</label><input class="form-input" id="fAdresse" placeholder="12 rue des lilas, 13100 Aix-en-Provence" /></div>
+      <hr class="form-sep" />
+      <div class="form-item"><label class="form-label">Type de contrat</label>
+        <select class="form-input" id="fTypeContrat">
+          <option value="">— Non renseigné —</option>
+          <option value="CDI">CDI</option>
+          <option value="CDD">CDD</option>
+          <option value="Interim">Intérim</option>
+          <option value="Alternance">Alternance</option>
+          <option value="Stage">Stage</option>
+        </select>
+      </div>
+      <div class="form-item"><label class="form-label">Date d'embauche</label><input class="form-input" type="date" id="fDateEntree" /></div>
+      <div class="form-item"><label class="form-label">Heures / semaine</label><input class="form-input" type="number" id="fVolumeHoraire" placeholder="35" min="0" step="0.5" /></div>
+      <div class="form-item"><label class="form-label">Taux horaire (€)</label><input class="form-input" type="number" id="fTauxHoraire" placeholder="12.00" min="0" step="0.01" /></div>
+      <div class="form-item"><label class="form-label">Filière CCN</label><input class="form-input" id="fFiliereCcn" placeholder="Nettoyage" /></div>
+      <div class="form-item"><label class="form-label">Coefficient</label><input class="form-input" id="fCoefficient" placeholder="150" /></div>
+      <div class="form-item"><label class="form-label">N° Sécurité sociale</label><input class="form-input" id="fNumeroSS" placeholder="1 85 06 …" /></div>
+      <div class="form-item"><label class="form-label">Solde CP (jours)</label><input class="form-input" type="number" id="fSoldeCp" placeholder="0" step="0.5" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-annuler" onclick="fermerModalCollab()">Annuler</button>
+      <button class="btn-sauver" id="btnSauverCollab" onclick="sauverCollab()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL UPLOAD DOCUMENT ═══ -->
+<div class="modal-overlay" id="modalDocOverlay">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-titre">
+      <span>📎 Ajouter un document</span>
+      <button class="modal-fermer" onclick="fermerModalDoc()">×</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="form-item">
+        <label class="form-label">Catégorie *</label>
+        <select class="form-input" id="docCategorie">
+          <option value="identite">🪪 Carte d'identité / Passeport</option>
+          <option value="titre_sejour">📋 Titre de séjour</option>
+          <option value="carte_vitale">💚 Carte Vitale</option>
+          <option value="rib">🏦 RIB</option>
+          <option value="diplome">🎓 Diplôme / Certificat</option>
+          <option value="visite_medicale">🏥 Visite médicale</option>
+          <option value="contrat_signe">📄 Contrat signé</option>
+          <option value="autre">📎 Autre</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">Nom du document</label>
+        <input class="form-input" id="docNom" placeholder="Laisser vide pour utiliser le nom du fichier" />
+      </div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('docFichier').click()">
+        <div style="font-size:30px; margin-bottom:6px;">📂</div>
+        <div id="uploadLabel" style="font-size:13px; color:var(--gris-doux);">Cliquez pour sélectionner un fichier<br/><span style="font-size:11px;">PDF, JPG, PNG — max 5 Mo</span></div>
+      </div>
+      <input type="file" id="docFichier" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="docFichierSelectionne(this)" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-annuler" onclick="fermerModalDoc()">Annuler</button>
+      <button class="btn-sauver" id="btnUploaderDoc" onclick="uploaderDocument()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CONGÉ ═══ -->
+<div class="modal-overlay" id="modalCongeOverlay">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-titre">
+      <span>🌴 Nouvelle demande de congé</span>
+      <button class="modal-fermer" onclick="fermerModalConge()">×</button>
+    </div>
+    <div style="display:grid; gap:12px;">
+      <div class="form-item"><label class="form-label">Type</label>
+        <select class="form-input" id="congeType">
+          <option value="CP_N">Congés payés N</option>
+          <option value="CP_N1">Congés payés N-1</option>
+          <option value="RTT">RTT</option>
+          <option value="sans_solde">Sans solde</option>
+          <option value="familial">Événement familial</option>
+          <option value="maladie_enfant">Maladie enfant</option>
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-item"><label class="form-label">Date début</label><input type="date" class="form-input" id="congeDebut" /></div>
+        <div class="form-item"><label class="form-label">Date fin</label><input type="date" class="form-input" id="congeFin" /></div>
+      </div>
+      <div class="form-item"><label class="form-label">Nb jours ouvrés</label><input type="number" class="form-input" id="congeNbJours" min="0.5" step="0.5" /></div>
+      <div class="form-item"><label class="form-label">Statut</label>
+        <select class="form-input" id="congeStatut">
+          <option value="en_attente">En attente</option>
+          <option value="valide">Validé</option>
+          <option value="refuse">Refusé</option>
+          <option value="pris">Pris</option>
+        </select>
+      </div>
+      <div class="form-item"><label class="form-label">Note</label><textarea class="form-input" id="congeNote" rows="2" style="resize:vertical;"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-annuler" onclick="fermerModalConge()">Annuler</button>
+      <button class="btn-sauver" onclick="enregistrerConge()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb = supabase.createClient(
+  'https://zqehxwggzyepiftjrkxq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc'
+);
+const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+let _collabs = [], _collabActif = null, _moisOffset = 0;
+let _editMode = false, _editId = null;
+
+// ── UTILS ──
+function toast(msg, dur=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s + 'T00:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+}
+function getMois() {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + _moisOffset, 1);
+  const debut = d.toISOString().split('T')[0];
+  const fin   = new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().split('T')[0];
+  const label = d.toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
+  return { debut, fin, label: label.charAt(0).toUpperCase() + label.slice(1) };
+}
+
+// ── SIDEBAR PROFIL ──
+async function initProfil() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/login'; return; }
+  const { data: profil } = await sb.from('utilisateurs').select('prenom, nom, role').eq('id', session.user.id).single();
+  if (profil) {
+    const init = ((profil.prenom?.[0]||'')+(profil.nom?.[0]||'')).toUpperCase();
+    document.getElementById('profilAvatar').textContent = init;
+    document.getElementById('profilNom').textContent = (profil.prenom||'') + ' ' + (profil.nom||'');
+    document.getElementById('profilRole').textContent = profil.role || 'Directeur';
+  }
+}
+
+// ── LISTE ──
+async function chargerListe() {
+  const { data, error } = await sb.from('agents')
+    .select('id, nom, prenom, email, telephone, date_naissance, photo_url, adresse, type_contrat, volume_horaire, taux_horaire, coefficient, filiere_ccn, date_entree, solde_cp, numero_ss, qualification, site_principal_id, documents_agent')
+    .order('nom');
+  if (error) { console.error(error); toast('❌ Erreur chargement collaborateurs'); return; }
+  _collabs = data || [];
+  document.getElementById('listeSous').textContent = _collabs.length + ' collaborateur' + (_collabs.length > 1 ? 's' : '');
+  rendreListeHTML(_collabs);
+}
+
+function filtrerListe() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtre = q ? _collabs.filter(c => (c.prenom+' '+c.nom+' '+(c.qualification||'')).toLowerCase().includes(q)) : _collabs;
+  rendreListeHTML(filtre);
+}
+
+function rendreListeHTML(liste) {
+  if (!liste.length) {
+    document.getElementById('listeCollabs').innerHTML = '<div class="vide-msg">Aucun collaborateur trouvé.</div>';
+    return;
+  }
+  document.getElementById('listeCollabs').innerHTML = liste.map(c => {
+    const init = ((c.prenom?.[0]||'')+(c.nom?.[0]||'')).toUpperCase();
+    const avatar = c.photo_url
+      ? `<img src="${c.photo_url}" alt="" />`
+      : init;
+    const contratBadge = c.type_contrat
+      ? `<span class="badge-${c.type_contrat === 'CDI' ? 'cdi' : 'cdd'}">${c.type_contrat}</span>`
+      : '';
+    const hBadge = c.volume_horaire ? `<span class="badge-temps">${c.volume_horaire}h/sem</span>` : '';
+    const actif = _collabActif?.id === c.id ? ' actif' : '';
+    return `<div class="collab-ligne${actif}" onclick="ouvrirFiche('${c.id}')">
+      <div class="collab-avatar">${avatar}</div>
+      <div class="collab-info">
+        <div class="collab-nom">${c.prenom||''} ${c.nom||''}</div>
+        <div class="collab-qualif">${c.qualification || '—'}</div>
+        <div class="collab-contrat">${contratBadge} ${hBadge}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FICHE ──
+const DOC_CATS = [
+  { key:'identite',        ico:'🪪', label:"Pièce d'identité" },
+  { key:'carte_vitale',    ico:'💚', label:'Carte Vitale' },
+  { key:'rib',             ico:'🏦', label:'RIB' },
+  { key:'contrat_signe',   ico:'📄', label:'Contrat signé' },
+  { key:'visite_medicale', ico:'🏥', label:'Visite médicale' },
+];
+
+async function ouvrirFiche(id) {
+  const c = _collabs.find(x => x.id === id);
+  if (!c) return;
+  _collabActif = c;
+
+  document.querySelectorAll('.collab-ligne').forEach(l => l.classList.remove('actif'));
+  document.querySelectorAll('.collab-ligne').forEach(l => {
+    if (l.textContent.includes(c.prenom) && l.textContent.includes(c.nom)) l.classList.add('actif');
+  });
+
+  document.getElementById('ficheVide').style.display = 'none';
+  document.getElementById('ficheDetail').classList.add('visible');
+
+  // Photo
+  const photoEl = document.getElementById('fichePhoto');
+  const init = ((c.prenom?.[0]||'')+(c.nom?.[0]||'')).toUpperCase();
+  photoEl.innerHTML = c.photo_url ? `<img src="${c.photo_url}" />` : init;
+
+  document.getElementById('ficheNom').textContent = (c.prenom||'') + ' ' + (c.nom||'');
+  document.getElementById('ficheSousTitre').textContent = c.qualification || '—';
+
+  // Tags
+  const tags = [];
+  if (c.type_contrat) tags.push(c.type_contrat);
+  if (c.filiere_ccn) tags.push(c.filiere_ccn);
+  if (c.volume_horaire) tags.push(c.volume_horaire + ' h/sem');
+  document.getElementById('ficheTags').innerHTML = tags.map(t => `<span class="fiche-tag">${t}</span>`).join('');
+
+  // Infos contact
+  const age = c.date_naissance
+    ? Math.floor((new Date() - new Date(c.date_naissance+'T00:00:00')) / (365.25*24*3600*1000)) + ' ans'
+    : null;
+  const contacts = [
+    { label:'Date de naissance', val: c.date_naissance ? fmtDate(c.date_naissance) + (age ? ' · '+age : '') : null },
+    { label:'Téléphone',         val: c.telephone ? `<a href="tel:${c.telephone}" style="color:inherit;">${c.telephone}</a>` : null, raw:true },
+    { label:'Email',             val: c.email ? `<a href="mailto:${c.email}" style="color:var(--teal);">${c.email}</a>` : null, raw:true },
+    { label:'Adresse postale',   val: c.adresse, full:true },
+  ];
+  document.getElementById('ficheInfosContact').innerHTML = contacts.map(i => `
+    <div class="info-item${i.full?' full':''}">
+      <div class="info-label">${i.label}</div>
+      <div class="info-val${!i.val?' vide':''}">${i.raw && i.val ? i.val : (i.val || 'Non renseigné')}</div>
+    </div>`).join('');
+
+  // Contrat
+  const contratFields = [
+    { label:'Type de contrat',    val: c.type_contrat ? `<span class="badge-inline" style="background:var(--teal-light);color:var(--teal-dark);">${c.type_contrat}</span>` : null, raw:true },
+    { label:'Date d\'embauche',   val: c.date_entree ? fmtDate(c.date_entree) : null },
+    { label:'Filière CCN',        val: c.filiere_ccn },
+    { label:'Coefficient',        val: c.coefficient },
+    { label:'Heures / semaine',   val: c.volume_horaire ? c.volume_horaire + ' h/sem' : null },
+    { label:'Taux horaire',       val: c.taux_horaire ? parseFloat(c.taux_horaire).toFixed(2) + ' €/h' : null },
+    { label:'N° Sécurité sociale',val: c.numero_ss },
+    { label:'Solde CP',           val: c.solde_cp != null ? c.solde_cp + ' jour(s)' : null },
+  ];
+  document.getElementById('ficheContrat').innerHTML = contratFields.map(f => `
+    <div class="info-item">
+      <div class="info-label">${f.label}</div>
+      <div class="info-val${!f.val?' vide':''}">${f.raw && f.val ? f.val : (f.val || '—')}</div>
+    </div>`).join('');
+
+  // Clients (sites rattachés)
+  await chargerClientsCollab(c.id);
+
+  // Mois labels
+  const { label } = getMois();
+  document.getElementById('moisLabel').textContent = label;
+  document.getElementById('moisLabelPlanning').textContent = label;
+
+  // Onglets data
+  await Promise.all([
+    chargerPlanning(c),
+    chargerRetards(c),
+    chargerAbsences(c),
+    chargerConges(c),
+  ]);
+  chargerDocuments(c);
+
+  // Remettre onglet planning actif
+  switchOnglet('planning', document.querySelector('.onglet'));
+}
+
+async function chargerClientsCollab(agentId) {
+  const el = document.getElementById('ficheClients');
+  const { data: plannings } = await sb.from('planning')
+    .select('sites(id, nom, adresse)')
+    .eq('agent_id', agentId)
+    .limit(50);
+
+  const sitesVus = {};
+  (plannings||[]).forEach(p => { if (p.sites) sitesVus[p.sites.id] = p.sites; });
+  const sites = Object.values(sitesVus);
+
+  if (!sites.length) {
+    el.innerHTML = '<div style="color:var(--gris-doux); font-size:12px; font-style:italic;">Aucun client affecté via le planning.</div>';
+    return;
+  }
+  el.innerHTML = sites.map(s => `
+    <span class="client-chip">🏢 ${s.nom || '—'}<span style="font-weight:400;margin-left:4px;font-size:10px;">${s.adresse||''}</span></span>
+  `).join('');
+}
+
+const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+async function chargerPlanning(c) {
+  const { debut, fin } = getMois();
+  const { data: plans } = await sb.from('planning')
+    .select('date, heure_debut, heure_fin, site_id, sites(nom)')
+    .eq('agent_id', c.id).gte('date', debut).lte('date', fin);
+
+  const el = document.getElementById('tablePlanning');
+  if (!plans?.length) { el.innerHTML = '<div class="vide-msg">Aucune prestation ce mois-ci.</div>'; return; }
+
+  const parJour = {};
+  plans.forEach(p => {
+    const j = new Date(p.date).getDay();
+    if (!parJour[j]) parJour[j] = {};
+    const cle = `${p.heure_debut}-${p.heure_fin}-${p.site_id}`;
+    if (!parJour[j][cle]) parJour[j][cle] = { heure_debut:p.heure_debut, heure_fin:p.heure_fin, site:p.sites };
+  });
+
+  let html = '<div style="padding:14px 16px;">';
+  [1,2,3,4,5,6,0].filter(j => parJour[j]).forEach(j => {
+    html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]}</div>`;
+    Object.values(parJour[j]).forEach(cr => {
+      const h1 = cr.heure_debut.slice(0,5), h2 = cr.heure_fin.slice(0,5);
+      const [hd,md] = h1.split(':').map(Number), [hf,mf] = h2.split(':').map(Number);
+      const dur = (hf*60+mf)-(hd*60+md);
+      const durStr = dur>=60 ? `${Math.floor(dur/60)}h${dur%60?dur%60+'min':''}` : dur+'min';
+      html += `<div class="planning-creneau">
+        <span class="planning-heure">🕐 ${h1} – ${h2}</span>
+        <span class="planning-site">🏢 ${cr.site?.nom||'—'}</span>
+        <span class="planning-duree">${durStr}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function chargerRetards(c) {
+  const { debut, fin } = getMois();
+  const [{ data: ptgs }, { data: plans }, { data: abs }] = await Promise.all([
+    sb.from('pointage').select('agent_id, heure_entree, date').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
+    sb.from('planning').select('agent_id, date, heure_debut').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
+    sb.from('absences').select('id, date_debut, date_fin, type').eq('agent_id', c.id).gte('date_debut', debut).lte('date_debut', fin),
+  ]);
+
+  let retards = [], minPerdu = 0;
+  (ptgs||[]).forEach(p => {
+    const pl = (plans||[]).find(x => x.date === p.date);
+    if (!pl) return;
+    const [h0,m0] = pl.heure_debut.split(':').map(Number);
+    const debutMin = h0*60+m0;
+    const entreeMin = new Date(p.heure_entree).getHours()*60 + new Date(p.heure_entree).getMinutes();
+    const ecart = entreeMin - debutMin;
+    if (ecart > 5) { retards.push({ date:p.date, ecart }); minPerdu += ecart; }
+  });
+
+  document.getElementById('kpiRetards').textContent = retards.length;
+  document.getElementById('kpiMinPerdu').textContent = minPerdu + ' min';
+  document.getElementById('kpiAbsences').textContent = abs?.length || 0;
+  document.getElementById('kpiJoursAbs').textContent = '—';
+
+  const el = document.getElementById('tableRetards');
+  if (!retards.length) { el.innerHTML = '<div class="vide-msg">Aucun retard ce mois-ci.</div>'; return; }
+  el.innerHTML = `<table class="histo"><thead><tr><th>Date</th><th>Écart</th></tr></thead><tbody>
+    ${retards.map(r => `<tr><td>${fmtDate(r.date)}</td><td style="color:var(--orange);font-weight:700;">+${r.ecart} min</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function chargerAbsences(c) {
+  const { debut, fin } = getMois();
+  const { data: abs } = await sb.from('absences').select('*').eq('agent_id', c.id).gte('date_debut', debut).lte('date_debut', fin);
+  const el = document.getElementById('tableAbsences');
+  const labs = { conge_paye:'🌴 Congé payé', arret_maladie:'🤒 Arrêt maladie', accident_travail:'🚑 Accident travail', formation:'🎓 Formation', autre:'📌 Autre' };
+  if (!abs?.length) { el.innerHTML = '<div class="vide-msg">Aucune absence ce mois-ci.</div>'; return; }
+  el.innerHTML = `<table class="histo"><thead><tr><th>Type</th><th>Début</th><th>Fin</th></tr></thead><tbody>
+    ${abs.map(a => `<tr><td>${labs[a.type]||a.type}</td><td>${fmtDate(a.date_debut)}</td><td>${fmtDate(a.date_fin)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function chargerConges(c) {
+  const { data: cgs } = await sb.from('conges').select('*').eq('agent_id', c.id).order('date_debut', { ascending:false });
+  const valides = (cgs||[]).filter(x => x.statut === 'valide').reduce((s,x) => s+(x.nb_jours||0),0);
+  const attente = (cgs||[]).filter(x => x.statut === 'en_attente').length;
+  document.getElementById('kpiCpN').textContent = c.solde_cp ?? '—';
+  document.getElementById('kpiCpN1').textContent = '—';
+  document.getElementById('kpiCongesValides').textContent = valides;
+  document.getElementById('kpiCongesAttente').textContent = attente;
+
+  const labels = { CP_N:'Congés N', CP_N1:'Congés N-1', RTT:'RTT', sans_solde:'Sans solde', familial:'Fam.', maladie_enfant:'Mal. enfant' };
+  const pillCls = { en_attente:'pill-orange', valide:'pill-vert', refuse:'pill-rouge', pris:'pill-gris' };
+  const el = document.getElementById('tableConges');
+  if (!cgs?.length) { el.innerHTML = '<div class="vide-msg">Aucun congé enregistré.</div>'; return; }
+  el.innerHTML = `<table class="histo"><thead><tr><th>Type</th><th>Début</th><th>Fin</th><th>Jours</th><th>Statut</th></tr></thead><tbody>
+    ${cgs.map(g => `<tr>
+      <td>${labels[g.type]||g.type}</td>
+      <td>${fmtDate(g.date_debut)}</td>
+      <td>${fmtDate(g.date_fin)}</td>
+      <td>${g.nb_jours||'—'}</td>
+      <td><span class="pill ${pillCls[g.statut]||'pill-gris'}">${g.statut}</span></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ── DOCUMENTS ──
+function chargerDocuments(c) {
+  const docs = c.documents_agent || [];
+
+  // Grille catégories réglementaires
+  document.getElementById('docCategoriesGrid').innerHTML = DOC_CATS.map(cat => {
+    const fichiers = docs.filter(d => d.categorie === cat.key);
+    const hasFile = fichiers.length > 0;
+    return `<div class="doc-card ${hasFile?'has-file':''}" onclick="ouvrirModalUploadDoc('${cat.key}')">
+      <div class="doc-ico">${cat.ico}</div>
+      <div class="doc-cat">${cat.label}</div>
+      <div class="doc-status ${hasFile?'ok':'missing'}">${hasFile ? '✓ '+fichiers.length+' fichier(s)' : '⚠ Manquant'}</div>
+    </div>`;
+  }).join('');
+
+  // Liste tous les documents
+  const el = document.getElementById('docListe');
+  if (!docs.length) { el.innerHTML = '<div class="vide-msg">Aucun document joint.</div>'; return; }
+
+  const catLabels = { identite:"Pièce d'identité", titre_sejour:'Titre de séjour', carte_vitale:'Carte Vitale', rib:'RIB', diplome:'Diplôme', visite_medicale:'Visite médicale', contrat_signe:'Contrat signé', autre:'Autre' };
+  const catIcos  = { identite:'🪪', titre_sejour:'📋', carte_vitale:'💚', rib:'🏦', diplome:'🎓', visite_medicale:'🏥', contrat_signe:'📄', autre:'📎' };
+
+  el.innerHTML = docs.map((d, idx) => `
+    <div class="doc-list-item">
+      <div class="doc-list-ico">${catIcos[d.categorie]||'📎'}</div>
+      <div class="doc-list-info">
+        <div class="doc-list-nom">${d.nom || d.fichier_nom || '—'}</div>
+        <div class="doc-list-meta">${catLabels[d.categorie]||d.categorie} · ${d.date_ajout ? new Date(d.date_ajout).toLocaleDateString('fr-FR') : '—'}</div>
+      </div>
+      <div class="doc-list-actions">
+        ${d.url ? `<a href="${d.url}" target="_blank" class="doc-btn">👁 Voir</a>` : ''}
+        <button class="doc-btn" style="color:var(--rouge);" onclick="supprimerDocument(${idx})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function supprimerDocument(idx) {
+  if (!_collabActif) return;
+  if (!confirm('Supprimer ce document ?')) return;
+  const docs = [...(_collabActif.documents_agent || [])];
+  docs.splice(idx, 1);
+  const { error } = await sb.from('agents').update({ documents_agent: docs }).eq('id', _collabActif.id);
+  if (error) { toast('❌ Erreur : ' + error.message); return; }
+  _collabActif.documents_agent = docs;
+  const idx2 = _collabs.findIndex(c => c.id === _collabActif.id);
+  if (idx2 >= 0) _collabs[idx2].documents_agent = docs;
+  chargerDocuments(_collabActif);
+  toast('Document supprimé.');
+}
+
+// ── MODAL UPLOAD DOC ──
+let _docCategoriePre = null;
+function ouvrirModalUploadDoc(categorie) {
+  _docCategoriePre = categorie || null;
+  if (_docCategoriePre) document.getElementById('docCategorie').value = _docCategoriePre;
+  document.getElementById('docNom').value = '';
+  document.getElementById('uploadLabel').innerHTML = 'Cliquez pour sélectionner un fichier<br/><span style="font-size:11px;">PDF, JPG, PNG — max 5 Mo</span>';
+  document.getElementById('docFichier').value = '';
+  document.getElementById('modalDocOverlay').classList.add('visible');
+}
+function fermerModalDoc() { document.getElementById('modalDocOverlay').classList.remove('visible'); }
+
+function docFichierSelectionne(input) {
+  if (!input.files[0]) return;
+  document.getElementById('uploadLabel').innerHTML = `✅ <strong>${input.files[0].name}</strong><br/><span style="font-size:11px;">${(input.files[0].size/1024).toFixed(0)} Ko</span>`;
+}
+
+async function uploaderDocument() {
+  if (!_collabActif) return;
+  const fichier = document.getElementById('docFichier').files[0];
+  const categorie = document.getElementById('docCategorie').value;
+  const nom = document.getElementById('docNom').value.trim() || (fichier?.name) || 'Document';
+
+  let url = null;
+  if (fichier) {
+    if (fichier.size > 5 * 1024 * 1024) { toast('❌ Fichier trop volumineux (max 5 Mo)'); return; }
+    const ext = fichier.name.split('.').pop();
+    const chemin = `${_collabActif.id}/${categorie}_${Date.now()}.${ext}`;
+    const { data: uploadData, error: errUp } = await sb.storage.from('documents-collaborateurs').upload(chemin, fichier, { upsert:true });
+    if (errUp) {
+      // Si le bucket n'existe pas, on stocke sans URL
+      console.warn('Storage non disponible:', errUp.message);
+    } else {
+      const { data: urlData } = sb.storage.from('documents-collaborateurs').getPublicUrl(chemin);
+      url = urlData?.publicUrl || null;
+    }
+  }
+
+  const newDoc = { categorie, nom, date_ajout: new Date().toISOString(), url, fichier_nom: fichier?.name };
+  const docs = [...(_collabActif.documents_agent || []), newDoc];
+
+  const { error } = await sb.from('agents').update({ documents_agent: docs }).eq('id', _collabActif.id);
+  if (error) { toast('❌ Erreur : ' + error.message); return; }
+
+  _collabActif.documents_agent = docs;
+  const idx = _collabs.findIndex(c => c.id === _collabActif.id);
+  if (idx >= 0) _collabs[idx].documents_agent = docs;
+
+  fermerModalDoc();
+  chargerDocuments(_collabActif);
+  toast('✅ Document enregistré !');
+}
+
+// ── MODAL COLLAB ──
+function ouvrirModalNouveau() {
+  _editMode = false; _editId = null;
+  document.getElementById('modalCollabTitre').textContent = '➕ Nouveau collaborateur';
+  ['fPrenom','fNom','fQualification','fTelephone','fEmail','fAdresse','fNumeroSS','fFiliereCcn','fCoefficient'].forEach(id => document.getElementById(id).value = '');
+  ['fVolumeHoraire','fTauxHoraire','fSoldeCp'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fTypeContrat').value = '';
+  document.getElementById('fDateNaissance').value = '';
+  document.getElementById('fDateEntree').value = '';
+  document.getElementById('modalCollabOverlay').classList.add('visible');
+}
+
+function ouvrirModalEdition() {
+  if (!_collabActif) return;
+  _editMode = true; _editId = _collabActif.id;
+  document.getElementById('modalCollabTitre').textContent = '✏️ Modifier la fiche';
+  const c = _collabActif;
+  document.getElementById('fPrenom').value = c.prenom || '';
+  document.getElementById('fNom').value = c.nom || '';
+  document.getElementById('fQualification').value = c.qualification || '';
+  document.getElementById('fTelephone').value = c.telephone || '';
+  document.getElementById('fEmail').value = c.email || '';
+  document.getElementById('fAdresse').value = c.adresse || '';
+  document.getElementById('fTypeContrat').value = c.type_contrat || '';
+  document.getElementById('fDateNaissance').value = c.date_naissance || '';
+  document.getElementById('fDateEntree').value = c.date_entree || '';
+  document.getElementById('fVolumeHoraire').value = c.volume_horaire || '';
+  document.getElementById('fTauxHoraire').value = c.taux_horaire || '';
+  document.getElementById('fFiliereCcn').value = c.filiere_ccn || '';
+  document.getElementById('fCoefficient').value = c.coefficient || '';
+  document.getElementById('fNumeroSS').value = c.numero_ss || '';
+  document.getElementById('fSoldeCp').value = c.solde_cp ?? '';
+  document.getElementById('modalCollabOverlay').classList.add('visible');
+}
+
+function fermerModalCollab() { document.getElementById('modalCollabOverlay').classList.remove('visible'); }
+
+async function sauverCollab() {
+  const prenom = document.getElementById('fPrenom').value.trim();
+  const nom    = document.getElementById('fNom').value.trim();
+  if (!prenom || !nom) { toast('⚠️ Prénom et Nom obligatoires'); return; }
+
+  const payload = {
+    prenom, nom,
+    qualification:   document.getElementById('fQualification').value.trim() || null,
+    telephone:       document.getElementById('fTelephone').value.trim() || null,
+    email:           document.getElementById('fEmail').value.trim() || null,
+    adresse:         document.getElementById('fAdresse').value.trim() || null,
+    type_contrat:    document.getElementById('fTypeContrat').value || null,
+    date_naissance:  document.getElementById('fDateNaissance').value || null,
+    date_entree:     document.getElementById('fDateEntree').value || null,
+    volume_horaire:  parseFloat(document.getElementById('fVolumeHoraire').value) || null,
+    taux_horaire:    parseFloat(document.getElementById('fTauxHoraire').value) || null,
+    filiere_ccn:     document.getElementById('fFiliereCcn').value.trim() || null,
+    coefficient:     document.getElementById('fCoefficient').value.trim() || null,
+    numero_ss:       document.getElementById('fNumeroSS').value.trim() || null,
+    solde_cp:        parseFloat(document.getElementById('fSoldeCp').value) || null,
+  };
+
+  let error;
+  if (_editMode && _editId) {
+    ({ error } = await sb.from('agents').update(payload).eq('id', _editId));
+  } else {
+    payload.tenant_id = TENANT;
+    ({ error } = await sb.from('agents').insert(payload));
+  }
+
+  if (error) { toast('❌ ' + error.message); return; }
+  toast(_editMode ? '✅ Fiche mise à jour !' : '✅ Collaborateur créé !');
+  fermerModalCollab();
+  await chargerListe();
+  if (_editMode && _editId) await ouvrirFiche(_editId);
+}
+
+// ── MODAL CONGÉ ──
+function ouvrirModalConge() {
+  document.getElementById('congeDebut').value = '';
+  document.getElementById('congeFin').value = '';
+  document.getElementById('congeNbJours').value = '';
+  document.getElementById('congeNote').value = '';
+  document.getElementById('congeType').value = 'CP_N';
+  document.getElementById('congeStatut').value = 'en_attente';
+  document.getElementById('modalCongeOverlay').classList.add('visible');
+}
+function fermerModalConge() { document.getElementById('modalCongeOverlay').classList.remove('visible'); }
+
+async function enregistrerConge() {
+  if (!_collabActif) return;
+  const payload = {
+    agent_id: _collabActif.id,
+    type: document.getElementById('congeType').value,
+    date_debut: document.getElementById('congeDebut').value,
+    date_fin: document.getElementById('congeFin').value,
+    nb_jours: parseFloat(document.getElementById('congeNbJours').value) || null,
+    statut: document.getElementById('congeStatut').value,
+    note: document.getElementById('congeNote').value.trim() || null,
+  };
+  const { error } = await sb.from('conges').insert(payload);
+  if (error) { toast('❌ ' + error.message); return; }
+  toast('✅ Congé enregistré.');
+  fermerModalConge();
+  await chargerConges(_collabActif);
+}
+
+// ── NAVIGATION ──
+function switchOnglet(id, el) {
+  document.querySelectorAll('.onglet').forEach(o => o.classList.remove('actif'));
+  document.querySelectorAll('.onglet-contenu').forEach(o => o.classList.remove('visible'));
+  (el || document.querySelector('.onglet')).classList.add('actif');
+  document.getElementById('onglet' + id.charAt(0).toUpperCase() + id.slice(1))?.classList.add('visible');
+}
+
+async function changerMois(delta) {
+  _moisOffset += delta;
+  const { label } = getMois();
+  document.getElementById('moisLabel').textContent = label;
+  document.getElementById('moisLabelPlanning').textContent = label;
+  if (_collabActif) {
+    await chargerPlanning(_collabActif);
+    await chargerRetards(_collabActif);
+    await chargerAbsences(_collabActif);
+  }
+}
+
+function demanderPhoto() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !_collabActif) return;
+    if (file.size > 2*1024*1024) { toast('⚠️ Image trop lourde (max 2 Mo)'); return; }
+    const ext = file.name.split('.').pop();
+    const path = `photos/${_collabActif.id}.${ext}`;
+    const { error: errUp } = await sb.storage.from('documents-collaborateurs').upload(path, file, { upsert:true });
+    if (errUp) { toast('⚠️ Storage non configuré — photo non enregistrée'); return; }
+    const { data: { publicUrl } } = sb.storage.from('documents-collaborateurs').getPublicUrl(path);
+    const { error } = await sb.from('agents').update({ photo_url: publicUrl }).eq('id', _collabActif.id);
+    if (error) { toast('❌ ' + error.message); return; }
+    _collabActif.photo_url = publicUrl;
+    document.getElementById('fichePhoto').innerHTML = `<img src="${publicUrl}" />`;
+    toast('✅ Photo mise à jour !');
+  };
+  input.click();
+}
+
+function deconnexion() {
+  sb.auth.signOut().then(() => { window.location.href = '/login'; });
+}
+
+// ── INIT ──
+(async () => {
+  await initProfil();
+  await chargerListe();
+})();
+</script>
+</body>
+</html>
