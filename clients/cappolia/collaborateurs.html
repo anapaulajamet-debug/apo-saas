@@ -414,7 +414,19 @@
       <div class="form-item"><label class="form-label">Date d'embauche</label><input class="form-input" type="date" id="fDateEntree" /></div>
       <div class="form-item"><label class="form-label">Heures / semaine</label><input class="form-input" type="number" id="fVolumeHoraire" placeholder="35" min="0" step="0.5" /></div>
       <div class="form-item"><label class="form-label">Heures / jour</label><input class="form-input" type="number" id="fHeuresParJour" placeholder="7" min="0" step="0.5" /></div>
-      <div class="form-item full"><label class="form-label">Jours travaillés</label><input class="form-input" id="fJoursTravailles" placeholder="Lun, Mar, Mer, Jeu, Ven" /></div>
+      <div class="form-item full">
+        <label class="form-label">Jours travaillés</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="fJoursTravaillesGroup">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Lun" /> Lundi</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Mar" /> Mardi</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Mer" /> Mercredi</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Jeu" /> Jeudi</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Ven" /> Vendredi</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Sam" /> Samedi</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Dim" /> Dimanche</label>
+        </div>
+        <input type="hidden" id="fJoursTravailles" />
+      </div>
       <div class="form-item"><label class="form-label">Taux horaire (€)</label><input class="form-input" type="number" id="fTauxHoraire" placeholder="12.00" min="0" step="0.01" /></div>
       <div class="form-item"><label class="form-label">Filière CCN</label><input class="form-input" id="fFiliereCcn" placeholder="Nettoyage" /></div>
       <div class="form-item"><label class="form-label">Coefficient</label><input class="form-input" id="fCoefficient" placeholder="150" /></div>
@@ -691,14 +703,11 @@ async function ouvrirFiche(id) {
   // Contrat — calcul automatique jours/heures si non renseignés
   const hSem = parseFloat(c.volume_horaire) || 0;
   const joursRaw = c.jours_travailles || null;
-  const joursAuto = hSem > 35 ? 'Lun, Mar, Mer, Jeu, Ven, Sam' : 'Lun, Mar, Mer, Jeu, Ven';
-  const joursAff  = joursRaw || (hSem ? joursAuto + ' (contrat)' : null);
-  const nbJours   = joursRaw
-    ? joursRaw.split(',').filter(Boolean).length
-    : (hSem > 35 ? 6 : 5);
-  const hJourRaw  = c.heures_par_jour ? parseFloat(c.heures_par_jour) : null;
+  const joursAff = joursRaw || null;
+  const nbJours  = joursRaw ? joursRaw.split(',').filter(Boolean).length : null;
+  const hJourRaw = c.heures_par_jour ? parseFloat(c.heures_par_jour) : null;
   const hJourCalc = hSem && nbJours ? (hSem / nbJours).toFixed(2) : null;
-  const hJourAff  = hJourRaw ? hJourRaw + ' h/j' : (hJourCalc ? hJourCalc + ' h/j (calculé)' : null);
+  const hJourAff = hJourRaw ? hJourRaw + ' h/j' : (hJourCalc ? hJourCalc + ' h/j (calculé)' : null);
 
   const contratFields = [
     { label:'Type de contrat',    val: c.type_contrat ? `<span class="badge-inline" style="background:var(--teal-light);color:var(--teal-dark);">${c.type_contrat}</span>` : null, raw:true },
@@ -801,16 +810,20 @@ async function chargerPlanning(c) {
   }
 
   // Pas de planning saisi → afficher les présences contractuelles théoriques
-  // Par défaut : lun–ven (ou lun–sam si volume > 35h), selon volume_horaire du contrat
   const hSem = parseFloat(c.volume_horaire) || 0;
   if (!hSem) {
     el.innerHTML = '<div class="vide-msg">Aucun planning saisi et volume horaire non renseigné sur le contrat.</div>';
     return;
   }
 
-  // Calcul des jours travaillés dans le mois (lun-ven par défaut, lun-sam si > 35h)
-  const joursTravailles = hSem > 35 ? [1,2,3,4,5,6] : [1,2,3,4,5];
-  const hParJour = (hSem / joursTravailles.length).toFixed(1);
+  // Jours travaillés depuis le contrat, sinon lun-ven par défaut
+  const jourMap = { 'Lun':1,'Mar':2,'Mer':3,'Jeu':4,'Ven':5,'Sam':6,'Dim':0 };
+  const joursTravailles = c.jours_travailles
+    ? c.jours_travailles.split(',').map(s => jourMap[s.trim()]).filter(j => j !== undefined)
+    : [1,2,3,4,5];
+  const hParJour = c.heures_par_jour
+    ? parseFloat(c.heures_par_jour).toFixed(1)
+    : (hSem / joursTravailles.length).toFixed(1);
 
   // Lister tous les jours ouvrés du mois
   const joursParNom = {};
@@ -1030,6 +1043,7 @@ function ouvrirModalNouveau() {
   document.getElementById('modalCollabTitre').textContent = '➕ Nouveau collaborateur';
   ['fPrenom','fNom','fQualification','fTelephone','fEmail','fAdresse','fNumeroSS','fFiliereCcn','fCoefficient','fJoursTravailles'].forEach(id => document.getElementById(id).value = '');
   ['fVolumeHoraire','fTauxHoraire','fSoldeCp','fHeuresParJour'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('#fJoursTravaillesGroup input[type=checkbox]').forEach(cb => cb.checked = false);
   document.getElementById('fTypeContrat').value = '';
   document.getElementById('fDateNaissance').value = '';
   document.getElementById('fDateEntree').value = '';
@@ -1052,7 +1066,11 @@ function ouvrirModalEdition() {
   document.getElementById('fDateEntree').value = c.date_entree || '';
   document.getElementById('fVolumeHoraire').value = c.volume_horaire || '';
   document.getElementById('fHeuresParJour').value = c.heures_par_jour || '';
-  document.getElementById('fJoursTravailles').value = c.jours_travailles || '';
+  // Remplir cases à cocher jours
+  const joursCoches = (c.jours_travailles || '').split(',').map(s => s.trim()).filter(Boolean);
+  document.querySelectorAll('#fJoursTravaillesGroup input[type=checkbox]').forEach(cb => {
+    cb.checked = joursCoches.includes(cb.value);
+  });
   document.getElementById('fTauxHoraire').value = c.taux_horaire || '';
   document.getElementById('fFiliereCcn').value = c.filiere_ccn || '';
   document.getElementById('fCoefficient').value = c.coefficient || '';
@@ -1079,7 +1097,7 @@ async function sauverCollab() {
     date_entree:     document.getElementById('fDateEntree').value || null,
     volume_horaire:   parseFloat(document.getElementById('fVolumeHoraire').value) || null,
     heures_par_jour:  parseFloat(document.getElementById('fHeuresParJour').value) || null,
-    jours_travailles: document.getElementById('fJoursTravailles').value.trim() || null,
+    jours_travailles: Array.from(document.querySelectorAll('#fJoursTravaillesGroup input[type=checkbox]:checked')).map(cb => cb.value).join(', ') || null,
     taux_horaire:     parseFloat(document.getElementById('fTauxHoraire').value) || null,
     filiere_ccn:      document.getElementById('fFiliereCcn').value.trim() || null,
     coefficient:     document.getElementById('fCoefficient').value.trim() || null,
