@@ -429,13 +429,8 @@
       document.getElementById('pageLoader').style.display='none';
       if(error||!site){ alert('Fiche introuvable — id: '+siteId+' err: '+(error?.message||'?')); return; }
 
-      // Charger le responsable de secteur séparément
-      let amNom = '—';
-      if(site.agent_maitrise_id){
-        const { data:amUser } = await sb.from('users').select('prenom,nom').eq('id', site.agent_maitrise_id).single();
-        if(amUser) amNom = `${amUser.prenom||''} ${amUser.nom||''}`.trim();
-      }
-      site._am = amNom;
+      // Responsable de secteur : colonne texte directe
+      site._am = site.responsable_secteur || '—';
 
       const pc = document.getElementById('pageContent');
       pc.style.display='flex';
