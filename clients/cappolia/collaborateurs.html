@@ -110,14 +110,22 @@
     .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; padding:14px; }
     .cal-head { text-align:center; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); padding:4px 0 6px; }
     .cal-head.we { color:var(--rouge); }
-    .cal-cell { border-radius:8px; padding:6px 5px; min-height:70px; border:1.5px solid var(--bordure); display:flex; flex-direction:column; gap:2px; font-size:11px; position:relative; }
-    .cal-cell.vide { background:transparent; border-color:transparent; }
-    .cal-cell.hors-contrat { background:#FAFAFA; }
+    .cal-cell { border-radius:8px; padding:6px 5px; min-height:70px; border:1.5px solid var(--bordure); display:flex; flex-direction:column; gap:2px; font-size:11px; position:relative; cursor:pointer; transition:box-shadow 0.15s; }
+    .cal-cell:not(.vide):not(.hors-contrat):hover { box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+    .cal-cell.vide { background:transparent; border-color:transparent; cursor:default; }
+    .cal-cell.hors-contrat { background:#FAFAFA; cursor:default; }
     .cal-cell.travaille { background:var(--teal-light); border-color:var(--teal); }
     .cal-cell.pointe { background:#E8F5E9; border-color:var(--vert); }
+    .cal-cell.retard { background:#FFF3E0; border-color:var(--orange); }
+    .cal-cell.retard-accepte { background:#E8F5E9; border-color:var(--vert); }
     .cal-cell.absent { background:var(--rouge-light); border-color:var(--rouge); }
+    .cal-cell.absent-justifie { background:#FEE2E2; border-color:#B91C1C; border-width:2px; }
     .cal-cell.conge { background:var(--orange-light); border-color:var(--orange); }
     .cal-cell.we-travaille { background:var(--violet-light); border-color:var(--violet); }
+    .cal-badge { position:absolute; top:4px; right:4px; font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; }
+    .cal-badge.anomalie { background:var(--orange); color:#fff; }
+    .cal-badge.justifie { background:var(--rouge); color:#fff; }
+    .cal-badge.ok { background:var(--vert); color:#fff; }
     .cal-num { font-size:12px; font-weight:800; color:var(--gris-texte); }
     .cal-num.we { color:var(--rouge); }
     .cal-heures { font-size:11px; font-weight:700; color:var(--teal-dark); margin-top:2px; }
@@ -193,6 +201,10 @@
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
     .btn-annuler { padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-sauver { padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+
+    /* Bouton gestion jour */
+    .btn-gestion { width:100%; padding:10px 14px; border:2px solid; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; text-align:left; transition:opacity 0.15s; }
+    .btn-gestion:hover { opacity:0.85; }
 
     /* Toast */
     .toast { position:fixed; bottom:24px; right:24px; background:#1A3D28; color:#fff; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600; z-index:9999; display:none; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
@@ -574,6 +586,63 @@
   </div>
 </div>
 
+<!-- ═══ MODAL GESTION JOUR ═══ -->
+<div class="modal-overlay" id="modalGestionJourOverlay">
+  <div class="modal-box" style="width:460px;">
+    <div class="modal-titre">
+      <span id="gestionJourTitre">📅 Gérer ce jour</span>
+      <button class="modal-fermer" onclick="fermerGestionJour()">×</button>
+    </div>
+    <div style="font-size:12px; color:var(--gris-doux); margin-bottom:16px;" id="gestionJourSub"></div>
+
+    <!-- Choix action -->
+    <div style="display:flex; flex-direction:column; gap:10px;" id="gestionJourChoix">
+      <button class="btn-gestion" style="background:var(--vert-light);border-color:var(--vert);color:var(--vert);" onclick="validerPresence()">
+        ✅ Valider la présence / Accepter le retard
+        <span style="font-size:10px;font-weight:400;display:block;margin-top:2px;">Le collaborateur est considéré présent et conforme.</span>
+      </button>
+      <button class="btn-gestion" style="background:var(--rouge-light);border-color:var(--rouge);color:var(--rouge);" onclick="afficherFormAbsence()">
+        ⚠️ Déclarer une absence
+        <span style="font-size:10px;font-weight:400;display:block;margin-top:2px;">Justifier avec un motif et un document si disponible.</span>
+      </button>
+    </div>
+
+    <!-- Formulaire absence (caché par défaut) -->
+    <div style="display:none;" id="gestionFormAbsence">
+      <div style="display:grid; gap:10px; margin-top:4px;">
+        <div class="form-item"><label class="form-label">Type d'absence *</label>
+          <select class="form-input" id="gestionAbsType">
+            <option value="arret_maladie">🤒 Arrêt maladie</option>
+            <option value="accident_travail">🚑 Accident du travail</option>
+            <option value="conge_paye">🌴 Congé payé</option>
+            <option value="sans_solde">📋 Absence sans solde</option>
+            <option value="familial">👨‍👩‍👧 Événement familial</option>
+            <option value="formation">🎓 Formation</option>
+            <option value="autre">📌 Autre</option>
+          </select>
+        </div>
+        <div class="form-item"><label class="form-label">Note / Détail</label>
+          <input class="form-input" id="gestionAbsNote" placeholder="N° arrêt, précision…" />
+        </div>
+        <div class="form-item"><label class="form-label">Justificatif (PDF/image)</label>
+          <div class="upload-zone" onclick="document.getElementById('gestionAbsFichier').click()" style="padding:10px;">
+            <div id="gestionAbsUploadLabel" style="font-size:12px;color:var(--gris-doux);">📂 Cliquer pour joindre un document</div>
+          </div>
+          <input type="file" id="gestionAbsFichier" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="gestionAbsFichierSelectionne(this)" />
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button class="btn-annuler" onclick="afficherChoixGestion()">← Retour</button>
+        <button class="btn-sauver" style="background:var(--rouge);" onclick="enregistrerAbsenceJour()">Enregistrer l'absence</button>
+      </div>
+    </div>
+
+    <div id="gestionJourActions" class="modal-actions" style="margin-top:16px;">
+      <button class="btn-annuler" onclick="fermerGestionJour()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -790,11 +859,12 @@ const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'
 async function chargerPlanning(c) {
   const { debut, fin, label } = getMois();
 
-  // Charger planning, pointages et absences en parallèle
-  const [{ data: plans }, { data: ptgs }, { data: abs }] = await Promise.all([
+  // Charger planning, pointages, absences et statuts validés en parallèle
+  const [{ data: plans }, { data: ptgs }, { data: abs }, { data: statuts }] = await Promise.all([
     sb.from('planning').select('date, heure_debut, heure_fin, sites(nom)').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
     sb.from('pointage').select('date, heure_entree, heure_sortie').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
     sb.from('absences').select('date_debut, date_fin, type').eq('agent_id', c.id),
+    sb.from('presences_statuts').select('date, statut, note').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
   ]);
 
   const el = document.getElementById('tablePlanning');
@@ -807,6 +877,8 @@ async function chargerPlanning(c) {
   });
   const ptgParDate = {};
   (ptgs||[]).forEach(p => { ptgParDate[p.date] = p; });
+  const statutParDate = {};
+  (statuts||[]).forEach(s => { statutParDate[s.date] = s; });
 
   // Jours travaillés selon contrat
   const jourMap = { 'Lun':1,'Mar':2,'Mer':3,'Jeu':4,'Ven':5,'Sam':6,'Dim':0 };
@@ -848,30 +920,43 @@ async function chargerPlanning(c) {
     const futur = dateStr > today;
 
     let cls = 'cal-cell';
-    let heuresHtml = '';
-    let siteHtml = '';
+    let heuresHtml = '', siteHtml = '', badgeHtml = '', onclick = '';
+    const statut = statutParDate[dateStr];
 
     if (absent) {
-      cls += ' absent';
+      // Absence enregistrée
+      cls += statut?.statut === 'absence_justifiee' ? ' absent-justifie' : ' absent';
       kpiAbs++;
-      heuresHtml = `<span class="cal-heures absent">Absent</span>`;
+      const label = statut?.statut === 'absence_justifiee' ? `⚕️ ${statut.note||'Justifiée'}` : '⚠️ Absence';
+      heuresHtml = `<span class="cal-heures absent">${label}</span>`;
+      badgeHtml = statut?.statut === 'absence_justifiee'
+        ? `<span class="cal-badge justifie">Justifiée</span>`
+        : `<span class="cal-badge anomalie">À traiter</span>`;
+      onclick = `ouvrirGestionJour('${dateStr}')`;
     } else if (ptg?.heure_entree && ptg?.heure_sortie) {
-      // Pointage réel
+      // Pointage réel — vérifier retard
       const hE = new Date(ptg.heure_entree), hS = new Date(ptg.heure_sortie);
       const dureeMin = Math.round((hS - hE) / 60000);
       const dureeH = (dureeMin / 60).toFixed(1);
-      cls += ' pointe';
-      kpiPresent++; kpiHeures += parseFloat(dureeH);
-      // Vérifier retard vs planning
+      let estRetard = false;
       if (planParDate[dateStr]?.[0]) {
         const [h0,m0] = planParDate[dateStr][0].heure_debut.split(':').map(Number);
         const ecart = hE.getHours()*60 + hE.getMinutes() - (h0*60+m0);
-        if (ecart > 5) kpiRetard++;
+        if (ecart > 5) { estRetard = true; kpiRetard++; }
       }
-      heuresHtml = `<span class="cal-heures pointe">✅ ${dureeH} h</span>
+      if (estRetard && statut?.statut !== 'retard_accepte') {
+        cls += ' retard';
+        badgeHtml = `<span class="cal-badge anomalie">Retard</span>`;
+      } else {
+        cls += ' pointe';
+        if (estRetard) badgeHtml = `<span class="cal-badge ok">Validé</span>`;
+      }
+      kpiPresent++; kpiHeures += parseFloat(dureeH);
+      heuresHtml = `<span class="cal-heures ${estRetard && statut?.statut !== 'retard_accepte' ? '' : 'pointe'}">${dureeH} h</span>
         <span class="cal-site">${hE.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}–${hS.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>`;
+      onclick = `ouvrirGestionJour('${dateStr}')`;
     } else if (estTravaille && !futur) {
-      // Présence supposée selon contrat / planning
+      // Présence supposée selon contrat
       cls += estWE ? ' we-travaille' : ' travaille';
       kpiPresent++; kpiHeures += hContrat;
       const crens = planParDate[dateStr];
@@ -882,6 +967,7 @@ async function chargerPlanning(c) {
       } else {
         heuresHtml = `<span class="cal-heures">${hContrat ? hContrat.toFixed(1)+' h' : 'Contrat'}</span>`;
       }
+      onclick = `ouvrirGestionJour('${dateStr}')`;
     } else if (estTravaille && futur) {
       cls += estWE ? ' we-travaille' : ' travaille';
       heuresHtml = `<span class="cal-heures" style="opacity:0.5;">${hContrat ? hContrat.toFixed(1)+' h' : '—'}</span>`;
@@ -890,7 +976,8 @@ async function chargerPlanning(c) {
     }
 
     const numCls = 'cal-num' + (estWE ? ' we' : '');
-    cellules += `<div class="${cls}">
+    cellules += `<div class="${cls}" ${onclick ? `onclick="${onclick}"` : ''}>
+      ${badgeHtml}
       <span class="${numCls}">${d}</span>
       ${heuresHtml}${siteHtml}
     </div>`;
@@ -1320,6 +1407,97 @@ async function enregistrerFormation() {
   toast('✅ Formation enregistrée.');
   fermerModalFormation();
   await chargerFormations(_collabActif);
+}
+
+// ── GESTION JOUR (modal calendrier) ──
+let _gestionDate = null;
+
+function ouvrirGestionJour(dateStr) {
+  _gestionDate = dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  const nomJour = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('gestionJourTitre').textContent = '📅 ' + nomJour.charAt(0).toUpperCase() + nomJour.slice(1);
+  document.getElementById('gestionJourSub').textContent = _collabActif ? (_collabActif.prenom + ' ' + _collabActif.nom) : '';
+  document.getElementById('gestionAbsNote').value = '';
+  document.getElementById('gestionAbsUploadLabel').textContent = '📂 Cliquer pour joindre un document';
+  document.getElementById('gestionAbsFichier').value = '';
+  afficherChoixGestion();
+  document.getElementById('modalGestionJourOverlay').classList.add('visible');
+}
+
+function fermerGestionJour() {
+  document.getElementById('modalGestionJourOverlay').classList.remove('visible');
+  _gestionDate = null;
+}
+
+function afficherChoixGestion() {
+  document.getElementById('gestionJourChoix').style.display = 'flex';
+  document.getElementById('gestionFormAbsence').style.display = 'none';
+  document.getElementById('gestionJourActions').style.display = 'flex';
+}
+
+function afficherFormAbsence() {
+  document.getElementById('gestionJourChoix').style.display = 'none';
+  document.getElementById('gestionFormAbsence').style.display = 'block';
+  document.getElementById('gestionJourActions').style.display = 'none';
+}
+
+function gestionAbsFichierSelectionne(input) {
+  if (input.files[0]) document.getElementById('gestionAbsUploadLabel').textContent = '✅ ' + input.files[0].name;
+}
+
+async function validerPresence() {
+  if (!_collabActif || !_gestionDate) return;
+  const { error } = await sb.from('presences_statuts').upsert({
+    agent_id: _collabActif.id,
+    date: _gestionDate,
+    statut: 'retard_accepte',
+    note: 'Validé par le responsable',
+  }, { onConflict: 'agent_id,date' });
+  if (error) { toast('❌ ' + error.message); return; }
+  toast('✅ Présence validée.');
+  fermerGestionJour();
+  await chargerPlanning(_collabActif);
+}
+
+async function enregistrerAbsenceJour() {
+  if (!_collabActif || !_gestionDate) return;
+  const type = document.getElementById('gestionAbsType').value;
+  const note = document.getElementById('gestionAbsNote').value.trim();
+  const fichier = document.getElementById('gestionAbsFichier').files[0];
+
+  let justifUrl = null;
+  if (fichier) {
+    const ext = fichier.name.split('.').pop();
+    const chemin = `absences/${_collabActif.id}_${_gestionDate}.${ext}`;
+    const { error: errUp } = await sb.storage.from('documents-collaborateurs').upload(chemin, fichier, { upsert:true });
+    if (!errUp) {
+      const { data: urlData } = sb.storage.from('documents-collaborateurs').getPublicUrl(chemin);
+      justifUrl = urlData?.publicUrl || null;
+    }
+  }
+
+  // Insérer dans absences
+  const { error: errAbs } = await sb.from('absences').upsert({
+    agent_id: _collabActif.id,
+    date_debut: _gestionDate,
+    date_fin: _gestionDate,
+    type,
+    justificatif_url: justifUrl,
+  }, { onConflict: 'agent_id,date_debut' });
+
+  // Marquer statut justifié
+  const { error: errSt } = await sb.from('presences_statuts').upsert({
+    agent_id: _collabActif.id,
+    date: _gestionDate,
+    statut: 'absence_justifiee',
+    note: note || type,
+  }, { onConflict: 'agent_id,date' });
+
+  if (errAbs || errSt) { toast('❌ Erreur : ' + (errAbs||errSt).message); return; }
+  toast('✅ Absence enregistrée' + (justifUrl ? ' avec justificatif.' : '.'));
+  fermerGestionJour();
+  await chargerPlanning(_collabActif);
 }
 
 // ── INIT ──
