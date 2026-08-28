@@ -106,13 +106,29 @@
     .onglet-contenu { display:none; background:#fff; border:1px solid var(--bordure); border-top:none; border-radius:0 0 12px 12px; }
     .onglet-contenu.visible { display:block; }
 
-    /* Planning horaires */
-    .planning-jour { margin-bottom:10px; }
-    .planning-jour-titre { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; color:var(--teal-dark); padding:5px 0 3px; border-bottom:2px solid var(--teal-light); margin-bottom:5px; }
-    .planning-creneau { display:flex; align-items:center; gap:10px; padding:7px 10px; background:var(--gris-fond); border-radius:8px; margin-bottom:4px; font-size:12px; }
-    .planning-heure { font-weight:700; min-width:110px; }
-    .planning-site { color:var(--teal-dark); font-weight:600; }
-    .planning-duree { margin-left:auto; background:var(--teal-light); color:var(--teal-dark); font-size:10px; font-weight:700; padding:2px 8px; border-radius:6px; }
+    /* Calendrier horaires */
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; padding:14px; }
+    .cal-head { text-align:center; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gris-doux); padding:4px 0 6px; }
+    .cal-head.we { color:var(--rouge); }
+    .cal-cell { border-radius:8px; padding:6px 5px; min-height:70px; border:1.5px solid var(--bordure); display:flex; flex-direction:column; gap:2px; font-size:11px; position:relative; }
+    .cal-cell.vide { background:transparent; border-color:transparent; }
+    .cal-cell.hors-contrat { background:#FAFAFA; }
+    .cal-cell.travaille { background:var(--teal-light); border-color:var(--teal); }
+    .cal-cell.pointe { background:#E8F5E9; border-color:var(--vert); }
+    .cal-cell.absent { background:var(--rouge-light); border-color:var(--rouge); }
+    .cal-cell.conge { background:var(--orange-light); border-color:var(--orange); }
+    .cal-cell.we-travaille { background:var(--violet-light); border-color:var(--violet); }
+    .cal-num { font-size:12px; font-weight:800; color:var(--gris-texte); }
+    .cal-num.we { color:var(--rouge); }
+    .cal-heures { font-size:11px; font-weight:700; color:var(--teal-dark); margin-top:2px; }
+    .cal-heures.pointe { color:var(--vert); }
+    .cal-heures.absent { color:var(--rouge); }
+    .cal-heures.conge { color:var(--orange); }
+    .cal-site { font-size:9px; color:var(--gris-doux); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cal-legende { display:flex; gap:10px; flex-wrap:wrap; padding:0 14px 12px; font-size:10px; }
+    .cal-leg-item { display:flex; align-items:center; gap:5px; }
+    .cal-leg-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+    .cal-kpi { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:12px 14px; border-bottom:1px solid var(--bordure); }
 
     /* Documents */
     .doc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; padding:16px; }
@@ -773,92 +789,131 @@ const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'
 
 async function chargerPlanning(c) {
   const { debut, fin, label } = getMois();
-  const { data: plans } = await sb.from('planning')
-    .select('date, heure_debut, heure_fin, site_id, sites(nom)')
-    .eq('agent_id', c.id).gte('date', debut).lte('date', fin);
+
+  // Charger planning, pointages et absences en parallèle
+  const [{ data: plans }, { data: ptgs }, { data: abs }] = await Promise.all([
+    sb.from('planning').select('date, heure_debut, heure_fin, sites(nom)').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
+    sb.from('pointage').select('date, heure_entree, heure_sortie').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
+    sb.from('absences').select('date_debut, date_fin, type').eq('agent_id', c.id),
+  ]);
 
   const el = document.getElementById('tablePlanning');
 
-  // Si planning renseigné → afficher les créneaux réels regroupés par jour de semaine
-  if (plans?.length) {
-    const parJour = {};
-    plans.forEach(p => {
-      const j = new Date(p.date + 'T00:00:00').getDay();
-      if (!parJour[j]) parJour[j] = {};
-      const cle = `${p.heure_debut}-${p.heure_fin}-${p.site_id}`;
-      if (!parJour[j][cle]) parJour[j][cle] = { heure_debut:p.heure_debut, heure_fin:p.heure_fin, site:p.sites };
-    });
-    let html = '<div style="padding:14px 16px;">';
-    [1,2,3,4,5,6,0].filter(j => parJour[j]).forEach(j => {
-      html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]}</div>`;
-      Object.values(parJour[j]).forEach(cr => {
-        const h1 = cr.heure_debut.slice(0,5), h2 = cr.heure_fin.slice(0,5);
-        const [hd,md] = h1.split(':').map(Number), [hf,mf] = h2.split(':').map(Number);
-        const dur = (hf*60+mf)-(hd*60+md);
-        const durStr = dur>=60 ? `${Math.floor(dur/60)}h${dur%60?dur%60+'min':''}` : dur+'min';
-        html += `<div class="planning-creneau">
-          <span class="planning-heure">🕐 ${h1} – ${h2}</span>
-          <span class="planning-site">🏢 ${cr.site?.nom||'—'}</span>
-          <span class="planning-duree">${durStr}</span>
-        </div>`;
-      });
-      html += '</div>';
-    });
-    html += '</div>';
-    el.innerHTML = html;
-    return;
-  }
+  // Index planning et pointage par date
+  const planParDate = {};
+  (plans||[]).forEach(p => {
+    if (!planParDate[p.date]) planParDate[p.date] = [];
+    planParDate[p.date].push(p);
+  });
+  const ptgParDate = {};
+  (ptgs||[]).forEach(p => { ptgParDate[p.date] = p; });
 
-  // Pas de planning saisi → afficher les présences contractuelles théoriques
-  const hSem = parseFloat(c.volume_horaire) || 0;
-  if (!hSem) {
-    el.innerHTML = '<div class="vide-msg">Aucun planning saisi et volume horaire non renseigné sur le contrat.</div>';
-    return;
-  }
-
-  // Jours travaillés depuis le contrat, sinon lun-ven par défaut
+  // Jours travaillés selon contrat
   const jourMap = { 'Lun':1,'Mar':2,'Mer':3,'Jeu':4,'Ven':5,'Sam':6,'Dim':0 };
   const joursTravailles = c.jours_travailles
     ? c.jours_travailles.split(',').map(s => jourMap[s.trim()]).filter(j => j !== undefined)
-    : [1,2,3,4,5];
-  const hParJour = c.heures_par_jour
-    ? parseFloat(c.heures_par_jour).toFixed(1)
-    : (hSem / joursTravailles.length).toFixed(1);
+    : (parseFloat(c.volume_horaire) ? [1,2,3,4,5] : []);
+  const hContrat = c.heures_par_jour
+    ? parseFloat(c.heures_par_jour)
+    : (parseFloat(c.volume_horaire) && joursTravailles.length ? parseFloat(c.volume_horaire) / joursTravailles.length : 0);
 
-  // Lister tous les jours ouvrés du mois
-  const joursParNom = {};
-  let cur = new Date(debut + 'T00:00:00');
-  const finDate = new Date(fin + 'T00:00:00');
-  while (cur <= finDate) {
-    const j = cur.getDay();
-    if (joursTravailles.includes(j)) {
-      if (!joursParNom[j]) joursParNom[j] = 0;
-      joursParNom[j]++;
-    }
-    cur.setDate(cur.getDate() + 1);
+  // Vérifier si une date est en absence
+  function estAbsent(dateStr) {
+    return (abs||[]).some(a => dateStr >= a.date_debut && dateStr <= (a.date_fin || a.date_debut));
   }
 
-  const totalJours = Object.values(joursParNom).reduce((a,b)=>a+b,0);
-  const totalHeures = (totalJours * hParJour).toFixed(1);
+  // Construire calendrier
+  const debutDate = new Date(debut + 'T00:00:00');
+  const premierJour = debutDate.getDay(); // 0=dim
+  const decalage = premierJour === 0 ? 6 : premierJour - 1; // lundi en col 0
+  const nbJoursMois = new Date(debutDate.getFullYear(), debutDate.getMonth()+1, 0).getDate();
 
-  let html = `<div style="padding:14px 16px;">
-    <div style="background:var(--teal-light);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--teal-dark);">
-      <strong>📋 Horaires contractuels — ${label}</strong><br/>
-      Aucun pointage saisi. Présence supposée conforme au contrat : <strong>${hSem} h/semaine</strong>
-      (${joursTravailles.map(j=>JOURS[j]).join(', ')}).<br/>
-      Soit <strong>${totalJours} jours × ${hParJour} h = ${totalHeures} h</strong> ce mois-ci.
+  // KPI
+  let kpiPresent = 0, kpiHeures = 0, kpiRetard = 0, kpiAbs = 0;
+  const today = new Date().toISOString().split('T')[0];
+
+  const JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+  let cellules = '';
+  for (let i = 0; i < decalage; i++) cellules += '<div class="cal-cell vide"></div>';
+
+  for (let d = 1; d <= nbJoursMois; d++) {
+    const dateStr = debut.slice(0,8) + String(d).padStart(2,'0');
+    const jourSem = new Date(dateStr + 'T00:00:00').getDay(); // 0=dim
+    const colJour = jourSem === 0 ? 6 : jourSem - 1;
+    const estWE = (jourSem === 0 || jourSem === 6);
+    const estTravaille = joursTravailles.includes(jourSem) || planParDate[dateStr]?.length > 0;
+    const ptg = ptgParDate[dateStr];
+    const absent = estAbsent(dateStr);
+    const futur = dateStr > today;
+
+    let cls = 'cal-cell';
+    let heuresHtml = '';
+    let siteHtml = '';
+
+    if (absent) {
+      cls += ' absent';
+      kpiAbs++;
+      heuresHtml = `<span class="cal-heures absent">Absent</span>`;
+    } else if (ptg?.heure_entree && ptg?.heure_sortie) {
+      // Pointage réel
+      const hE = new Date(ptg.heure_entree), hS = new Date(ptg.heure_sortie);
+      const dureeMin = Math.round((hS - hE) / 60000);
+      const dureeH = (dureeMin / 60).toFixed(1);
+      cls += ' pointe';
+      kpiPresent++; kpiHeures += parseFloat(dureeH);
+      // Vérifier retard vs planning
+      if (planParDate[dateStr]?.[0]) {
+        const [h0,m0] = planParDate[dateStr][0].heure_debut.split(':').map(Number);
+        const ecart = hE.getHours()*60 + hE.getMinutes() - (h0*60+m0);
+        if (ecart > 5) kpiRetard++;
+      }
+      heuresHtml = `<span class="cal-heures pointe">✅ ${dureeH} h</span>
+        <span class="cal-site">${hE.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}–${hS.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>`;
+    } else if (estTravaille && !futur) {
+      // Présence supposée selon contrat / planning
+      cls += estWE ? ' we-travaille' : ' travaille';
+      kpiPresent++; kpiHeures += hContrat;
+      const crens = planParDate[dateStr];
+      if (crens?.length) {
+        const h1 = crens[0].heure_debut.slice(0,5), h2 = crens[crens.length-1].heure_fin.slice(0,5);
+        heuresHtml = `<span class="cal-heures">${h1}–${h2}</span>`;
+        siteHtml   = `<span class="cal-site">🏢 ${crens[0].sites?.nom||''}</span>`;
+      } else {
+        heuresHtml = `<span class="cal-heures">${hContrat ? hContrat.toFixed(1)+' h' : 'Contrat'}</span>`;
+      }
+    } else if (estTravaille && futur) {
+      cls += estWE ? ' we-travaille' : ' travaille';
+      heuresHtml = `<span class="cal-heures" style="opacity:0.5;">${hContrat ? hContrat.toFixed(1)+' h' : '—'}</span>`;
+    } else {
+      cls += ' hors-contrat';
+    }
+
+    const numCls = 'cal-num' + (estWE ? ' we' : '');
+    cellules += `<div class="${cls}">
+      <span class="${numCls}">${d}</span>
+      ${heuresHtml}${siteHtml}
     </div>`;
+  }
 
-  joursTravailles.forEach(j => {
-    html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]} <span style="font-weight:400;font-size:10px;color:var(--gris-doux);">(${joursParNom[j]||0} jour(s) ce mois)</span></div>
-      <div class="planning-creneau">
-        <span class="planning-heure">🕐 Selon contrat</span>
-        <span class="planning-site" style="color:var(--gris-doux);">Planning non saisi</span>
-        <span class="planning-duree">${hParJour} h</span>
-      </div></div>`;
-  });
-  html += '</div>';
-  el.innerHTML = html;
+  el.innerHTML = `
+    <div class="cal-kpi">
+      <div class="kpi-box"><div class="kpi-val kpi-teal">${kpiPresent}</div><div class="kpi-lbl">Jours présents</div></div>
+      <div class="kpi-box"><div class="kpi-val kpi-vert">${kpiHeures.toFixed(1)} h</div><div class="kpi-lbl">Heures réalisées</div></div>
+      <div class="kpi-box"><div class="kpi-val kpi-orange">${kpiRetard}</div><div class="kpi-lbl">Retards</div></div>
+      <div class="kpi-box"><div class="kpi-val kpi-rouge">${kpiAbs}</div><div class="kpi-lbl">Absences</div></div>
+    </div>
+    <div class="cal-grid">
+      ${JOURS_COURTS.map((j,i) => `<div class="cal-head${i>=5?' we':''}">${j}</div>`).join('')}
+      ${cellules}
+    </div>
+    <div class="cal-legende">
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--teal-light);border:1.5px solid var(--teal);"></div> Présent (contrat)</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#E8F5E9;border:1.5px solid var(--vert);"></div> Pointé</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--violet-light);border:1.5px solid var(--violet);"></div> WE travaillé</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--rouge-light);border:1.5px solid var(--rouge);"></div> Absent</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#FAFAFA;border:1.5px solid var(--bordure);"></div> Repos</div>
+    </div>`;
 }
 
 async function chargerRetards(c) {
