@@ -499,6 +499,9 @@
         <select class="filter-select" id="filterSecteur" onchange="filtrerClients()">
           <option value="">Tous les secteurs</option>
         </select>
+        <select class="filter-select" id="filterResponsable" onchange="filtrerClients()">
+          <option value="">Tous les responsables</option>
+        </select>
         <select class="filter-select" id="filterStatut" onchange="filtrerClients()">
           <option value="">Tous statuts</option>
           <option value="actif">Actif</option>
@@ -598,10 +601,10 @@
         _nomClient:  s.nom || s.raison_sociale || '—',
         _contact:    s.contact_nom || s.nom_contact || '',
         _tel:        s.telephone || s.tel || '—',
-        _secteur:    s.secteur || s.type_site || '—',
+        _secteur:    s.secteur_activite || s.type_site || '—',
         _adresse:    [s.adresse, s.code_postal, s.ville].filter(Boolean).join(' ') || s.adresse || '—',
         _sc:         s.statut_contrat || 'actif',
-        _am:         s.users ? `${s.users.prenom || ''} ${s.users.nom || ''}`.trim() : '—',
+        _am:         s.responsable_secteur || '—',
       }));
 
       peuplerFiltresSecteur(tousLesClients);
@@ -612,11 +615,19 @@
 
     function peuplerFiltresSecteur(clients) {
       const secteurs = [...new Set(clients.map(c => c._secteur).filter(s => s && s !== '—'))].sort();
-      const sel = document.getElementById('filterSecteur');
+      const selS = document.getElementById('filterSecteur');
       secteurs.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s; opt.textContent = s;
-        sel.appendChild(opt);
+        selS.appendChild(opt);
+      });
+
+      const resps = [...new Set(clients.map(c => c._am).filter(r => r && r !== '—'))].sort();
+      const selR = document.getElementById('filterResponsable');
+      resps.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r; opt.textContent = r;
+        selR.appendChild(opt);
       });
     }
 
@@ -672,12 +683,14 @@
     function filtrerClients() {
       const search  = document.getElementById('searchInput').value.toLowerCase().trim();
       const secteur = document.getElementById('filterSecteur').value;
+      const resp    = document.getElementById('filterResponsable').value;
       const statut  = document.getElementById('filterStatut').value;
 
       const filtrés = tousLesClients.filter(c => {
         const texte = `${c._nomClient} ${c._contact} ${c._adresse} ${c._am}`.toLowerCase();
         if (search  && !texte.includes(search))  return false;
         if (secteur && c._secteur !== secteur)   return false;
+        if (resp    && c._am !== resp)            return false;
         if (statut  && c._sc !== statut)         return false;
         return true;
       });

@@ -442,7 +442,7 @@
       const email  = site.email||null;
       const sc     = site.statut_contrat||'actif';
       const depuis = fmt(site.date_debut_contrat||site.date_signature||site.created_at);
-      const secteur= site.secteur||site.type_site||'—';
+      const secteur= site.secteur_activite||site.type_site||'—';
       const contact= site.contact_nom||site.nom_contact||'—';
 
       // Topbar
