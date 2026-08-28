@@ -544,14 +544,17 @@
           .lte('date', fin)
           .order('date');
 
-        // Dédoublonner par créneau unique par agent
+        // Grouper les jours par créneau horaire (évite la déduplication qui écrasait les jours)
         (plannings||[]).forEach(p => {
           if(!planningMap[p.agent_id]) planningMap[p.agent_id] = new Map();
           const cle = `${p.heure_debut}-${p.heure_fin}`;
+          // Parsing local pour éviter le décalage UTC+2
+          const [y,mo,d] = p.date.split('-').map(Number);
+          const jourSem = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][new Date(y, mo-1, d).getDay()];
           if(!planningMap[p.agent_id].has(cle)){
-            const jourSem = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][new Date(p.date).getDay()];
-            planningMap[p.agent_id].set(cle, { heure_debut: p.heure_debut, heure_fin: p.heure_fin, jour: jourSem });
+            planningMap[p.agent_id].set(cle, { heure_debut: p.heure_debut, heure_fin: p.heure_fin, jours: new Set() });
           }
+          planningMap[p.agent_id].get(cle).jours.add(jourSem);
         });
       }
 
@@ -575,13 +578,15 @@
              </div>`
           : `<div class="agent-avatar">${esc(initiales)}</div>`;
 
-        // Horaires dédoublonnés
+        // Horaires : tous les jours regroupés par créneau
+        const ordreJours = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
         const horaireHtml = plans.length
           ? `<div class="agent-horaire">` +
             plans.map(p => {
               const h1 = p.heure_debut?.slice(0,5) || '';
               const h2 = p.heure_fin?.slice(0,5)   || '';
-              return `<span style="margin-right:10px;"><strong>${p.jour}</strong> 🕐 ${h1} – ${h2}</span>`;
+              const joursStr = ordreJours.filter(j => p.jours.has(j)).join(' ');
+              return `<span style="margin-right:10px;"><strong>${joursStr}</strong> 🕐 ${h1} – ${h2}</span>`;
             }).join('') +
             `</div>`
           : a.volume_horaire
