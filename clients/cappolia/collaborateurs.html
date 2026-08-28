@@ -748,37 +748,86 @@ async function chargerClientsCollab(agentId) {
 const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
 async function chargerPlanning(c) {
-  const { debut, fin } = getMois();
+  const { debut, fin, label } = getMois();
   const { data: plans } = await sb.from('planning')
     .select('date, heure_debut, heure_fin, site_id, sites(nom)')
     .eq('agent_id', c.id).gte('date', debut).lte('date', fin);
 
   const el = document.getElementById('tablePlanning');
-  if (!plans?.length) { el.innerHTML = '<div class="vide-msg">Aucune prestation ce mois-ci.</div>'; return; }
 
-  const parJour = {};
-  plans.forEach(p => {
-    const j = new Date(p.date).getDay();
-    if (!parJour[j]) parJour[j] = {};
-    const cle = `${p.heure_debut}-${p.heure_fin}-${p.site_id}`;
-    if (!parJour[j][cle]) parJour[j][cle] = { heure_debut:p.heure_debut, heure_fin:p.heure_fin, site:p.sites };
-  });
-
-  let html = '<div style="padding:14px 16px;">';
-  [1,2,3,4,5,6,0].filter(j => parJour[j]).forEach(j => {
-    html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]}</div>`;
-    Object.values(parJour[j]).forEach(cr => {
-      const h1 = cr.heure_debut.slice(0,5), h2 = cr.heure_fin.slice(0,5);
-      const [hd,md] = h1.split(':').map(Number), [hf,mf] = h2.split(':').map(Number);
-      const dur = (hf*60+mf)-(hd*60+md);
-      const durStr = dur>=60 ? `${Math.floor(dur/60)}h${dur%60?dur%60+'min':''}` : dur+'min';
-      html += `<div class="planning-creneau">
-        <span class="planning-heure">🕐 ${h1} – ${h2}</span>
-        <span class="planning-site">🏢 ${cr.site?.nom||'—'}</span>
-        <span class="planning-duree">${durStr}</span>
-      </div>`;
+  // Si planning renseigné → afficher les créneaux réels regroupés par jour de semaine
+  if (plans?.length) {
+    const parJour = {};
+    plans.forEach(p => {
+      const j = new Date(p.date + 'T00:00:00').getDay();
+      if (!parJour[j]) parJour[j] = {};
+      const cle = `${p.heure_debut}-${p.heure_fin}-${p.site_id}`;
+      if (!parJour[j][cle]) parJour[j][cle] = { heure_debut:p.heure_debut, heure_fin:p.heure_fin, site:p.sites };
+    });
+    let html = '<div style="padding:14px 16px;">';
+    [1,2,3,4,5,6,0].filter(j => parJour[j]).forEach(j => {
+      html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]}</div>`;
+      Object.values(parJour[j]).forEach(cr => {
+        const h1 = cr.heure_debut.slice(0,5), h2 = cr.heure_fin.slice(0,5);
+        const [hd,md] = h1.split(':').map(Number), [hf,mf] = h2.split(':').map(Number);
+        const dur = (hf*60+mf)-(hd*60+md);
+        const durStr = dur>=60 ? `${Math.floor(dur/60)}h${dur%60?dur%60+'min':''}` : dur+'min';
+        html += `<div class="planning-creneau">
+          <span class="planning-heure">🕐 ${h1} – ${h2}</span>
+          <span class="planning-site">🏢 ${cr.site?.nom||'—'}</span>
+          <span class="planning-duree">${durStr}</span>
+        </div>`;
+      });
+      html += '</div>';
     });
     html += '</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  // Pas de planning saisi → afficher les présences contractuelles théoriques
+  // Par défaut : lun–ven (ou lun–sam si volume > 35h), selon volume_horaire du contrat
+  const hSem = parseFloat(c.volume_horaire) || 0;
+  if (!hSem) {
+    el.innerHTML = '<div class="vide-msg">Aucun planning saisi et volume horaire non renseigné sur le contrat.</div>';
+    return;
+  }
+
+  // Calcul des jours travaillés dans le mois (lun-ven par défaut, lun-sam si > 35h)
+  const joursTravailles = hSem > 35 ? [1,2,3,4,5,6] : [1,2,3,4,5];
+  const hParJour = (hSem / joursTravailles.length).toFixed(1);
+
+  // Lister tous les jours ouvrés du mois
+  const joursParNom = {};
+  let cur = new Date(debut + 'T00:00:00');
+  const finDate = new Date(fin + 'T00:00:00');
+  while (cur <= finDate) {
+    const j = cur.getDay();
+    if (joursTravailles.includes(j)) {
+      if (!joursParNom[j]) joursParNom[j] = 0;
+      joursParNom[j]++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  const totalJours = Object.values(joursParNom).reduce((a,b)=>a+b,0);
+  const totalHeures = (totalJours * hParJour).toFixed(1);
+
+  let html = `<div style="padding:14px 16px;">
+    <div style="background:var(--teal-light);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--teal-dark);">
+      <strong>📋 Horaires contractuels — ${label}</strong><br/>
+      Aucun pointage saisi. Présence supposée conforme au contrat : <strong>${hSem} h/semaine</strong>
+      (${joursTravailles.map(j=>JOURS[j]).join(', ')}).<br/>
+      Soit <strong>${totalJours} jours × ${hParJour} h = ${totalHeures} h</strong> ce mois-ci.
+    </div>`;
+
+  joursTravailles.forEach(j => {
+    html += `<div class="planning-jour"><div class="planning-jour-titre">${JOURS[j]} <span style="font-weight:400;font-size:10px;color:var(--gris-doux);">(${joursParNom[j]||0} jour(s) ce mois)</span></div>
+      <div class="planning-creneau">
+        <span class="planning-heure">🕐 Selon contrat</span>
+        <span class="planning-site" style="color:var(--gris-doux);">Planning non saisi</span>
+        <span class="planning-duree">${hParJour} h</span>
+      </div></div>`;
   });
   html += '</div>';
   el.innerHTML = html;
@@ -792,24 +841,31 @@ async function chargerRetards(c) {
     sb.from('absences').select('id, date_debut, date_fin, type').eq('agent_id', c.id).gte('date_debut', debut).lte('date_debut', fin),
   ]);
 
+  // Retard = pointage saisi ET arrivée > heure_debut + 5 min
+  // Absence de pointage ≠ retard (présence supposée conforme au contrat)
   let retards = [], minPerdu = 0;
   (ptgs||[]).forEach(p => {
     const pl = (plans||[]).find(x => x.date === p.date);
-    if (!pl) return;
+    if (!pl || !p.heure_entree) return;
     const [h0,m0] = pl.heure_debut.split(':').map(Number);
     const debutMin = h0*60+m0;
-    const entreeMin = new Date(p.heure_entree).getHours()*60 + new Date(p.heure_entree).getMinutes();
+    const entreeDate = new Date(p.heure_entree);
+    const entreeMin = entreeDate.getHours()*60 + entreeDate.getMinutes();
     const ecart = entreeMin - debutMin;
     if (ecart > 5) { retards.push({ date:p.date, ecart }); minPerdu += ecart; }
   });
 
   document.getElementById('kpiRetards').textContent = retards.length;
-  document.getElementById('kpiMinPerdu').textContent = minPerdu + ' min';
+  document.getElementById('kpiMinPerdu').textContent = minPerdu > 0 ? minPerdu + ' min' : '0 min';
   document.getElementById('kpiAbsences').textContent = abs?.length || 0;
-  document.getElementById('kpiJoursAbs').textContent = '—';
+  // Jours de présence confirmée = jours avec pointage
+  document.getElementById('kpiJoursAbs').textContent = (ptgs||[]).length + ' pointage(s)';
 
   const el = document.getElementById('tableRetards');
-  if (!retards.length) { el.innerHTML = '<div class="vide-msg">Aucun retard ce mois-ci.</div>'; return; }
+  if (!retards.length) {
+    el.innerHTML = '<div class="vide-msg">✅ Aucun retard enregistré ce mois-ci.<br/><span style="font-size:11px;color:var(--gris-doux);">Les jours sans pointage sont considérés conformes au contrat.</span></div>';
+    return;
+  }
   el.innerHTML = `<table class="histo"><thead><tr><th>Date</th><th>Écart</th></tr></thead><tbody>
     ${retards.map(r => `<tr><td>${fmtDate(r.date)}</td><td style="color:var(--orange);font-weight:700;">+${r.ecart} min</td></tr>`).join('')}
   </tbody></table>`;
