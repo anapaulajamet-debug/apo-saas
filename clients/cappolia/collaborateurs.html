@@ -413,6 +413,8 @@
       </div>
       <div class="form-item"><label class="form-label">Date d'embauche</label><input class="form-input" type="date" id="fDateEntree" /></div>
       <div class="form-item"><label class="form-label">Heures / semaine</label><input class="form-input" type="number" id="fVolumeHoraire" placeholder="35" min="0" step="0.5" /></div>
+      <div class="form-item"><label class="form-label">Heures / jour</label><input class="form-input" type="number" id="fHeuresParJour" placeholder="7" min="0" step="0.5" /></div>
+      <div class="form-item full"><label class="form-label">Jours travaillés</label><input class="form-input" id="fJoursTravailles" placeholder="Lun, Mar, Mer, Jeu, Ven" /></div>
       <div class="form-item"><label class="form-label">Taux horaire (€)</label><input class="form-input" type="number" id="fTauxHoraire" placeholder="12.00" min="0" step="0.01" /></div>
       <div class="form-item"><label class="form-label">Filière CCN</label><input class="form-input" id="fFiliereCcn" placeholder="Nettoyage" /></div>
       <div class="form-item"><label class="form-label">Coefficient</label><input class="form-input" id="fCoefficient" placeholder="150" /></div>
@@ -686,19 +688,32 @@ async function ouvrirFiche(id) {
       <div class="info-val${!i.val?' vide':''}">${i.raw && i.val ? i.val : (i.val || 'Non renseigné')}</div>
     </div>`).join('');
 
-  // Contrat
+  // Contrat — calcul automatique jours/heures si non renseignés
+  const hSem = parseFloat(c.volume_horaire) || 0;
+  const joursRaw = c.jours_travailles || null;
+  const joursAuto = hSem > 35 ? 'Lun, Mar, Mer, Jeu, Ven, Sam' : 'Lun, Mar, Mer, Jeu, Ven';
+  const joursAff  = joursRaw || (hSem ? joursAuto + ' (contrat)' : null);
+  const nbJours   = joursRaw
+    ? joursRaw.split(',').filter(Boolean).length
+    : (hSem > 35 ? 6 : 5);
+  const hJourRaw  = c.heures_par_jour ? parseFloat(c.heures_par_jour) : null;
+  const hJourCalc = hSem && nbJours ? (hSem / nbJours).toFixed(2) : null;
+  const hJourAff  = hJourRaw ? hJourRaw + ' h/j' : (hJourCalc ? hJourCalc + ' h/j (calculé)' : null);
+
   const contratFields = [
     { label:'Type de contrat',    val: c.type_contrat ? `<span class="badge-inline" style="background:var(--teal-light);color:var(--teal-dark);">${c.type_contrat}</span>` : null, raw:true },
     { label:'Date d\'embauche',   val: c.date_entree ? fmtDate(c.date_entree) : null },
     { label:'Filière CCN',        val: c.filiere_ccn },
     { label:'Coefficient',        val: c.coefficient },
-    { label:'Heures / semaine',   val: c.volume_horaire ? c.volume_horaire + ' h/sem' : null },
+    { label:'Heures / semaine',   val: hSem ? hSem + ' h/sem' : null },
+    { label:'Jours travaillés',   val: joursAff, full: true },
+    { label:'Heures / jour',      val: hJourAff },
     { label:'Taux horaire',       val: c.taux_horaire ? parseFloat(c.taux_horaire).toFixed(2) + ' €/h' : null },
     { label:'N° Sécurité sociale',val: c.numero_ss },
     { label:'Solde CP',           val: c.solde_cp != null ? c.solde_cp + ' jour(s)' : null },
   ];
   document.getElementById('ficheContrat').innerHTML = contratFields.map(f => `
-    <div class="info-item">
+    <div class="info-item${f.full?' full':''}">
       <div class="info-label">${f.label}</div>
       <div class="info-val${!f.val?' vide':''}">${f.raw && f.val ? f.val : (f.val || '—')}</div>
     </div>`).join('');
@@ -1013,8 +1028,8 @@ async function uploaderDocument() {
 function ouvrirModalNouveau() {
   _editMode = false; _editId = null;
   document.getElementById('modalCollabTitre').textContent = '➕ Nouveau collaborateur';
-  ['fPrenom','fNom','fQualification','fTelephone','fEmail','fAdresse','fNumeroSS','fFiliereCcn','fCoefficient'].forEach(id => document.getElementById(id).value = '');
-  ['fVolumeHoraire','fTauxHoraire','fSoldeCp'].forEach(id => document.getElementById(id).value = '');
+  ['fPrenom','fNom','fQualification','fTelephone','fEmail','fAdresse','fNumeroSS','fFiliereCcn','fCoefficient','fJoursTravailles'].forEach(id => document.getElementById(id).value = '');
+  ['fVolumeHoraire','fTauxHoraire','fSoldeCp','fHeuresParJour'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fTypeContrat').value = '';
   document.getElementById('fDateNaissance').value = '';
   document.getElementById('fDateEntree').value = '';
@@ -1036,6 +1051,8 @@ function ouvrirModalEdition() {
   document.getElementById('fDateNaissance').value = c.date_naissance || '';
   document.getElementById('fDateEntree').value = c.date_entree || '';
   document.getElementById('fVolumeHoraire').value = c.volume_horaire || '';
+  document.getElementById('fHeuresParJour').value = c.heures_par_jour || '';
+  document.getElementById('fJoursTravailles').value = c.jours_travailles || '';
   document.getElementById('fTauxHoraire').value = c.taux_horaire || '';
   document.getElementById('fFiliereCcn').value = c.filiere_ccn || '';
   document.getElementById('fCoefficient').value = c.coefficient || '';
@@ -1060,9 +1077,11 @@ async function sauverCollab() {
     type_contrat:    document.getElementById('fTypeContrat').value || null,
     date_naissance:  document.getElementById('fDateNaissance').value || null,
     date_entree:     document.getElementById('fDateEntree').value || null,
-    volume_horaire:  parseFloat(document.getElementById('fVolumeHoraire').value) || null,
-    taux_horaire:    parseFloat(document.getElementById('fTauxHoraire').value) || null,
-    filiere_ccn:     document.getElementById('fFiliereCcn').value.trim() || null,
+    volume_horaire:   parseFloat(document.getElementById('fVolumeHoraire').value) || null,
+    heures_par_jour:  parseFloat(document.getElementById('fHeuresParJour').value) || null,
+    jours_travailles: document.getElementById('fJoursTravailles').value.trim() || null,
+    taux_horaire:     parseFloat(document.getElementById('fTauxHoraire').value) || null,
+    filiere_ccn:      document.getElementById('fFiliereCcn').value.trim() || null,
     coefficient:     document.getElementById('fCoefficient').value.trim() || null,
     numero_ss:       document.getElementById('fNumeroSS').value.trim() || null,
     solde_cp:        parseFloat(document.getElementById('fSoldeCp').value) || null,
