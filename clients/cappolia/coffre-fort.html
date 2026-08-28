@@ -250,6 +250,7 @@
       <button class="nav-tab active" onclick="afficherTab('profil')">👤 Mon profil</button>
       <button class="nav-tab" onclick="afficherTab('documents')">📄 Documents</button>
       <button class="nav-tab" onclick="afficherTab('conges')">🌴 Congés</button>
+      <button class="nav-tab" onclick="afficherTab('absences')">🤒 Absences</button>
     </div>
 
     <!-- TAB PROFIL -->
@@ -269,6 +270,55 @@
     <div class="tab-panel" id="tab-documents">
       <div class="section-label">Mes documents</div>
       <div id="docsListe"><div class="spinner">Chargement…</div></div>
+    </div>
+
+    <!-- TAB ABSENCES -->
+    <div class="tab-panel" id="tab-absences">
+      <!-- Bouton déclarer -->
+      <div style="padding:14px 0 8px;">
+        <button id="btnDeclarer" onclick="afficherFormDeclarer()" style="width:100%;padding:14px;background:var(--rouge,#C0392B);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">
+          ⚠️ Je déclare une absence
+        </button>
+      </div>
+
+      <!-- Formulaire déclaration (caché par défaut) -->
+      <div id="formDeclarer" style="display:none;background:#fff;border-radius:14px;border:1.5px solid #DDE3E8;padding:16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:12px;">📝 Déclarer mon absence</div>
+        <div style="display:grid;gap:10px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6B7280;margin-bottom:4px;">Date de début *</div>
+            <input type="date" id="absDate" style="width:100%;padding:9px 10px;border:1.5px solid #DDE3E8;border-radius:8px;font-size:13px;" />
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6B7280;margin-bottom:4px;">Type *</div>
+            <select id="absType" style="width:100%;padding:9px 10px;border:1.5px solid #DDE3E8;border-radius:8px;font-size:13px;">
+              <option value="arret_maladie">🤒 Arrêt maladie</option>
+              <option value="accident_travail">🚑 Accident du travail</option>
+              <option value="familial">👨‍👩‍👧 Événement familial</option>
+              <option value="autre">📌 Autre</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6B7280;margin-bottom:4px;">Commentaire</div>
+            <textarea id="absCommentaire" rows="3" placeholder="Je suis malade, je suis chez le médecin ce matin…" style="width:100%;padding:9px 10px;border:1.5px solid #DDE3E8;border-radius:8px;font-size:13px;resize:vertical;"></textarea>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6B7280;margin-bottom:4px;">Justificatif (facultatif — peut être ajouté plus tard)</div>
+            <label style="display:block;border:2px dashed #DDE3E8;border-radius:10px;padding:14px;text-align:center;cursor:pointer;font-size:12px;color:#6B7280;" onclick="document.getElementById('absJustifFichier').click()">
+              <div id="absJustifLabel">📂 Photo ou PDF de l'arrêt</div>
+            </label>
+            <input type="file" id="absJustifFichier" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="this.previousElementSibling.previousElementSibling.querySelector('#absJustifLabel').textContent='✅ '+this.files[0].name" />
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <button onclick="masquerFormDeclarer()" style="flex:1;padding:10px;border:1.5px solid #DDE3E8;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;">Annuler</button>
+            <button onclick="soumettreDeclarer()" style="flex:2;padding:10px;background:var(--rouge,#C0392B);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Envoyer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste mes absences -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6B7280;margin:8px 0 6px;">Mes absences déclarées</div>
+      <div id="absencesListe"><div class="spinner">Chargement…</div></div>
     </div>
 
     <!-- TAB CONGÉS -->
@@ -443,6 +493,127 @@
       }
 
     })();
+
+    // ── ABSENCES AGENT ──
+    let _agentId = null;
+
+    async function chargerAbsencesAgent() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      // Récupérer l'agent lié à cet utilisateur
+      const { data: agent } = await sb.from('agents').select('id').eq('email', session.user.email).maybeSingle();
+      _agentId = agent?.id || null;
+      if (!_agentId) {
+        document.getElementById('absencesListe').innerHTML = '<div style="color:#6B7280;font-size:12px;text-align:center;padding:16px;">Aucun profil agent trouvé.</div>';
+        return;
+      }
+      // Pré-remplir la date avec aujourd'hui
+      document.getElementById('absDate').value = new Date().toISOString().split('T')[0];
+      await rafraichirAbsences();
+    }
+
+    async function rafraichirAbsences() {
+      if (!_agentId) return;
+      const { data: abs } = await sb.from('absences').select('*').eq('agent_id', _agentId).order('date_debut', { ascending: false });
+      const el = document.getElementById('absencesListe');
+      if (!abs?.length) { el.innerHTML = '<div style="color:#6B7280;font-size:12px;text-align:center;padding:16px;">Aucune absence déclarée.</div>'; return; }
+
+      const typeLabels = { arret_maladie:'🤒 Arrêt maladie', accident_travail:'🚑 Accident travail', familial:'👨‍👩‍👧 Événement familial', autre:'📌 Autre', conge_paye:'🌴 Congé payé', sans_solde:'📋 Sans solde', formation:'🎓 Formation' };
+      el.innerHTML = abs.map(a => `
+        <div style="background:#fff;border-radius:12px;border:1.5px solid #DDE3E8;padding:14px;margin-bottom:10px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+            <div>
+              <div style="font-size:13px;font-weight:800;">${typeLabels[a.type]||a.type}</div>
+              <div style="font-size:11px;color:#6B7280;margin-top:2px;">${fmtDate(a.date_debut)}${a.date_fin && a.date_fin !== a.date_debut ? ' → ' + fmtDate(a.date_fin) : ''}</div>
+              ${a.commentaire ? `<div style="font-size:12px;color:#374151;margin-top:5px;">${a.commentaire}</div>` : ''}
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;${a.justificatif_url ? 'background:#E8F5E9;color:#1E8449;' : 'background:#FEF3CD;color:#E67E22;'}">${a.justificatif_url ? '✓ Justifié' : '⚠ Sans justificatif'}</span>
+          </div>
+          ${!a.justificatif_url ? `
+            <label style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 14px;border:1.5px solid #DDE3E8;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;color:#2D6A3F;">
+              📎 Ajouter le justificatif
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="ajouterJustificatif('${a.id}', this)" />
+            </label>` : `
+            <a href="${a.justificatif_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 12px;border:1.5px solid #1E8449;border-radius:8px;font-size:11px;font-weight:700;color:#1E8449;text-decoration:none;">
+              👁 Voir le justificatif
+            </a>`}
+        </div>`).join('');
+    }
+
+    function afficherFormDeclarer() {
+      document.getElementById('formDeclarer').style.display = 'block';
+      document.getElementById('btnDeclarer').style.display = 'none';
+    }
+    function masquerFormDeclarer() {
+      document.getElementById('formDeclarer').style.display = 'none';
+      document.getElementById('btnDeclarer').style.display = 'block';
+    }
+
+    async function soumettreDeclarer() {
+      if (!_agentId) { alert('Profil non trouvé.'); return; }
+      const date = document.getElementById('absDate').value;
+      const type = document.getElementById('absType').value;
+      const commentaire = document.getElementById('absCommentaire').value.trim();
+      const fichier = document.getElementById('absJustifFichier').files[0];
+      if (!date) { alert('Date obligatoire.'); return; }
+
+      let justifUrl = null;
+      if (fichier) {
+        const ext = fichier.name.split('.').pop();
+        const chemin = `absences/${_agentId}_${date}.${ext}`;
+        const { error: errUp } = await sb.storage.from('documents-collaborateurs').upload(chemin, fichier, { upsert:true });
+        if (!errUp) {
+          const { data: urlData } = sb.storage.from('documents-collaborateurs').getPublicUrl(chemin);
+          justifUrl = urlData?.publicUrl || null;
+        }
+      }
+
+      const { error } = await sb.from('absences').insert({
+        agent_id: _agentId,
+        date_debut: date,
+        date_fin: date,
+        type,
+        commentaire: commentaire || null,
+        justificatif_url: justifUrl,
+      });
+      if (error) { alert('Erreur : ' + error.message); return; }
+
+      masquerFormDeclarer();
+      document.getElementById('absCommentaire').value = '';
+      document.getElementById('absJustifFichier').value = '';
+      document.getElementById('absJustifLabel').textContent = '📂 Photo ou PDF de l\'arrêt';
+      await rafraichirAbsences();
+    }
+
+    async function ajouterJustificatif(absenceId, input) {
+      const fichier = input.files[0];
+      if (!fichier || !_agentId) return;
+      const ext = fichier.name.split('.').pop();
+      const chemin = `absences/${_agentId}_${absenceId}.${ext}`;
+      const { error: errUp } = await sb.storage.from('documents-collaborateurs').upload(chemin, fichier, { upsert:true });
+      let justifUrl = null;
+      if (!errUp) {
+        const { data: urlData } = sb.storage.from('documents-collaborateurs').getPublicUrl(chemin);
+        justifUrl = urlData?.publicUrl;
+      }
+      if (!justifUrl) { alert('Erreur lors de l\'upload.'); return; }
+      const { error } = await sb.from('absences').update({ justificatif_url: justifUrl }).eq('id', absenceId);
+      if (error) { alert('Erreur : ' + error.message); return; }
+      await rafraichirAbsences();
+    }
+
+    function fmtDate(s) {
+      if (!s) return '—';
+      return new Date(s + (s.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    }
+
+    // Charger absences quand on clique sur l'onglet
+    const origAfficherTab = afficherTab;
+    window.afficherTab = function(id) {
+      origAfficherTab(id);
+      if (id === 'absences') chargerAbsencesAgent();
+    };
+
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </body>
