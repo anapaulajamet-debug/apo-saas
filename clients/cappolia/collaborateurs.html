@@ -878,7 +878,7 @@ async function chargerPlanning(c) {
     sb.from('planning').select('date, heure_debut, heure_fin, sites(nom)').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
     sb.from('pointage').select('date, heure_entree, heure_sortie').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
     sb.from('absences').select('date_debut, date_fin, type').eq('agent_id', c.id),
-    sb.from('presences_statuts').select('date, statut, note').eq('agent_id', c.id).gte('date', debut).lte('date', fin).catch(() => ({ data: [] })),
+    sb.from('presences_statuts').select('date, statut, note').eq('agent_id', c.id).gte('date', debut).lte('date', fin),
   ]);
 
   // Nom du site principal comme fallback si le planning n'a pas de site_id
