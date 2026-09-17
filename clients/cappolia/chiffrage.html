@@ -139,11 +139,6 @@
     .prix-final-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
     .prix-final-ht { font-size: 36px; font-weight: 900; margin-bottom: 4px; }
     .prix-final-ttc { font-size: 14px; opacity: 0.8; }
-    .prix-forfait-badge {
-      display: inline-block; background: var(--orange); color: white;
-      font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 10px; margin-top: 8px;
-    }
-
     /* DEVIS PREVIEW */
     .devis-preview {
       background: white; border: 1px solid var(--border); border-radius: 12px;
@@ -921,7 +916,7 @@
     <!-- section-4 = Prix de vente (id conservé pour compatibilité données sauvegardées) -->
     <div class="section" id="section-4">
       <div class="section-title">Prix de vente mensuel</div>
-      <div class="section-sub">Calcul automatique — CCN Propreté 2026 — Forfait minimum 250 € HT</div>
+      <div class="section-sub">Calcul automatique — vous pouvez personnaliser le prix de vente HT directement</div>
 
       <div class="prix-block">
         <div>
@@ -1011,7 +1006,7 @@
               </div>
               <div class="field">
                 <label>Marge (%)</label>
-                <input type="number" id="pvMarge" value="30" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
+                <input type="number" id="pvMarge" value="30" min="0" max="99.9" step="0.1" onchange="prixHTManuel = null; calculerPrix()"/>
               </div>
             </div>
           </div>
@@ -1039,20 +1034,24 @@
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (avec structure)</span><span class="calcul-val" id="cCoutTotal">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Marge <span class="taux-badge" id="badgeMarge">30%</span></span><input class="calcul-val-edit" id="cMarge" type="number" min="0" step="0.01" oninput="onTargetInput('marge',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">TVA (20%)</span><span class="calcul-val" id="cTVA">—</span></div>
-            <div class="calcul-row total">
-              <span class="calcul-label">PRIX DE VENTE HT</span>
-              <span class="calcul-val" id="cPrixHT">—</span>
-            </div>
-            <div id="forfaitMsg" style="display:none;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:8px;padding:12px 14px;margin-top:8px;font-size:13px;">
-              <div style="font-weight:700;color:#92400E;margin-bottom:6px;">⚠️ Forfait minimum 250 € HT appliqué</div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-                <span style="color:#78350F;">Prix calculé (sans forfait)</span>
-                <span id="forfaitPrixCalc" style="font-weight:600;color:#78350F;">—</span>
+            <!-- PRIX DE VENTE HT — champ modifiable -->
+            <div style="border-top:2px solid var(--green-dark);margin-top:8px;padding-top:14px;">
+              <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green-dark);margin-bottom:6px;">
+                ✏️ Prix de vente HT (€) — modifiable
+              </label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" id="cPrixHT" min="0" step="0.01" placeholder="Saisir ou calculé automatiquement"
+                  style="flex:1;padding:10px 14px;border:2px solid var(--green);border-radius:8px;font-size:18px;font-weight:900;color:var(--green-dark);background:#F0FDF4;outline:none;font-family:Arial;transition:border-color .15s,box-shadow .15s;"
+                  onfocus="this.style.boxShadow='0 0 0 3px #A7F3D0';this.style.background='#ECFDF5'"
+                  onblur="this.style.boxShadow='';this.style.background='#F0FDF4'"
+                  oninput="modifierPrixHT(this)"
+                  aria-label="Prix de vente HT en euros"/>
+                <button type="button" onclick="prixHTManuel = null; calculerPrix()"
+                  style="padding:9px 14px;background:#F8FAFC;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--gray);cursor:pointer;white-space:nowrap;font-family:Arial;">
+                  ↺ Auto
+                </button>
               </div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-                <span style="color:#78350F;">Marge réelle avec forfait</span>
-                <span id="forfaitMargeReelle" style="font-weight:700;color:#065F46;">—</span>
-              </div>
+              <p id="prixHTMode" style="font-size:11px;color:#6B7280;margin-top:5px;" aria-live="polite"></p>
             </div>
 
             <!-- Comparaison prestataire actuel -->
@@ -1108,7 +1107,6 @@
             <div class="prix-final-label">Prix de vente mensuel</div>
             <div class="prix-final-ht" id="finalHT">— €</div>
             <div class="prix-final-ttc" id="finalTTC">— € TTC</div>
-            <div id="finalForfait" class="prix-forfait-badge" style="display:none;">Forfait minimum appliqué</div>
             <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11px;color:rgba(255,255,255,0.7);">
               Taux horaire vendu
               <span id="tauxHoraireVendu" style="font-size:14px;font-weight:800;color:#fff;margin-left:6px;">— €/h</span>
@@ -2461,6 +2459,7 @@ function onTargetInput(field, rawVal) {
     const base = coutChantier > 0 ? coutChantier : masseSalariale;
     if (base > 0) document.getElementById('pvStructure').value = (val / base * 100).toFixed(2);
   } else if (field === 'marge' && coutTotal > 0) {
+    prixHTManuel = null;
     // marge% sur prix HT = marge / (coutTotal + marge)
     const margeP = val / (coutTotal + val) * 100;
     document.getElementById('pvMarge').value = margeP.toFixed(2);
@@ -2486,6 +2485,15 @@ function syncHeuresVersCalc() {
   const elREE = document.getElementById('pvHeuresREE');
   if (elEC)  elEC.value  = hEC.toFixed(2);
   if (elREE) elREE.value = hREE.toFixed(2);
+}
+
+let prixHTManuel = null;
+function modifierPrixHT(input) {
+  if (input.value === '' || !input.validity.valid) return;
+  const valeur = Number(input.value);
+  if (!Number.isFinite(valeur) || valeur < 0) return;
+  prixHTManuel = valeur;
+  calculerPrix();
 }
 
 function calculerPrix() {
@@ -2530,10 +2538,9 @@ function calculerPrix() {
   const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement;
   const structure = coutChantier * tauxStructure;
   const coutTotal = coutChantier + structure;
-  const marge = coutTotal * (tauxMarge / (1 - tauxMarge));
-  const prixHTCalc = coutTotal + marge;
-  const forfaitApplique = prixHTCalc < 250;
-  const prixHT = Math.max(prixHTCalc, 250);
+  const prixHTCalc = coutTotal / (1 - Math.min(tauxMarge, 0.999));
+  const prixHT = prixHTManuel === null ? prixHTCalc : prixHTManuel;
+  const marge = prixHT - coutTotal;
   const tva = prixHT * 0.20;
   const prixTTC = prixHT + tva;
 
@@ -2561,7 +2568,10 @@ function calculerPrix() {
   document.getElementById('cCoutTotal').textContent = fmt(coutTotal);
   setCalcEdit('cMarge', marge);
   document.getElementById('cTVA').textContent = fmt(tva);
-  document.getElementById('cPrixHT').textContent = fmt(prixHT);
+  setCalcEdit('cPrixHT', prixHT);
+  document.getElementById('prixHTMode').textContent = prixHTManuel === null
+    ? 'Prix calculé automatiquement — vous pouvez saisir votre montant HT.'
+    : 'Prix HT personnalisé conservé. La marge affichée est recalculée selon vos coûts.';
 
   document.getElementById('badgeCharges').textContent = (tauxCharges * 100).toFixed(0) + '%';
   if (!noAlleg && tauxAllegement > 0) {
@@ -2570,21 +2580,10 @@ function calculerPrix() {
   document.getElementById('badgeProduits').textContent = (tauxProduits * 100).toFixed(0) + '%';
   document.getElementById('badgeFournitures').textContent = (tauxFournitures * 100).toFixed(0) + '%';
   document.getElementById('badgeStructure').textContent = (tauxStructure * 100).toFixed(0) + '%';
-  document.getElementById('badgeMarge').textContent = (tauxMarge * 100).toFixed(0) + '%';
+  document.getElementById('badgeMarge').textContent = prixHT > 0 ? (marge / prixHT * 100).toFixed(1) + '%' : '—';
 
   document.getElementById('finalHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
   document.getElementById('finalTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
-  // Forfait minimum — détail
-  const forfaitMsgEl = document.getElementById('forfaitMsg');
-  if (forfaitMsgEl) forfaitMsgEl.style.display = forfaitApplique ? 'block' : 'none';
-  document.getElementById('finalForfait').style.display = forfaitApplique ? 'block' : 'none';
-  if (forfaitApplique) {
-    const margeReelle = coutTotal > 0 ? ((250 - coutTotal) / 250 * 100) : 0;
-    const elPC = document.getElementById('forfaitPrixCalc');
-    const elMR = document.getElementById('forfaitMargeReelle');
-    if (elPC) elPC.textContent = fmt(prixHTCalc);
-    if (elMR) elMR.textContent = margeReelle.toFixed(1) + '%';
-  }
 
   // Comparaison prestataire actuel
   const tarifPrest = parseFloat(document.getElementById('fcPrestataireTarif')?.value || 0);
@@ -2617,7 +2616,7 @@ function calculerPrix() {
   document.getElementById('sidebarPrixHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
   document.getElementById('sidebarPrixTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
 
-  return { masseSalariale, charges, produits, fournitures, amortissement, coutChantier, structure, coutTotal, marge, prixHT, tva, prixTTC, forfaitApplique };
+  return { masseSalariale, charges, produits, fournitures, amortissement, coutChantier, structure, coutTotal, marge, prixHT, tva, prixTTC };
 }
 
 // ── SIMULATION ALIGNEMENT ─────────────────────────────────────────────────
@@ -3113,6 +3112,7 @@ async function sauvegarder(silencieux = false) {
     equipe:   extraireEquipe(),
     conso:    extraireConso(),
     pvParams: {
+      prixHTManuel,
       niveauEC:      document.getElementById('pvNiveauEC')?.value      || '',
       niveauREE:     document.getElementById('pvNiveauREE')?.value     || '',
       charges:       document.getElementById('pvCharges')?.value       || '44',
@@ -3306,6 +3306,8 @@ async function chargerChiffrage(id) {
   }
 
   // Paramètres prix
+  const prixSauve = d.pvParams?.prixHTManuel;
+  prixHTManuel = typeof prixSauve === 'number' && Number.isFinite(prixSauve) && prixSauve >= 0 ? prixSauve : null;
   if (d.pvParams) {
     const p = d.pvParams;
     const setv = (eid, v) => { const el = document.getElementById(eid); if (el && v !== undefined) el.value = v; };
