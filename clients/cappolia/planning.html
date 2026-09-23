@@ -459,8 +459,10 @@ function afficherSemaine(agents, plans, lundi) {
           const isTravaille = joursTravailles.includes(jourSem);
           const hContrat = a.heures_par_jour ? parseFloat(a.heures_par_jour) : (parseFloat(a.volume_horaire) && joursTravailles.length ? parseFloat(a.volume_horaire)/joursTravailles.length : 0);
           if (isTravaille) {
-            html += `<div style="border-radius:5px;padding:3px 5px;background:#F0FDF4;border-left:2px solid #A7F3D0;font-size:9px;color:#065F46;margin:1px;">
-              📋 Contrat${hContrat ? ' · '+hContrat.toFixed(1)+'h' : ''}
+            const siteContrat = a.site_principal_id && _sites[a.site_principal_id] ? _sites[a.site_principal_id].nom : '';
+            html += `<div class="creneau ${couleur}" style="opacity:.75;">
+              <span class="cr-heure">📋 Contrat${hContrat ? ' · '+hContrat.toFixed(1)+'h' : ''}</span>
+              ${siteContrat ? `<span class="cr-site">🏢 ${siteContrat}</span>` : ''}
             </div>`;
           }
         }
