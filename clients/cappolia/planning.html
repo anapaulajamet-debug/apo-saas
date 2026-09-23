@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="icon" type="image/png" href="/clients/cappolia/assets/favicon.png">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CAPPOLIA — Planning</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:#1B6B4A; --teal-light:#E8F5EE; --teal-dark:#1B3A2D;
+      --vert:#059669; --vert-light:#D1FAE5;
+      --orange:#F59E0B; --orange-light:#FEF3C7;
+      --rouge:#EF4444; --rouge-light:#FEE2E2;
+      --violet:#7C3AED; --violet-light:#EDE9FE;
+      --gris:#6B7280; --bordure:#E5E7EB; --fond:#F7F8FA; --blanc:#FFFFFF;
+      --sidebar-w:200px;
+    }
+    body { font-family: Arial, sans-serif; background: var(--fond); color: #1F2937; display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar { width: var(--sidebar-w); background: var(--teal-dark); position: fixed; top:0; left:0; height:100vh; overflow-y:auto; display:flex; flex-direction:column; z-index:100; }
+    .sidebar-logo { padding:16px 14px; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,.1); }
+    .sidebar-logo img { height:32px; width:32px; object-fit:contain; }
+    .sidebar-logo-txt { font-size:11px; font-weight:900; letter-spacing:1.5px; color:#fff; }
+    .sidebar-logo-sub { font-size:9px; letter-spacing:1px; color:rgba(255,255,255,.55); text-transform:uppercase; }
+    .sidebar-nav { padding:10px 0; flex:1; }
+    .nav-section { padding:14px 16px 4px; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,.4); }
+    .nav-item { display:flex; align-items:center; gap:8px; padding:9px 16px; font-size:13px; font-weight:500; color:rgba(255,255,255,.75); text-decoration:none; transition:background .15s; }
+    .nav-item:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .nav-item.active { background:rgba(255,255,255,.15); color:#fff; font-weight:700; border-left:3px solid #4ADE80; }
+    .nav-icon { font-size:15px; width:20px; text-align:center; }
+    .sidebar-user { padding:14px 16px; border-top:1px solid rgba(255,255,255,.1); display:flex; align-items:center; gap:10px; }
+    .user-avatar { width:32px; height:32px; border-radius:50%; background:var(--teal); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; }
+    .user-info { font-size:12px; color:rgba(255,255,255,.8); }
+    .user-role { font-size:10px; color:rgba(255,255,255,.45); }
+    .btn-logout { margin:0 12px 14px; padding:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:8px; color:rgba(255,255,255,.6); font-size:12px; cursor:pointer; text-align:center; text-decoration:none; display:block; }
+    .btn-logout:hover { background:rgba(255,255,255,.12); }
+
+    /* ── MAIN ── */
+    .main { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; }
+    .topbar { background:var(--blanc); border-bottom:1px solid var(--bordure); padding:14px 24px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:50; gap:12px; flex-wrap:wrap; }
+    .topbar-left { display:flex; align-items:center; gap:14px; }
+    .topbar-title { font-size:18px; font-weight:800; color:#1F2937; }
+    .page-content { padding:20px 24px; flex:1; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+    .btn-view { padding:7px 14px; border:1.5px solid var(--bordure); border-radius:7px; font-size:12px; font-weight:600; background:var(--blanc); color:var(--gris); cursor:pointer; font-family:Arial; }
+    .btn-view.active { background:var(--teal); color:#fff; border-color:var(--teal); }
+    .btn-view:hover:not(.active) { background:var(--teal-light); }
+    .nav-semaine { display:flex; align-items:center; gap:8px; }
+    .btn-nav { width:30px; height:30px; border:1.5px solid var(--bordure); border-radius:6px; background:var(--blanc); cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+    .btn-nav:hover { background:var(--teal-light); border-color:var(--teal); }
+    .periode-label { font-size:13px; font-weight:700; color:#1F2937; min-width:140px; text-align:center; }
+    .filtre-select { padding:7px 10px; border:1.5px solid var(--bordure); border-radius:7px; font-size:12px; background:var(--blanc); color:#1F2937; cursor:pointer; }
+    .btn-ical { display:flex; align-items:center; gap:6px; padding:7px 14px; background:#0078D4; color:#fff; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; margin-left:auto; }
+    .btn-ical:hover { opacity:.88; }
+    .btn-today { padding:7px 12px; border:1.5px solid var(--teal); border-radius:7px; font-size:12px; font-weight:700; background:var(--teal-light); color:var(--teal); cursor:pointer; }
+
+    /* ── VUE SEMAINE ── */
+    .planning-grid { background:var(--blanc); border-radius:12px; border:1px solid var(--bordure); overflow:hidden; }
+    .grid-header { display:grid; border-bottom:1px solid var(--bordure); }
+    .grid-header.cols8 { grid-template-columns: 80px repeat(7,1fr); }
+    .grid-header.cols5 { grid-template-columns: 80px repeat(5,1fr); }
+    .grid-h-cell { padding:10px 8px; text-align:center; font-size:11px; font-weight:700; color:var(--gris); text-transform:uppercase; letter-spacing:.5px; border-right:1px solid var(--bordure); }
+    .grid-h-cell:last-child { border-right:none; }
+    .grid-h-cell .jour-num { font-size:18px; font-weight:900; color:#1F2937; display:block; }
+    .grid-h-cell.today .jour-num { background:var(--teal); color:#fff; border-radius:50%; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; font-size:14px; }
+    .grid-h-cell.we { color:var(--rouge); }
+
+    .grid-body { overflow-y:auto; max-height:calc(100vh - 240px); }
+    .grid-row { display:grid; min-height:60px; border-bottom:1px solid var(--bordure); }
+    .grid-row:last-child { border-bottom:none; }
+    .grid-row.cols8 { grid-template-columns: 80px repeat(7,1fr); }
+    .grid-row.cols5 { grid-template-columns: 80px repeat(5,1fr); }
+    .grid-cell-agent { padding:8px; font-size:12px; font-weight:700; color:var(--teal-dark); border-right:1px solid var(--bordure); display:flex; align-items:center; gap:6px; background:#FAFAFA; position:sticky; left:0; }
+    .agent-avatar-sm { width:24px; height:24px; border-radius:50%; background:var(--teal); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .grid-cell { padding:4px; border-right:1px solid var(--bordure); min-height:60px; position:relative; }
+    .grid-cell:last-child { border-right:none; }
+    .grid-cell.we { background:#FAFAFA; }
+    .grid-cell.today-col { background:#F0FDF4; }
+
+    .creneau { border-radius:6px; padding:4px 6px; font-size:10px; font-weight:700; margin-bottom:2px; cursor:pointer; border-left:3px solid; line-height:1.3; }
+    .creneau:hover { opacity:.85; }
+    .creneau .cr-heure { font-size:9px; font-weight:400; opacity:.8; display:block; }
+    .creneau .cr-site  { font-size:9px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    /* couleurs agents (rotatif) */
+    .c0 { background:#DBEAFE; border-color:#2563EB; color:#1E40AF; }
+    .c1 { background:#D1FAE5; border-color:#059669; color:#065F46; }
+    .c2 { background:#EDE9FE; border-color:#7C3AED; color:#4C1D95; }
+    .c3 { background:#FEF3C7; border-color:#D97706; color:#92400E; }
+    .c4 { background:#FCE7F3; border-color:#DB2777; color:#831843; }
+    .c5 { background:#E0F2FE; border-color:#0284C7; color:#075985; }
+    .c6 { background:#F3F4F6; border-color:#6B7280; color:#374151; }
+    .c7 { background:#FEE2E2; border-color:#EF4444; color:#7F1D1D; }
+
+    /* ── VUE MOIS ── */
+    .month-grid { display:grid; grid-template-columns:repeat(7,1fr); background:var(--blanc); border-radius:12px; border:1px solid var(--bordure); overflow:hidden; }
+    .month-head { padding:8px; text-align:center; font-size:11px; font-weight:700; color:var(--gris); text-transform:uppercase; background:#FAFAFA; border-bottom:1px solid var(--bordure); border-right:1px solid var(--bordure); }
+    .month-head:last-child { border-right:none; }
+    .month-cell { padding:6px; min-height:90px; border-bottom:1px solid var(--bordure); border-right:1px solid var(--bordure); vertical-align:top; }
+    .month-cell:nth-child(7n) { border-right:none; }
+    .month-num { font-size:12px; font-weight:700; color:#374151; margin-bottom:4px; }
+    .month-num.today-num { background:var(--teal); color:#fff; border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; }
+    .month-cell.vide { background:#FAFAFA; }
+    .month-cell.we-cell { background:#FAFAFA; }
+    .month-chip { border-radius:4px; padding:2px 5px; font-size:9px; font-weight:700; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-left:2px solid; cursor:pointer; }
+    .month-chip:hover { opacity:.8; }
+    .more-chips { font-size:9px; color:var(--gris); cursor:pointer; }
+
+    /* ── VUE LISTE ── */
+    .liste-block { background:var(--blanc); border-radius:12px; border:1px solid var(--bordure); overflow:hidden; }
+    .liste-date-header { padding:10px 16px; background:var(--teal-light); font-size:12px; font-weight:700; color:var(--teal-dark); border-bottom:1px solid var(--bordure); }
+    .liste-row { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--bordure); font-size:13px; }
+    .liste-row:last-child { border-bottom:none; }
+    .liste-row:hover { background:#FAFAFA; }
+    .liste-heure { font-size:12px; font-weight:700; color:var(--teal); min-width:100px; }
+    .liste-agent { font-size:12px; font-weight:700; color:#1F2937; flex:1; }
+    .liste-site { font-size:11px; color:var(--gris); flex:1; }
+
+    /* ── MODAL ICAL ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:var(--blanc); border-radius:14px; width:min(560px,95vw); max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); padding:24px; }
+    .modal-title { font-size:18px; font-weight:800; color:var(--teal-dark); margin-bottom:6px; }
+    .modal-sub { font-size:12px; color:var(--gris); margin-bottom:20px; }
+    .agent-ical-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--bordure); }
+    .agent-ical-row:last-of-type { border-bottom:none; }
+    .agent-ical-nom { flex:1; font-size:13px; font-weight:700; }
+    .btn-copy { padding:5px 10px; background:var(--teal-light); border:1.5px solid var(--teal); color:var(--teal); border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .btn-webcal { padding:5px 10px; background:#0078D4; border:none; color:#fff; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+    /* ── VIDE ── */
+    .vide { text-align:center; padding:48px; color:var(--gris); font-size:13px; }
+
+    /* Toast */
+    #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--teal-dark); color:#fff; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:600; z-index:99999; display:none; box-shadow:0 8px 30px rgba(0,0,0,.25); }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="/clients/cappolia/assets/logo.png" alt="CAPPOLIA" onerror="this.style.display='none';">
+    <div>
+      <div class="sidebar-logo-txt">CAPPOLIA</div>
+      <div class="sidebar-logo-sub">Propreté</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item" href="/dashboard"><span class="nav-icon">⊞</span> Tableau de bord</a>
+    <a class="nav-item" href="/clients"><span class="nav-icon">👥</span> Clients</a>
+    <div class="nav-section">Ressources humaines</div>
+    <a class="nav-item" href="/collaborateurs"><span class="nav-icon">👷</span> Collaborateurs</a>
+    <a class="nav-item active" href="/planning"><span class="nav-icon">📅</span> Planning</a>
+    <a class="nav-item" href="#"><span class="nav-icon">🕐</span> Pointage</a>
+    <div class="nav-section">Commercial</div>
+    <a class="nav-item" href="/commercial"><span class="nav-icon">🎯</span> Prospection & CRM</a>
+    <div class="nav-section">Exploitation</div>
+    <a class="nav-item" href="/qualite-audits"><span class="nav-icon">✅</span> Qualité / Audits</a>
+    <a class="nav-item" href="/documents"><span class="nav-icon">📄</span> Documents</a>
+    <a class="nav-item" href="/mon-profil"><span class="nav-icon">👤</span> Mon Profil</a>
+    <div class="nav-section">Finance</div>
+    <a class="nav-item" href="#"><span class="nav-icon">🧾</span> Facturation</a>
+    <a class="nav-item" href="#"><span class="nav-icon">💶</span> Paie (Silae)</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="userInitiales">—</div>
+    <div>
+      <div class="user-info" id="userNom">—</div>
+      <div class="user-role" id="userRole">—</div>
+    </div>
+  </div>
+  <a class="btn-logout" href="#" onclick="deconnexion()">Se déconnecter</a>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">📅 Planning</div>
+    </div>
+    <div id="topbarDate" style="font-size:12px;color:var(--gris);"></div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="nav-semaine">
+        <button class="btn-nav" onclick="naviguer(-1)">◀</button>
+        <div class="periode-label" id="periodeLabel">—</div>
+        <button class="btn-nav" onclick="naviguer(+1)">▶</button>
+      </div>
+      <button class="btn-today" onclick="allerAujourdhui()">Aujourd'hui</button>
+
+      <button class="btn-view active" id="btnSem" onclick="changerVue('semaine')">Semaine</button>
+      <button class="btn-view" id="btnMois" onclick="changerVue('mois')">Mois</button>
+      <button class="btn-view" id="btnListe" onclick="changerVue('liste')">Liste</button>
+
+      <select class="filtre-select" id="filtreAgent" onchange="afficher()">
+        <option value="">Tous les agents</option>
+      </select>
+
+      <select class="filtre-select" id="filtreSite" onchange="afficher()">
+        <option value="">Tous les sites</option>
+      </select>
+
+      <button class="btn-ical" onclick="ouvrirModalIcal()">📆 Intégration Calendrier</button>
+    </div>
+
+    <!-- Contenu -->
+    <div id="planningContainer"></div>
+  </div>
+</div>
+
+<!-- ── MODAL INTÉGRATION iCAL ── -->
+<div class="modal-overlay" id="modalIcal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div class="modal-title">📆 Intégration Calendrier</div>
+      <button onclick="fermerModalIcal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--gris);">✕</button>
+    </div>
+    <div class="modal-sub">Abonnez chaque agent à son planning — Outlook, Google Calendar, Apple Calendar. Le calendrier se rafraîchit automatiquement toutes les heures.</div>
+
+    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#1E40AF;">
+      <strong>Comment ça marche ?</strong><br>
+      Chaque agent dispose d'une URL unique. Copiez-la et collez-la dans <strong>Outlook → Fichier → Ouvrir et exporter → Importer/Exporter → S'abonner à un calendrier</strong>, ou envoyez le lien Webcal directement à l'agent sur son téléphone.
+    </div>
+
+    <div id="listeAgentsIcal" style="max-height:360px;overflow-y:auto;"></div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bordure);display:flex;justify-content:flex-end;">
+      <button onclick="fermerModalIcal()" style="padding:9px 20px;background:var(--teal-dark);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL  = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+const TENANT        = 'aaaaaaaa-0000-0000-0000-000000000001';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let _vue = 'semaine';
+let _offset = 0; // semaines ou mois
+let _agents = [];
+let _sites  = {};
+let _plans  = [];
+
+const COULEURS = ['c0','c1','c2','c3','c4','c5','c6','c7'];
+const JOURS_LONGS  = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const JOURS_COURTS = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+const MOIS_NOMS    = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// ── LUNDI de la semaine ──────────────────────────────────────────────────────
+function lundiDe(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function dateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function periodeActive() {
+  const now = new Date();
+  if (_vue === 'mois') {
+    const d = new Date(now.getFullYear(), now.getMonth() + _offset, 1);
+    const debut = dateStr(d);
+    const fin   = dateStr(new Date(d.getFullYear(), d.getMonth()+1, 0));
+    return { debut, fin, label: `${MOIS_NOMS[d.getMonth()]} ${d.getFullYear()}` };
+  }
+  // semaine
+  const lundi = lundiDe(now);
+  lundi.setDate(lundi.getDate() + _offset * 7);
+  const dim = new Date(lundi); dim.setDate(dim.getDate() + 6);
+  const debut = dateStr(lundi), fin = dateStr(dim);
+  const label = `${lundi.getDate()} ${MOIS_NOMS[lundi.getMonth()].slice(0,3)} — ${dim.getDate()} ${MOIS_NOMS[dim.getMonth()].slice(0,3)} ${dim.getFullYear()}`;
+  return { debut, fin, label, lundi };
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/login'; return; }
+  const { data: profil } = await sb.from('users').select('prenom,nom,role').eq('email', session.user.email).single();
+  if (profil) {
+    const nom = `${profil.prenom||''} ${profil.nom||''}`.trim();
+    document.getElementById('userNom').textContent = nom;
+    document.getElementById('userRole').textContent = profil.role || 'Directeur';
+    document.getElementById('userInitiales').textContent = ((profil.prenom?.[0]||'')+(profil.nom?.[0]||'')).toUpperCase()||'?';
+  }
+  const now = new Date();
+  document.getElementById('topbarDate').textContent = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  await charger();
+})();
+
+async function deconnexion() { await sb.auth.signOut(); window.location.href = '/login'; }
+
+// ── CHARGEMENT ────────────────────────────────────────────────────────────────
+async function charger() {
+  const { debut, fin } = periodeActive();
+  const [{ data: agents }, { data: plans }, { data: sites }] = await Promise.all([
+    sb.from('agents').select('id,nom,prenom,photo_url,jours_travailles,heures_par_jour,volume_horaire,site_principal_id').eq('tenant_id', TENANT).order('nom'),
+    sb.from('planning').select('id,agent_id,date,heure_debut,heure_fin,site_id').eq('tenant_id', TENANT).gte('date', debut).lte('date', fin).order('date'),
+    sb.from('sites').select('id,nom,adresse').eq('tenant_id', TENANT),
+  ]);
+  _agents = agents || [];
+  _plans  = plans  || [];
+  _sites  = {};
+  (sites||[]).forEach(s => _sites[s.id] = s);
+
+  // Filtres agents
+  const fa = document.getElementById('filtreAgent');
+  const curA = fa.value;
+  fa.innerHTML = '<option value="">Tous les agents</option>';
+  _agents.forEach(a => {
+    const o = document.createElement('option');
+    o.value = a.id;
+    o.textContent = `${a.prenom||''} ${a.nom||''}`.trim();
+    fa.appendChild(o);
+  });
+  fa.value = curA;
+
+  // Filtres sites
+  const fs = document.getElementById('filtreSite');
+  const curS = fs.value;
+  fs.innerHTML = '<option value="">Tous les sites</option>';
+  (sites||[]).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = s.nom;
+    fs.appendChild(o);
+  });
+  fs.value = curS;
+
+  afficher();
+}
+
+function naviguer(dir) {
+  _offset += dir;
+  charger();
+}
+
+function allerAujourdhui() {
+  _offset = 0;
+  charger();
+}
+
+function changerVue(vue) {
+  _vue = vue;
+  _offset = 0;
+  document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + vue.charAt(0).toUpperCase() + vue.slice(1)).classList.add('active');
+  charger();
+}
+
+// ── AFFICHAGE ─────────────────────────────────────────────────────────────────
+function afficher() {
+  const { debut, fin, label, lundi } = periodeActive();
+  document.getElementById('periodeLabel').textContent = label;
+
+  const filtreAgent = document.getElementById('filtreAgent').value;
+  const filtreSite  = document.getElementById('filtreSite').value;
+
+  const agents = filtreAgent ? _agents.filter(a => a.id === filtreAgent) : _agents;
+  const plans  = _plans.filter(p =>
+    (!filtreAgent || p.agent_id === filtreAgent) &&
+    (!filtreSite  || p.site_id === filtreSite)
+  );
+
+  if (_vue === 'semaine') afficherSemaine(agents, plans, lundi);
+  else if (_vue === 'mois') afficherMois(agents, plans, debut);
+  else afficherListe(agents, plans);
+}
+
+// ── VUE SEMAINE ───────────────────────────────────────────────────────────────
+function afficherSemaine(agents, plans, lundi) {
+  const today = dateStr(new Date());
+  const jours = Array.from({length:7}, (_,i) => {
+    const d = new Date(lundi); d.setDate(d.getDate()+i);
+    return { d, str: dateStr(d) };
+  });
+
+  const planParAgent = {};
+  plans.forEach(p => {
+    if (!planParAgent[p.agent_id]) planParAgent[p.agent_id] = {};
+    if (!planParAgent[p.agent_id][p.date]) planParAgent[p.agent_id][p.date] = [];
+    planParAgent[p.agent_id][p.date].push(p);
+  });
+
+  let html = `<div class="planning-grid">
+    <div class="grid-header cols8">
+      <div class="grid-h-cell" style="background:#FAFAFA;">Agent</div>`;
+  jours.forEach((j,i) => {
+    const isWE = i >= 5;
+    const isToday = j.str === today;
+    html += `<div class="grid-h-cell${isWE?' we':''}${isToday?' today':''}">
+      ${JOURS_COURTS[i]}<span class="jour-num">${j.d.getDate()}</span>
+    </div>`;
+  });
+  html += '</div><div class="grid-body">';
+
+  if (!agents.length) {
+    html += '<div class="vide">Aucun collaborateur trouvé.</div>';
+  } else {
+    agents.forEach((a, idx) => {
+      const couleur = COULEURS[idx % COULEURS.length];
+      const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase();
+      const nom = `${a.prenom||''} ${a.nom||''}`.trim();
+      html += `<div class="grid-row cols8">
+        <div class="grid-cell-agent">
+          <div class="agent-avatar-sm" style="background:var(--teal);">${initiales}</div>
+          <span style="font-size:11px;line-height:1.2;">${nom}</span>
+        </div>`;
+      jours.forEach((j, ji) => {
+        const isWE = ji >= 5;
+        const isToday = j.str === today;
+        const crens = planParAgent[a.id]?.[j.str] || [];
+        html += `<div class="grid-cell${isWE?' we':''}${isToday?' today-col':''}">`;
+        if (crens.length) {
+          crens.forEach(p => {
+            const siteNom = _sites[p.site_id]?.nom || '—';
+            const h1 = (p.heure_debut||'').slice(0,5);
+            const h2 = (p.heure_fin||'').slice(0,5);
+            html += `<div class="creneau ${couleur}" title="${siteNom}">
+              <span class="cr-heure">${h1}${h2?'–'+h2:''}</span>
+              <span class="cr-site">🏢 ${esc(siteNom)}</span>
+            </div>`;
+          });
+        } else {
+          // Contrat : afficher indicateur si jour travaillé
+          const JOUR_MAP = {'Lun':1,'Mar':2,'Mer':3,'Jeu':4,'Ven':5,'Sam':6,'Dim':0};
+          const joursRaw = Array.isArray(a.jours_travailles) ? a.jours_travailles : (a.jours_travailles ? a.jours_travailles.split(',') : []);
+          const joursTravailles = joursRaw.map(s => JOUR_MAP[String(s).trim()]).filter(x => x !== undefined);
+          const jourSem = j.d.getDay();
+          const isTravaille = joursTravailles.includes(jourSem);
+          const hContrat = a.heures_par_jour ? parseFloat(a.heures_par_jour) : (parseFloat(a.volume_horaire) && joursTravailles.length ? parseFloat(a.volume_horaire)/joursTravailles.length : 0);
+          if (isTravaille) {
+            html += `<div style="border-radius:5px;padding:3px 5px;background:#F0FDF4;border-left:2px solid #A7F3D0;font-size:9px;color:#065F46;margin:1px;">
+              📋 Contrat${hContrat ? ' · '+hContrat.toFixed(1)+'h' : ''}
+            </div>`;
+          }
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+  }
+
+  html += '</div></div>';
+  document.getElementById('planningContainer').innerHTML = html;
+}
+
+// ── VUE MOIS ──────────────────────────────────────────────────────────────────
+function afficherMois(agents, plans, debut) {
+  const today = dateStr(new Date());
+  const debutDate = new Date(debut + 'T00:00:00');
+  const annee = debutDate.getFullYear(), mois = debutDate.getMonth();
+  const nbJours = new Date(annee, mois+1, 0).getDate();
+  const premierJourSem = debutDate.getDay();
+  const decalage = premierJourSem === 0 ? 6 : premierJourSem - 1;
+
+  const planParDate = {};
+  plans.forEach(p => {
+    if (!planParDate[p.date]) planParDate[p.date] = [];
+    planParDate[p.date].push(p);
+  });
+
+  const agentCouleur = {};
+  agents.forEach((a,i) => { agentCouleur[a.id] = COULEURS[i % COULEURS.length]; });
+  const agentNom = {};
+  agents.forEach(a => { agentNom[a.id] = `${a.prenom?.[0]||''}. ${a.nom||''}`; });
+
+  let html = '<div class="month-grid">';
+  JOURS_COURTS.forEach((j,i) => {
+    html += `<div class="month-head${i>=5?' we':''}">${j}</div>`;
+  });
+  for (let i = 0; i < decalage; i++) html += '<div class="month-cell vide"></div>';
+  for (let d = 1; d <= nbJours; d++) {
+    const ds = `${annee}-${String(mois+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const jourSem = new Date(ds+'T00:00:00').getDay();
+    const isWE = jourSem === 0 || jourSem === 6;
+    const isToday = ds === today;
+    const crens = planParDate[ds] || [];
+    html += `<div class="month-cell${isWE?' we-cell':''}">
+      <div class="month-num${isToday?' today-num':''}">${d}</div>`;
+    const max = 3;
+    crens.slice(0, max).forEach(p => {
+      const nom = agentNom[p.agent_id] || '?';
+      const site = _sites[p.site_id]?.nom || '—';
+      const cls = agentCouleur[p.agent_id] || 'c0';
+      html += `<div class="month-chip ${cls}" title="${esc(nom)} — ${esc(site)}">${esc(nom)}</div>`;
+    });
+    if (crens.length > max) html += `<div class="more-chips">+${crens.length-max} autres</div>`;
+    html += '</div>';
+  }
+  html += '</div>';
+  document.getElementById('planningContainer').innerHTML = html;
+}
+
+// ── VUE LISTE ─────────────────────────────────────────────────────────────────
+function afficherListe(agents, plans) {
+  if (!plans.length) {
+    document.getElementById('planningContainer').innerHTML = '<div class="vide">Aucune mission planifiée sur cette période.</div>';
+    return;
+  }
+  const agentNom = {};
+  agents.forEach(a => { agentNom[a.id] = `${a.prenom||''} ${a.nom||''}`.trim(); });
+
+  const parDate = {};
+  plans.forEach(p => {
+    if (!parDate[p.date]) parDate[p.date] = [];
+    parDate[p.date].push(p);
+  });
+
+  let html = '<div class="liste-block">';
+  Object.keys(parDate).sort().forEach(ds => {
+    const d = new Date(ds+'T00:00:00');
+    const label = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+    html += `<div class="liste-date-header">${label}</div>`;
+    parDate[ds].sort((a,b) => (a.heure_debut||'').localeCompare(b.heure_debut||'')).forEach(p => {
+      const h1 = (p.heure_debut||'').slice(0,5), h2 = (p.heure_fin||'').slice(0,5);
+      html += `<div class="liste-row">
+        <div class="liste-heure">⏰ ${h1}${h2?'–'+h2:''}</div>
+        <div class="liste-agent">👷 ${esc(agentNom[p.agent_id]||'—')}</div>
+        <div class="liste-site">🏢 ${esc(_sites[p.site_id]?.nom||'—')}</div>
+      </div>`;
+    });
+  });
+  html += '</div>';
+  document.getElementById('planningContainer').innerHTML = html;
+}
+
+// ── MODAL iCal ────────────────────────────────────────────────────────────────
+function ouvrirModalIcal() {
+  const baseUrl = window.location.origin;
+  let html = '';
+  if (!_agents.length) { html = '<div class="vide">Aucun agent chargé.</div>'; }
+  else {
+    _agents.forEach((a, i) => {
+      const nom = `${a.prenom||''} ${a.nom||''}`.trim();
+      const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase();
+      const httpsUrl = `${baseUrl}/api/planning-ics?agent_id=${a.id}`;
+      const webcalUrl = httpsUrl.replace(/^https?:\/\//, 'webcal://');
+      html += `<div class="agent-ical-row">
+        <div class="agent-avatar-sm" style="background:var(--teal);">${initiales}</div>
+        <div class="agent-ical-nom">${esc(nom)}</div>
+        <button class="btn-copy" onclick="copyUrl('${httpsUrl}',this)" title="Copier URL https://">📋 Copier URL</button>
+        <a href="${webcalUrl}" class="btn-webcal" title="Ouvrir dans l'appli calendrier">📅 Webcal</a>
+      </div>`;
+    });
+  }
+  document.getElementById('listeAgentsIcal').innerHTML = html;
+  document.getElementById('modalIcal').classList.add('open');
+}
+
+function fermerModalIcal() { document.getElementById('modalIcal').classList.remove('open'); }
+
+function copyUrl(url, btn) {
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copié !';
+    btn.style.background = 'var(--vert-light)';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+    toast('✅ URL copiée — collez-la dans Outlook : Ouvrir > Abonnement à un calendrier');
+  });
+}
+
+document.getElementById('modalIcal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalIcal')) fermerModalIcal();
+});
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>
