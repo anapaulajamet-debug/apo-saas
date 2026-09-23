@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Enveloppes — Famille Jamet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#faf6f1;
+  --card:#ffffff;
+  --ink:#2c2420;
+  --muted:#8b8078;
+  --accent:#a8425a;
+  --accent-dark:#7d2f42;
+  --accent-soft:#f5dee3;
+  --accent-soft2:#fbeef0;
+  --good:#3f8f5f;
+  --good-soft:#e5f3ea;
+  --warn:#c98a2c;
+  --warn-soft:#faf0dc;
+  --bad:#c1473f;
+  --bad-soft:#fbe7e5;
+  --border:#ece3d8;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+button{font-family:inherit;cursor:pointer;}
+input,select{font-family:inherit;}
+.app{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{width:230px;flex-shrink:0;background:#fffdfb;border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;gap:4px;}
+.brand{padding:6px 10px 20px 10px;}
+.brand h1{font-size:17px;margin:0 0 2px 0;letter-spacing:.2px;}
+.brand p{font-size:12px;color:var(--muted);margin:0;}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border:none;background:none;border-radius:10px;font-size:14px;color:var(--ink);text-align:left;width:100%;}
+.nav-btn:hover{background:var(--accent-soft2);}
+.nav-btn.active{background:var(--accent);color:#fff;font-weight:600;}
+.sidebar-footer{margin-top:auto;padding:10px;font-size:11px;color:var(--muted);}
+.sidebar-footer button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--muted);font-size:12px;padding:6px 0;}
+.sidebar-footer button:hover{color:var(--accent);}
+
+/* Main */
+.main{flex:1;padding:28px 34px;max-width:1180px;}
+.view{display:none;}
+.view.active{display:block;}
+.view-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.view-header h2{margin:0 0 4px 0;font-size:22px;}
+.view-header p.sub{margin:0;color:var(--muted);font-size:13.5px;}
+
+.period-nav{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 10px;}
+.period-nav button{background:none;border:none;font-size:16px;color:var(--accent);padding:2px 6px;border-radius:6px;}
+.period-nav button:hover{background:var(--accent-soft);}
+.period-nav select{border:none;background:none;font-weight:600;font-size:14px;color:var(--ink);}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.kpi .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.kpi .value{font-size:24px;font-weight:700;margin-top:6px;}
+.kpi .value.good{color:var(--good);}
+.kpi .value.bad{color:var(--bad);}
+.kpi .hint{font-size:12px;color:var(--muted);margin-top:3px;}
+
+.alert{background:var(--bad-soft);border:1px solid #f0c9c5;color:var(--accent-dark);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13.5px;line-height:1.5;}
+.alert b{color:var(--bad);}
+.alert.ok{background:var(--good-soft);border-color:#cfe8d8;color:#2c5f42;}
+
+.grid-dash{display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;}
+@media (max-width:960px){.grid-dash{grid-template-columns:1fr;}}
+
+.sort-row{display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;}
+.sort-row button{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--muted);}
+.sort-row button.active{border-color:var(--accent);color:var(--accent);font-weight:600;}
+
+.envelopes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+.envelope{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.envelope .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.envelope .cat{font-weight:600;font-size:13.5px;}
+.envelope .pct{font-size:11.5px;color:var(--muted);}
+.envelope .bar-track{height:8px;border-radius:6px;background:#f1ece3;overflow:hidden;margin-bottom:8px;}
+.envelope .bar-fill{height:100%;border-radius:6px;background:var(--good);}
+.envelope .bar-fill.warn{background:var(--warn);}
+.envelope .bar-fill.bad{background:var(--bad);}
+.envelope .nums{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);}
+.envelope .restant{font-weight:700;font-size:13.5px;}
+.envelope .restant.good{color:var(--good);}
+.envelope .restant.bad{color:var(--bad);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.card h3{margin:0 0 4px 0;font-size:15px;}
+.card p.sub{margin:0 0 14px 0;color:var(--muted);font-size:12.5px;}
+
+/* Forms */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px;}
+.field label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+.field input,.field select{padding:9px 10px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:#fffefd;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:14px;font-weight:600;}
+.btn:hover{background:var(--accent-dark);}
+.btn.secondary{background:var(--card);color:var(--ink);border:1px solid var(--border);}
+.btn.secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn.small{padding:6px 12px;font-size:12.5px;}
+.suggestion{font-size:12.5px;color:var(--accent-dark);background:var(--accent-soft2);border-radius:8px;padding:8px 10px;margin-top:2px;display:none;align-items:center;gap:8px;}
+.suggestion.show{display:flex;}
+.suggestion label{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap;}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;border-bottom:1px solid #f4efe7;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#fdfaf6;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.tag-del{background:none;border:none;color:var(--muted);font-size:15px;}
+.tag-del:hover{color:var(--bad);}
+select.inline,input.inline{border:1px solid transparent;background:none;font-size:13.5px;font-family:inherit;padding:4px 6px;border-radius:6px;width:100%;}
+select.inline:hover,input.inline:hover{border-color:var(--border);}
+select.inline:focus,input.inline:focus{border-color:var(--accent);outline:none;background:#fff;}
+
+.filters{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.filters select,.filters input{padding:8px 10px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:#fff;}
+.table-wrap{overflow-x:auto;}
+.total-row td{font-weight:700;border-top:2px solid var(--border);}
+
+.pending-list{margin-top:14px;}
+.pending-item{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid #f4efe7;font-size:13px;}
+.pending-item .meta{flex:1;color:var(--muted);}
+.pending-item b{color:var(--ink);}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge.good{background:var(--good-soft);color:var(--good);}
+.badge.bad{background:var(--bad-soft);color:var(--bad);}
+
+.footer-note{margin-top:30px;text-align:center;color:var(--muted);font-size:11.5px;}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;z-index:50;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+.empty{color:var(--muted);font-size:13px;padding:14px 0;}
+.chart-wrap{position:relative;height:260px;}
+
+
+@media (max-width:800px){
+  .app{flex-direction:column;}
+  .sidebar{width:100%;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .brand,.sidebar-footer{display:none;}
+  .main{padding:18px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <h1>💌 Mon Budget</h1>
+      <p>Système enveloppes — Famille Jamet</p>
+    </div>
+    <button class="nav-btn" data-view="dashboard">📊 Tableau de bord</button>
+    <button class="nav-btn" data-view="ajouter">➕ Ajouter une dépense</button>
+    <button class="nav-btn" data-view="historique">🧾 Historique</button>
+    <button class="nav-btn" data-view="enveloppes">✉️ Mes enveloppes</button>
+    <button class="nav-btn" data-view="recap">📅 Récap annuel</button>
+    <button class="nav-btn" data-view="entrees">💶 Entrées d'argent</button>
+    <button class="nav-btn" data-view="commun">🤝 Compte commun</button>
+    <button class="nav-btn" data-view="regles">🔎 Règles auto</button>
+    <div class="sidebar-footer">
+      <button id="btn-export">⬇ Exporter mes données</button>
+      <button id="btn-import">⬆ Importer un fichier</button>
+      <input type="file" id="file-import" accept="application/json" style="display:none;">
+      <button id="btn-reset">↺ Réinitialiser (données 2026)</button>
+      <div style="margin-top:8px;">Tout reste sur ton appareil.</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="view" id="view-dashboard">
+      <div class="view-header">
+        <div>
+          <h2>Tableau de bord</h2>
+          <p class="sub">Le budget de chaque enveloppe reste fixe tous les mois. Le solde annuel, lui, monte quand tu ne le dépasses pas et baisse quand tu le dépasses — il se cumule mois après mois depuis janvier.</p>
+        </div>
+        <div class="period-nav">
+          <button id="dash-prev">←</button>
+          <select id="dash-month"></select>
+          <select id="dash-year"></select>
+          <button id="dash-next">→</button>
+        </div>
+      </div>
+
+      <div id="dash-alert"></div>
+
+      <div class="kpi-row" id="dash-kpis"></div>
+
+      <div class="grid-dash">
+        <div>
+          <div class="sort-row">
+            <span style="font-size:12px;color:var(--muted);margin-right:4px;align-self:center;">Trier par :</span>
+            <button data-sort="ordre" class="active">Catégorie</button>
+            <button data-sort="pct">% utilisé</button>
+            <button data-sort="montant">Montant dépensé</button>
+          </div>
+          <div class="envelopes" id="dash-envelopes"></div>
+        </div>
+        <div class="card">
+          <h3>Répartition des dépenses</h3>
+          <p class="sub">Ce mois-ci, par catégorie</p>
+          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AJOUTER -->
+    <div class="view" id="view-ajouter">
+      <div class="view-header">
+        <div>
+          <h2>Ajouter une dépense</h2>
+          <p class="sub">Ta séance hebdo : reprends ton relevé bancaire et saisis chaque ligne.</p>
+        </div>
+      </div>
+      <div class="card">
+        <form id="form-ajouter">
+          <div class="form-row">
+            <div class="field" style="max-width:150px;">
+              <label>Date</label>
+              <input type="date" id="in-date" required>
+            </div>
+            <div class="field" style="flex:2;min-width:220px;">
+              <label>Libellé (relevé bancaire)</label>
+              <input type="text" id="in-libelle" placeholder="ex : CB INTERMARCHE 27/08" autocomplete="off">
+            </div>
+            <div class="field" style="max-width:130px;">
+              <label>Montant (€)</label>
+              <input type="number" id="in-montant" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="field" style="max-width:190px;">
+              <label>Catégorie</label>
+              <select id="in-categorie" required></select>
+            </div>
+          </div>
+          <div class="suggestion" id="rule-suggestion"></div>
+          <button type="submit" class="btn">Ajouter la dépense</button>
+        </form>
+      </div>
+
+      <div class="card pending-list">
+        <h3>Dépenses ajoutées récemment</h3>
+        <p class="sub">Les 15 dernières — tu peux corriger une erreur de saisie ici.</p>
+        <div id="recent-list"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Importer un relevé bancaire</h3>
+        <p class="sub">Fichier Excel (.xlsx, .xls) ou CSV exporté de ta banque. Gagne du temps sur ta séance hebdo.</p>
+        <div class="form-row" style="align-items:center;">
+          <input type="file" id="file-releve" accept=".xlsx,.xls,.csv">
+          <button class="btn secondary small" id="btn-cancel-import" type="button" style="display:none;">Annuler l'import</button>
+        </div>
+        <div id="import-status" class="empty" style="display:none;"></div>
+
+        <div id="import-mapping" style="display:none;margin-top:10px;">
+          <div class="form-row">
+            <div class="field"><label>Colonne Date</label><select id="map-date"></select></div>
+            <div class="field"><label>Colonne Libellé</label><select id="map-libelle"></select></div>
+            <div class="field"><label>Colonne Montant (dépenses)</label><select id="map-montant"></select></div>
+            <div class="field"><label>Colonne Catégorie (optionnel)</label><select id="map-categorie"></select></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Colonne Crédit (optionnel — entrées d'argent)</label><select id="map-credit"></select></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin:8px 0;">
+            <input type="checkbox" id="chk-neg-expense"> Dans ce fichier, les dépenses sont notées en négatif (standard bancaire)
+          </label>
+          <button class="btn small" id="btn-build-preview" type="button">Voir l'aperçu</button>
+        </div>
+
+        <div id="import-preview" style="display:none;margin-top:16px;">
+          <div class="filters" style="margin-bottom:8px;">
+            <span id="import-summary" style="font-size:12.5px;color:var(--muted);align-self:center;"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th></th><th>Type</th><th>Date</th><th>Libellé</th><th style="text-align:right;">Montant</th><th>Catégorie / Personne</th></tr></thead>
+              <tbody id="import-preview-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:10px;">
+            <button class="btn" id="btn-commit-import" type="button">Importer les dépenses cochées</button>
+            <button class="btn secondary" id="btn-cancel-import2" type="button">Annuler</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIQUE -->
+    <div class="view" id="view-historique">
+      <div class="view-header">
+        <div>
+          <h2>Historique des dépenses</h2>
+          <p class="sub">Toutes tes dépenses, filtrables et modifiables.</p>
+        </div>
+      </div>
+      <div class="filters">
+        <select id="hist-mois"></select>
+        <select id="hist-categorie"></select>
+        <input type="text" id="hist-search" placeholder="Rechercher un libellé...">
+      </div>
+      <div class="card table-wrap">
+        <table id="hist-table">
+          <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th style="text-align:right;">Montant</th><th></th></tr></thead>
+          <tbody id="hist-tbody"></tbody>
+          <tfoot><tr class="total-row"><td colspan="3">Total affiché</td><td class="num" id="hist-total"></td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- ENVELOPPES -->
+    <div class="view" id="view-enveloppes">
+      <div class="view-header">
+        <div>
+          <h2>Mes enveloppes</h2>
+          <p class="sub">Le budget mensuel alloué à chaque catégorie. Modifie-le à tout moment.</p>
+        </div>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Catégorie</th><th style="text-align:right;">Budget mensuel</th><th style="text-align:right;">Budget annuel</th><th></th></tr></thead>
+          <tbody id="env-tbody"></tbody>
+          <tfoot><tr class="total-row"><td>Total</td><td class="num" id="env-total-mois"></td><td class="num" id="env-total-an"></td><td></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h3>Ajouter une catégorie / enveloppe</h3>
+        <form id="form-cat" class="form-row" style="align-items:flex-end;">
+          <div class="field"><label>Nom</label><input type="text" id="new-cat-nom" placeholder="ex : ABONNEMENTS" required></div>
+          <div class="field" style="max-width:160px;"><label>Budget mensuel (€)</label><input type="number" id="new-cat-budget" step="0.01" min="0" required></div>
+          <button class="btn" type="submit">Ajouter</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="view" id="view-recap">
+      <div class="view-header">
+        <div>
+          <h2>Récap annuel</h2>
+          <p class="sub">Vue d'ensemble façon tableur — une ligne par catégorie. Budgets affichés hors report (le report se voit sur le tableau de bord, mois par mois).</p>
+        </div>
+        <div class="period-nav">
+          <button id="recap-prev">←</button>
+          <select id="recap-year"></select>
+          <button id="recap-next">→</button>
+        </div>
+      </div>
+      <div class="card table-wrap">
+        <table id="recap-table" style="font-size:12.5px;">
+          <thead><tr id="recap-head"></tr></thead>
+          <tbody id="recap-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ENTREES D'ARGENT -->
+    <div class="view" id="view-entrees">
+      <div class="view-header">
+        <div>
+          <h2>Entrées d'argent</h2>
+          <p class="sub">CAF, mutuelle, remboursements... Une liste séparée, purement informative — elle ne touche pas au budget de tes enveloppes.</p>
+        </div>
+        <div class="period-nav">
+          <button id="inc-prev">←</button>
+          <select id="inc-month"></select>
+          <select id="inc-year"></select>
+          <button id="inc-next">→</button>
+        </div>
+      </div>
+
+      <div class="kpi-row" id="inc-kpis"></div>
+
+      <div class="card">
+        <h3>Ajouter une entrée</h3>
+        <form id="form-income">
+          <div class="form-row">
+            <div class="field" style="max-width:150px;">
+              <label>Date</label>
+              <input type="date" id="inc-date" required>
+            </div>
+            <div class="field" style="flex:2;min-width:220px;">
+              <label>Libellé</label>
+              <input type="text" id="inc-libelle" placeholder="ex : CAF, mutuelle, remboursement..." autocomplete="off">
+            </div>
+            <div class="field" style="max-width:130px;">
+              <label>Montant (€)</label>
+              <input type="number" id="inc-montant" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="field" style="max-width:190px;">
+              <label>Catégorie</label>
+              <select id="inc-categorie" required></select>
+            </div>
+          </div>
+          <button type="submit" class="btn">Ajouter l'entrée</button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Historique des entrées</h3>
+        <div class="filters" style="margin:10px 0;">
+          <select id="inc-filter-cat"></select>
+          <input type="text" id="inc-search" placeholder="Rechercher...">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th style="text-align:right;">Montant</th><th></th></tr></thead>
+            <tbody id="inc-tbody"></tbody>
+            <tfoot><tr class="total-row"><td colspan="3">Total affiché</td><td class="num" id="inc-total"></td><td></td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPTE COMMUN -->
+    <div class="view" id="view-commun">
+      <div class="view-header">
+        <div>
+          <h2>Compte commun</h2>
+          <p class="sub">Qui a versé quoi sur le compte joint, et qui doit combien par rapport à sa part attendue.</p>
+        </div>
+        <div class="period-nav">
+          <button id="com-prev">←</button>
+          <select id="com-month"></select>
+          <select id="com-year"></select>
+          <button id="com-next">→</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Comment ça se calcule</h3>
+        <p class="sub" id="com-formula">Part attendue de chacun = (dépenses du mois − entrées d'argent du mois) ÷ 2.</p>
+        <div class="form-row" style="margin-top:10px;align-items:flex-end;">
+          <div class="field" style="max-width:220px;">
+            <label>Solde de départ Olivier (avant janvier)</label>
+            <input type="number" step="0.01" id="com-solde-olivier">
+          </div>
+          <div class="field" style="max-width:220px;">
+            <label>Solde de départ Ana Paula (avant janvier)</label>
+            <input type="number" step="0.01" id="com-solde-ana">
+          </div>
+        </div>
+        <p class="sub" style="margin-top:6px;">Report d'un solde antérieur (positif = crédit, négatif = dette envers le compte commun). Repris une fois pour toutes de ton ancien suivi.</p>
+      </div>
+
+      <div class="kpi-row" id="com-kpis" style="margin-top:16px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;">
+        <div class="card" id="com-card-olivier"></div>
+        <div class="card" id="com-card-ana"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Ajouter un virement</h3>
+        <form id="form-contrib">
+          <div class="form-row">
+            <div class="field" style="max-width:150px;">
+              <label>Date</label>
+              <input type="date" id="com-date" required>
+            </div>
+            <div class="field" style="flex:2;min-width:220px;">
+              <label>Libellé</label>
+              <input type="text" id="com-libelle" placeholder="ex : virement compte commun" autocomplete="off">
+            </div>
+            <div class="field" style="max-width:130px;">
+              <label>Montant (€)</label>
+              <input type="number" id="com-montant" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="field" style="max-width:160px;">
+              <label>Versé par</label>
+              <select id="com-personne">
+                <option value="Ana Paula">Ana Paula</option>
+                <option value="Olivier">Olivier</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn">Ajouter le virement</button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Historique des virements</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Personne</th><th>Libellé</th><th style="text-align:right;">Montant</th><th></th></tr></thead>
+            <tbody id="com-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGLES -->
+    <div class="view" id="view-regles">
+      <div class="view-header">
+        <div>
+          <h2>Règles d'auto-catégorisation</h2>
+          <p class="sub">Quand un mot-clé apparaît dans un libellé, la catégorie se propose automatiquement. La première règle trouvée gagne.</p>
+        </div>
+      </div>
+      <div class="card">
+        <form id="form-regle" class="form-row" style="align-items:flex-end;">
+          <div class="field"><label>Mot-clé</label><input type="text" id="new-regle-mot" placeholder="ex : NETFLIX" required></div>
+          <div class="field" style="max-width:190px;"><label>Catégorie</label><select id="new-regle-cat"></select></div>
+          <button class="btn" type="submit">Ajouter la règle</button>
+        </form>
+      </div>
+      <div class="filters" style="margin-top:16px;">
+        <input type="text" id="regle-search" placeholder="Rechercher un mot-clé...">
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Mot-clé</th><th>Catégorie</th><th></th></tr></thead>
+          <tbody id="regle-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer-note">Fait avec 💌 par Ana Paula Solutions — tes données restent uniquement sur cet appareil.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SEED_DATA = {"categories": [{"nom": "COURSE", "budget": 650.0}, {"nom": "RESTAURANT", "budget": 100.0}, {"nom": "SCOLAIRE", "budget": 30.0}, {"nom": "SANTE", "budget": 170.0}, {"nom": "CADEAU", "budget": 50.0}, {"nom": "ESPECE", "budget": 30.0}, {"nom": "LOISIRS", "budget": 70.0}, {"nom": "ANIMAUX", "budget": 10.0}, {"nom": "TELEPHONE", "budget": 73.0}, {"nom": "INTERNET", "budget": 59.99}, {"nom": "VETEMENTS", "budget": 30.0}, {"nom": "CARBURANT", "budget": 180.0}, {"nom": "ELECTROMENAGER", "budget": 20.0}, {"nom": "MAISON", "budget": 30.0}, {"nom": "MUTUELLE", "budget": 60.38}, {"nom": "TELEPEAGE", "budget": 10.0}, {"nom": "CONSEIL", "budget": 20.0}, {"nom": "VEHICULE", "budget": 50.0}, {"nom": "STATIONNEMENT", "budget": 5.0}, {"nom": "FRAIS ENVOI", "budget": 3.0}, {"nom": "ASSURANCE", "budget": 139.8}, {"nom": "PERMIS PALOMA", "budget": 135.0}, {"nom": "TRAVAUX", "budget": 20.0}, {"nom": "CANTINE", "budget": 50.0}, {"nom": "TRANSPORT", "budget": 29.2}, {"nom": "LOYER", "budget": 1208.27}, {"nom": "ENERGIE", "budget": 88.0}, {"nom": "FRAIS BANCAIRE", "budget": 10.36}], "rules": [{"motcle": "INTERMARCHE", "categorie": "COURSE"}, {"motcle": "INTERMARCHÉ", "categorie": "COURSE"}, {"motcle": "AUCHAN", "categorie": "COURSE"}, {"motcle": "CARREFOUR", "categorie": "COURSE"}, {"motcle": "LECLERC", "categorie": "COURSE"}, {"motcle": "NOSSO", "categorie": "COURSE"}, {"motcle": "SUPERMERCADO", "categorie": "COURSE"}, {"motcle": "BOULANGERIE", "categorie": "COURSE"}, {"motcle": "FOURNEE", "categorie": "COURSE"}, {"motcle": "FOURNIL", "categorie": "COURSE"}, {"motcle": "MARIE BLACHERE", "categorie": "COURSE"}, {"motcle": "PAIN ET CANTINE", "categorie": "COURSE"}, {"motcle": "BOUCHERIE", "categorie": "COURSE"}, {"motcle": "HELA", "categorie": "COURSE"}, {"motcle": "REMISE DU PAYSA", "categorie": "COURSE"}, {"motcle": "MAISON CESAR", "categorie": "COURSE"}, {"motcle": "BAUMA", "categorie": "COURSE"}, {"motcle": "MAISON GOURMETS", "categorie": "COURSE"}, {"motcle": "MB ALLAUCH", "categorie": "COURSE"}, {"motcle": "ROTISSERIE", "categorie": "COURSE"}, {"motcle": "A L G DISTRIBUTI", "categorie": "RESTAURANT"}, {"motcle": "GOODMAMA", "categorie": "RESTAURANT"}, {"motcle": "QUICK", "categorie": "RESTAURANT"}, {"motcle": "UBER *ONE", "categorie": "RESTAURANT"}, {"motcle": "CLUB MOTARD", "categorie": "RESTAURANT"}, {"motcle": "DU THYM", "categorie": "RESTAURANT"}, {"motcle": "NALEX", "categorie": "RESTAURANT"}, {"motcle": "WINE BAR", "categorie": "RESTAURANT"}, {"motcle": "DAKAO", "categorie": "RESTAURANT"}, {"motcle": "ANGEL BAKERY", "categorie": "RESTAURANT"}, {"motcle": "HOSTELLERIE", "categorie": "RESTAURANT"}, {"motcle": "SECRET DU PORTUGAL", "categorie": "RESTAURANT"}, {"motcle": "MC DONALD", "categorie": "RESTAURANT"}, {"motcle": "BURGER", "categorie": "RESTAURANT"}, {"motcle": "PHARMA", "categorie": "SANTE"}, {"motcle": "DENTAL", "categorie": "SANTE"}, {"motcle": "QTO*EI", "categorie": "SANTE"}, {"motcle": "OUMNIA BOUNAB", "categorie": "SANTE"}, {"motcle": "FRANCESCHI", "categorie": "SANTE"}, {"motcle": "LABORATOIRE", "categorie": "SANTE"}, {"motcle": "OPTIC", "categorie": "SANTE"}, {"motcle": "RTM", "categorie": "TRANSPORT"}, {"motcle": "UBER *TRIP", "categorie": "TRANSPORT"}, {"motcle": "SNCF", "categorie": "TRANSPORT"}, {"motcle": "STATIONNEMENT", "categorie": "TRANSPORT"}, {"motcle": "INDIGO", "categorie": "TRANSPORT"}, {"motcle": "APPLE.COM/BILL", "categorie": "LOISIRS"}, {"motcle": "INTERSPORT", "categorie": "LOISIRS"}, {"motcle": "CLUB TAURIN", "categorie": "LOISIRS"}, {"motcle": "RYANAIR", "categorie": "LOISIRS"}, {"motcle": "AMZ DIGITAL", "categorie": "LOISIRS"}, {"motcle": "RELAY", "categorie": "LOISIRS"}, {"motcle": "DECATHLON", "categorie": "LOISIRS"}, {"motcle": "NETFLIX", "categorie": "LOISIRS"}, {"motcle": "FREE MOBILE", "categorie": "TELEPHONE"}, {"motcle": "BACK MARKET", "categorie": "TELEPHONE"}, {"motcle": "FREE HAUTDEBIT", "categorie": "INTERNET"}, {"motcle": "FREE TELECOM", "categorie": "INTERNET"}, {"motcle": "TOTALENERGIES", "categorie": "ENERGIE"}, {"motcle": "ENGIE", "categorie": "ENERGIE"}, {"motcle": "EDF", "categorie": "ENERGIE"}, {"motcle": "MYPROJECT-IMMO", "categorie": "LOYER"}, {"motcle": "JAMET OLIVIER", "categorie": "LOYER"}, {"motcle": "MATMUT", "categorie": "ASSURANCE"}, {"motcle": "PRISTINE", "categorie": "MUTUELLE"}, {"motcle": "OFFRE COMPTE", "categorie": "FRAIS BANCAIRE"}, {"motcle": "INTERETS DEBITEURS", "categorie": "FRAIS BANCAIRE"}, {"motcle": "INTÉRETS DÉBITEURS", "categorie": "FRAIS BANCAIRE"}, {"motcle": "RETRAIT AU DISTRIBUTEUR", "categorie": "ESPECE"}, {"motcle": "CARBURANT", "categorie": "CARBURANT"}, {"motcle": "TOTAL ACCESS", "categorie": "CARBURANT"}, {"motcle": "ESSO", "categorie": "CARBURANT"}, {"motcle": "FEU VERT", "categorie": "VEHICULE"}, {"motcle": "CARTER-CASH", "categorie": "VEHICULE"}, {"motcle": "OSCARO", "categorie": "VEHICULE"}, {"motcle": "A.B.O.", "categorie": "VEHICULE"}, {"motcle": "AUTO BILAN", "categorie": "VEHICULE"}, {"motcle": "AUTO SÉCURITÉ", "categorie": "VEHICULE"}, {"motcle": "NORAUTO", "categorie": "VEHICULE"}, {"motcle": "MIDAS", "categorie": "VEHICULE"}, {"motcle": "IKEA", "categorie": "MAISON"}, {"motcle": "COOKIDOO", "categorie": "MAISON"}, {"motcle": "MAISON DU MONDE", "categorie": "MAISON"}, {"motcle": "LEROY MERLIN", "categorie": "MAISON"}, {"motcle": "CHALET BR", "categorie": "TRAVAUX"}, {"motcle": "BRICO", "categorie": "TRAVAUX"}, {"motcle": "PRIMARK", "categorie": "VETEMENTS"}, {"motcle": "BESSON", "categorie": "VETEMENTS"}, {"motcle": "KIABI", "categorie": "VETEMENTS"}, {"motcle": "ZARA", "categorie": "VETEMENTS"}, {"motcle": "CHAUSS", "categorie": "VETEMENTS"}, {"motcle": "REGIE PRINCIPALE", "categorie": "CANTINE"}, {"motcle": "COMMUNE D ALLAUCH", "categorie": "CANTINE"}, {"motcle": "CMAR", "categorie": "CONSEIL"}, {"motcle": "JUSTICIACTE", "categorie": "CONSEIL"}, {"motcle": "TELEPEAGE", "categorie": "TELEPEAGE"}, {"motcle": "VINCI", "categorie": "TELEPEAGE"}, {"motcle": "ESCOTA", "categorie": "TELEPEAGE"}, {"motcle": "ULYS", "categorie": "TELEPEAGE"}, {"motcle": "VETO", "categorie": "ANIMAUX"}, {"motcle": "ANIMALIS", "categorie": "ANIMAUX"}, {"motcle": "MAXI ZOO", "categorie": "ANIMAUX"}, {"motcle": "SPIROU", "categorie": "LOISIRS"}, {"motcle": "LIDL", "categorie": "COURSE"}, {"motcle": "FLUNCH", "categorie": "RESTAURANT"}, {"motcle": "MC DO", "categorie": "RESTAURANT"}, {"motcle": "MICROSOFT", "categorie": "LOISIRS"}, {"motcle": "SMYTHS TOYS", "categorie": "LOISIRS"}, {"motcle": "COMITE DE JUM", "categorie": "LOISIRS"}, {"motcle": "PHOTOMATON", "categorie": "SCOLAIRE"}, {"motcle": "COTISATION CARTE", "categorie": "FRAIS BANCAIRE"}], "transactions": [{"id": "seed0", "date": "2026-01-31", "categorie": "ESPECE", "libelle": "Remb espece   Paloma", "montant": 1.7}, {"id": "seed1", "date": "2026-01-29", "categorie": "RESTAURANT", "libelle": "UBER *EATS", "montant": 18.49}, {"id": "seed2", "date": "2026-01-28", "categorie": "SCOLAIRE", "libelle": "LPO LYC METIER REGIO  trimestre 2  PALOMA", "montant": 375.03}, {"id": "seed3", "date": "2026-01-28", "categorie": "COURSE", "libelle": "CARREFOUR", "montant": 37.51}, {"id": "seed4", "date": "2026-01-28", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 27/01 - Intermarché", "montant": 12.44}, {"id": "seed5", "date": "2026-01-27", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 26/01 - Intermarché", "montant": 38.59}, {"id": "seed6", "date": "2026-01-26", "categorie": "CADEAU", "libelle": "FNAC", "montant": 82.18}, {"id": "seed7", "date": "2026-01-26", "categorie": "CADEAU", "libelle": "DECATHLON", "montant": 64.98}, {"id": "seed8", "date": "2026-01-26", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 24/01 - Hela", "montant": 24.19}, {"id": "seed9", "date": "2026-01-26", "categorie": "SANTE", "libelle": "PHARMACIE", "montant": 12.98}, {"id": "seed10", "date": "2026-01-26", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 24/01 - Intermarché", "montant": 12.88}, {"id": "seed11", "date": "2026-01-26", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AUCHAN HYP 274 MARSE 23/01 - Auchan", "montant": 60.24}, {"id": "seed12", "date": "2026-01-25", "categorie": "CADEAU", "libelle": "PAOLO", "montant": 17.83}, {"id": "seed13", "date": "2026-01-22", "categorie": "RESTAURANT", "libelle": "UBER *EATS RBRS ANA", "montant": 22.9}, {"id": "seed14", "date": "2026-01-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 21/01 - Intermarché", "montant": 34.36}, {"id": "seed15", "date": "2026-01-21", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AMAZON PAYMENTS PAYL 19/01 - Amazon", "montant": 30.52}, {"id": "seed16", "date": "2026-01-21", "categorie": "RESTAURANT", "libelle": "QUICK", "montant": 12.8}, {"id": "seed17", "date": "2026-01-20", "categorie": "ANIMAUX", "libelle": "hormone chat  \nrbrs Ana", "montant": 38.0}, {"id": "seed18", "date": "2026-01-20", "categorie": "TELEPHONE", "libelle": "Free Mobile", "montant": 72.95}, {"id": "seed19", "date": "2026-01-19", "categorie": "VETEMENTS", "libelle": "Jolimoi   PALOMA", "montant": 165.0}, {"id": "seed20", "date": "2026-01-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AMAZON EU SARL PAYLI 17/01 - Amazon", "montant": 15.89}, {"id": "seed21", "date": "2026-01-19", "categorie": "LOISIRS", "libelle": "Jolimoi     PEREIRA MAIS REMB", "montant": 100.19}, {"id": "seed22", "date": "2026-01-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 LECLERC CABRIES      16/01 - E.Leclerc", "montant": 31.89}, {"id": "seed23", "date": "2026-01-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 18/01 - Hela", "montant": 18.32}, {"id": "seed24", "date": "2026-01-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 16/01 - Intermarché", "montant": 14.52}, {"id": "seed25", "date": "2026-01-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 LIDL MARSEILLE VALE  17/01 - Lidl", "montant": 8.39}, {"id": "seed26", "date": "2026-01-16", "categorie": "CARBURANT", "libelle": "STATION CALAO", "montant": 66.62}, {"id": "seed27", "date": "2026-01-16", "categorie": "TELEPEAGE", "libelle": "APRR APRR FULLI/", "montant": 98.4}, {"id": "seed28", "date": "2026-01-16", "categorie": "LOISIRS", "libelle": "CHEQUE", "montant": 50.0}, {"id": "seed29", "date": "2026-01-15", "categorie": "ASSURANCE", "libelle": "MATMUT", "montant": 139.8}, {"id": "seed30", "date": "2026-01-14", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 DECATHLON VALENT 160 13/01 - Decathlon", "montant": 15.99}, {"id": "seed31", "date": "2026-01-14", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 13/01 - Intermarché", "montant": 22.01}, {"id": "seed32", "date": "2026-01-13", "categorie": "LOISIRS", "libelle": "RYANAIR TPORTUGAL 2026 AVION", "montant": 264.15}, {"id": "seed33", "date": "2026-01-12", "categorie": "ELECTROMENAGER", "libelle": "Paiement par carte - X3351 ELECTRO DEPOT MARSEI 10/01 - Electro Dépôt", "montant": 69.95}, {"id": "seed34", "date": "2026-01-12", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 LE FOURNILDES P BERR 11/01 - Le Fournil Des Platanes", "montant": 13.6}, {"id": "seed35", "date": "2026-01-12", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AUCHAN HYP 274 MARSE 09/01 - Auchan", "montant": 88.53}, {"id": "seed36", "date": "2026-01-12", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 09/01 - Intermarché", "montant": 24.08}, {"id": "seed37", "date": "2026-01-12", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 10/01 - Hela", "montant": 18.56}, {"id": "seed38", "date": "2026-01-12", "categorie": "VEHICULE", "libelle": "VELO\nremboursement velo Pereira", "montant": 200.0}, {"id": "seed39", "date": "2026-01-09", "categorie": "CARBURANT", "libelle": "VIREMENT EMIS          \nWEB MME JAMET ANA carburant reto\ncarburant retour nantes", "montant": 90.0}, {"id": "seed40", "date": "2026-01-09", "categorie": "SANTE", "libelle": "PHARMA", "montant": 166.22}, {"id": "seed41", "date": "2026-01-08", "categorie": "SCOLAIRE", "libelle": "CHEQUE EMIS            \n9306523", "montant": 23.0}, {"id": "seed42", "date": "2026-01-08", "categorie": "CANTINE", "libelle": "REGIE PRINCIPALE", "montant": 42.0}, {"id": "seed43", "date": "2026-01-08", "categorie": "FRAIS BANCAIRE", "libelle": "FRAIS                  \nIntérets débiteurs", "montant": 9.77}, {"id": "seed44", "date": "2026-01-07", "categorie": "INTERNET", "libelle": "Free Telecom", "montant": 58.99}, {"id": "seed45", "date": "2026-01-06", "categorie": "CARBURANT", "libelle": "LECLERC CARBURANT", "montant": 44.7}, {"id": "seed46", "date": "2026-01-06", "categorie": "FRAIS BANCAIRE", "libelle": "PRELEVEMENT            \nOffre Compte à composer", "montant": 9.76}, {"id": "seed47", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 NOSSO MARSEILLE      03/01 - Supermercado Barato", "montant": 38.06}, {"id": "seed48", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 GIFI CABRIES         04/01 - GiFi", "montant": 2.99}, {"id": "seed49", "date": "2026-01-05", "categorie": "ENERGIE", "libelle": "TotalEnergies Electricite", "montant": 96.0}, {"id": "seed50", "date": "2026-01-05", "categorie": "TRANSPORT", "libelle": "RTM", "montant": 29.2}, {"id": "seed51", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AUCHAN HYP 274 MARSE 03/01 - Auchan", "montant": 60.2}, {"id": "seed52", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 BOULANGERIE ANGE CAB 04/01 - Boulangerie Ange", "montant": 14.9}, {"id": "seed53", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 02/01 - Intermarché", "montant": 14.62}, {"id": "seed54", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 03/01 - Hela", "montant": 14.4}, {"id": "seed55", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 E.LECLERC VILLIERS E 02/01 - E.Leclerc", "montant": 7.0}, {"id": "seed56", "date": "2026-01-05", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 04/01 - Intermarché", "montant": 1.06}, {"id": "seed57", "date": "2026-01-02", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 31/12 - Intermarché", "montant": 8.03}, {"id": "seed58", "date": "2026-01-02", "categorie": "LOYER", "libelle": "WEB MYPROJECT-IMMO", "montant": 1200.0}, {"id": "seed59", "date": "2026-02-27", "categorie": "SANTE", "libelle": "Doctolib", "montant": 30.0}, {"id": "seed60", "date": "2026-02-27", "categorie": "COURSE", "libelle": "FDB ALLAUCH", "montant": 16.08}, {"id": "seed61", "date": "2026-02-27", "categorie": "CADEAU", "libelle": "Cadeau noel benoit", "montant": 100.0}, {"id": "seed62", "date": "2026-02-27", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 78.48}, {"id": "seed63", "date": "2026-02-27", "categorie": "COURSE", "libelle": "REMISE DU PAYSA PLAN", "montant": 20.09}, {"id": "seed64", "date": "2026-02-26", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 2.88}, {"id": "seed65", "date": "2026-02-24", "categorie": "RESTAURANT", "libelle": "RELAIS DE LA FOURRA", "montant": 9.3}, {"id": "seed66", "date": "2026-02-24", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 18.91}, {"id": "seed67", "date": "2026-02-23", "categorie": "RESTAURANT", "libelle": "PIU VALENTINE", "montant": 132.0}, {"id": "seed68", "date": "2026-02-23", "categorie": "LOISIRS", "libelle": "INST vers Clara Pinto pereir", "montant": 52.0}, {"id": "seed69", "date": "2026-02-23", "categorie": "SANTE", "libelle": "DENTISTE", "montant": 658.3}, {"id": "seed70", "date": "2026-02-23", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 28.57}, {"id": "seed71", "date": "2026-02-23", "categorie": "COURSE", "libelle": "NOSSO MARSEILLE", "montant": 28.01}, {"id": "seed72", "date": "2026-02-23", "categorie": "SANTE", "libelle": "PHARMACIE DESMOULINS", "montant": 23.5}, {"id": "seed73", "date": "2026-02-23", "categorie": "COURSE", "libelle": "REMISE DU PAYSA PLAN", "montant": 18.63}, {"id": "seed74", "date": "2026-02-23", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 13.95}, {"id": "seed75", "date": "2026-02-23", "categorie": "COURSE", "libelle": "LIDL MARSEILLE", "montant": 11.22}, {"id": "seed76", "date": "2026-02-23", "categorie": "SANTE", "libelle": "DR URBAIN ANDREA", "montant": 10.5}, {"id": "seed77", "date": "2026-02-23", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE", "montant": 4.41}, {"id": "seed78", "date": "2026-02-20", "categorie": "CARBURANT", "libelle": "SEGGA ALLAUCH", "montant": 30.0}, {"id": "seed79", "date": "2026-02-20", "categorie": "COURSE", "libelle": "AUCHAN", "montant": 61.8}, {"id": "seed80", "date": "2026-02-19", "categorie": "TELEPHONE", "libelle": "Free Mobile", "montant": 72.95}, {"id": "seed81", "date": "2026-02-19", "categorie": "SANTE", "libelle": "SELARL DU DOCTEUR", "montant": 60.0}, {"id": "seed82", "date": "2026-02-19", "categorie": "FRAIS ENVOI", "libelle": "LAPOSTE", "montant": 26.67}, {"id": "seed83", "date": "2026-02-18", "categorie": "SANTE", "libelle": "Doctolib", "montant": 7.5}, {"id": "seed84", "date": "2026-02-18", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 25.62}, {"id": "seed85", "date": "2026-02-17", "categorie": "SANTE", "libelle": "PHARMACIE DESMOULINS", "montant": 43.42}, {"id": "seed86", "date": "2026-02-16", "categorie": "ASSURANCE", "libelle": "MATMUT ROUEN", "montant": 139.8}, {"id": "seed87", "date": "2026-02-16", "categorie": "TELEPEAGE", "libelle": "MOBILIS FULLI PEAGE/C", "montant": 107.6}, {"id": "seed88", "date": "2026-02-16", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 60.85}, {"id": "seed89", "date": "2026-02-16", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 3.41}, {"id": "seed90", "date": "2026-02-13", "categorie": "RESTAURANT", "libelle": "UBER", "montant": 48.5}, {"id": "seed91", "date": "2026-02-13", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 12.2}, {"id": "seed92", "date": "2026-02-12", "categorie": "RESTAURANT", "libelle": "UBER", "montant": 30.93}, {"id": "seed93", "date": "2026-02-12", "categorie": "STATIONNEMENT", "libelle": "INDIGO", "montant": 3.8}, {"id": "seed94", "date": "2026-02-12", "categorie": "RESTAURANT", "libelle": "Sunday*Splendido Mar 11/02", "montant": 58.99}, {"id": "seed95", "date": "2026-02-11", "categorie": "SCOLAIRE", "libelle": "MFR", "montant": 360.55}, {"id": "seed96", "date": "2026-02-10", "categorie": "COURSE", "libelle": "AMAZON", "montant": 66.65}, {"id": "seed97", "date": "2026-02-10", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 15.06}, {"id": "seed98", "date": "2026-02-10", "categorie": "VEHICULE", "libelle": "remboursement velo Pereira", "montant": 200.0}, {"id": "seed99", "date": "2026-02-09", "categorie": "COURSE", "libelle": "PAUL", "montant": 13.6}, {"id": "seed100", "date": "2026-02-09", "categorie": "SANTE", "libelle": "PHARMA MOULIERES MIM", "montant": 176.21}, {"id": "seed101", "date": "2026-02-09", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 86.39}, {"id": "seed102", "date": "2026-02-09", "categorie": "COURSE", "libelle": "GRAND FRAIS", "montant": 64.16}, {"id": "seed103", "date": "2026-02-09", "categorie": "COURSE", "libelle": "CARREFOUR", "montant": 40.43}, {"id": "seed104", "date": "2026-02-09", "categorie": "RESTAURANT", "libelle": "INTERMARCHE", "montant": 13.71}, {"id": "seed105", "date": "2026-02-09", "categorie": "COURSE", "libelle": "MARIE BLACHERE", "montant": 3.3}, {"id": "seed106", "date": "2026-02-07", "categorie": "LOISIRS", "libelle": "tthermomix", "montant": 559.5}, {"id": "seed107", "date": "2026-02-06", "categorie": "TRANSPORT", "libelle": "RTM pass permanent prelv", "montant": 29.2}, {"id": "seed108", "date": "2026-02-05", "categorie": "SCOLAIRE", "libelle": "PAIEMENT PAR CARTE     \nX3351 REGIE PRINCIPALE 13  04/02", "montant": 49.0}, {"id": "seed109", "date": "2026-02-05", "categorie": "ENERGIE", "libelle": "TotalEnergies Electricite et Gaz", "montant": 84.0}, {"id": "seed110", "date": "2026-02-05", "categorie": "INTERNET", "libelle": "Free Telecom Free HautDebit", "montant": 58.99}, {"id": "seed111", "date": "2026-02-05", "categorie": "RESTAURANT", "libelle": "SAS MELIROSE", "montant": 41.0}, {"id": "seed112", "date": "2026-02-05", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 6.69}, {"id": "seed113", "date": "2026-02-04", "categorie": "SCOLAIRE", "libelle": "CHEQUE EMIS            \n9306519", "montant": 20.0}, {"id": "seed114", "date": "2026-02-04", "categorie": "FRAIS BANCAIRE", "libelle": "Offre Compte à composer", "montant": 9.76}, {"id": "seed115", "date": "2026-02-03", "categorie": "COURSE", "libelle": "VIREMENT EMIS          \nWEB MLE PINTO PEREIRA-JAMET", "montant": 3.59}, {"id": "seed116", "date": "2026-02-03", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 1.33}, {"id": "seed117", "date": "2026-02-02", "categorie": "CARBURANT", "libelle": "STATION CALA", "montant": 47.16}, {"id": "seed118", "date": "2026-02-02", "categorie": "RESTAURANT", "libelle": "LE FOURNIL DE NEVACH", "montant": 19.65}, {"id": "seed119", "date": "2026-02-02", "categorie": "RESTAURANT", "libelle": "FANEDISTRIB ST CHAFF", "montant": 12.87}, {"id": "seed120", "date": "2026-02-02", "categorie": "COURSE", "libelle": "MAXICOFFEE SUD GARDA", "montant": 1.8}, {"id": "seed121", "date": "2026-02-02", "categorie": "RESTAURANT", "libelle": "Le Bianca Saint-Chaf", "montant": 91.0}, {"id": "seed122", "date": "2026-02-02", "categorie": "COURSE", "libelle": "INTERMARCHE", "montant": 4.46}, {"id": "seed123", "date": "2026-02-02", "categorie": "RESTAURANT", "libelle": "RELAIS CHORGES", "montant": 3.8}, {"id": "seed124", "date": "2026-02-02", "categorie": "LOYER", "libelle": "MYPROJECT-IMMO", "montant": 1200.0}, {"id": "seed125", "date": "2026-03-31", "categorie": "RESTAURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 STARLIGHT MARSEILLE  30/03", "montant": 20.6}, {"id": "seed126", "date": "2026-03-31", "categorie": "STATIONNEMENT", "libelle": "PAIEMENT PAR CARTE     \nX3351 INDIGO 130010 MARSE0 30/03", "montant": 6.8}, {"id": "seed127", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 AMAZON PAYMENTS PAYL 28/03", "montant": 6.99}, {"id": "seed128", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 FDB ALLAUCH          28/03", "montant": 33.31}, {"id": "seed129", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 DRQ CABRIES          28/03", "montant": 29.3}, {"id": "seed130", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 27/03", "montant": 16.56}, {"id": "seed131", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 MARIE BLACHERE CABRI 28/03", "montant": 10.75}, {"id": "seed132", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 28/03", "montant": 10.74}, {"id": "seed133", "date": "2026-03-30", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 BOUTIQUE COIFFEUR CA 28/03", "montant": 3.12}, {"id": "seed134", "date": "2026-03-28", "categorie": "CADEAU", "libelle": "VIREMENT EMIS          \nVIR INST vers Clara Pinto pereir\nremboursement sac avion", "montant": 60.0}, {"id": "seed135", "date": "2026-03-28", "categorie": "CADEAU", "libelle": "VIREMENT EMIS          \nWEB paloma PINTO PEREIRA anniver\nanniversaire", "montant": 250.0}, {"id": "seed136", "date": "2026-03-27", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 E.LECLERC WEB LES PE 26/03", "montant": 84.65}, {"id": "seed137", "date": "2026-03-26", "categorie": "ANIMAUX", "libelle": "PAIEMENT PAR CARTE     \nX3351 clinique allauch     25/03", "montant": 100.9}, {"id": "seed138", "date": "2026-03-26", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 25/03", "montant": 7.65}, {"id": "seed139", "date": "2026-03-25", "categorie": "ELECTROMENAGER", "libelle": "PAIEMENT PAR CARTE     \nX3351 ELECTRO DEPOT MARSEI 24/03", "montant": 29.9}, {"id": "seed140", "date": "2026-03-24", "categorie": "SANTE", "libelle": "PAIEMENT PAR CARTE     \nX3351 HP BEAUREGARD MARSEI 23/03", "montant": 24.0}, {"id": "seed141", "date": "2026-03-23", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 BAUMA & CO ALLAUCH   22/03", "montant": 5.2}, {"id": "seed142", "date": "2026-03-23", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 21/03", "montant": 23.0}, {"id": "seed143", "date": "2026-03-23", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 REMISE DU PAYSA PLAN 21/03", "montant": 18.31}, {"id": "seed144", "date": "2026-03-23", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 CAVE A VIN AUBAGNE   21/03", "montant": 15.0}, {"id": "seed145", "date": "2026-03-20", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 E.LECLERC WEB LES PE 19/03", "montant": 44.62}, {"id": "seed146", "date": "2026-03-19", "categorie": "TELEPHONE", "libelle": "PAIEMENT PAR CARTE     \nX3351 Free Mobile PARIS    18/03", "montant": 72.95}, {"id": "seed147", "date": "2026-03-19", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 MP*DAC CARREFOUR MAR 18/03", "montant": 71.48}, {"id": "seed148", "date": "2026-03-17", "categorie": "RESTAURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 A L G DISTRIBUTI MAR 16/03", "montant": 0.5}, {"id": "seed149", "date": "2026-03-16", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 14/03", "montant": 112.49}, {"id": "seed150", "date": "2026-03-16", "categorie": "MAISON", "libelle": "PAIEMENT PAR CARTE     \nX3351 CONFORAMA LESPENNES7 15/03", "montant": 43.95}, {"id": "seed151", "date": "2026-03-16", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 REMISE DU PAYSA PLAN 14/03", "montant": 25.03}, {"id": "seed152", "date": "2026-03-16", "categorie": "MAISON", "libelle": "PAIEMENT PAR CARTE     \nX3351 GIFI MARSE0001576/   14/03", "montant": 10.49}, {"id": "seed153", "date": "2026-03-16", "categorie": "MAISON", "libelle": "PAIEMENT PAR CARTE     \nX3351 Action Marseille     14/03", "montant": 10.17}, {"id": "seed154", "date": "2026-03-16", "categorie": "ASSURANCE", "libelle": "PRELEVEMENT            \nMATMUT ROUEN 2026031600009420020657532\nSOC980003407797NMDT01             \nFR43ZZZ299936                     \nC 34M980003407797N 0195365W 00", "montant": 139.8}, {"id": "seed155", "date": "2026-03-16", "categorie": "TELEPEAGE", "libelle": "PRELEVEMENT            \nFULLI - mobilis FULLI PEAGE/Contrat 250092814405/REF: 92601006654 250092814405/00SIT00000I9499041/1986-07-17\n00SIT00000I9499041                \nFR59ZZZ816C07                     \nREF: 92601006654 250092814405", "montant": 15.9}, {"id": "seed156", "date": "2026-03-16", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 13/03", "montant": 17.5}, {"id": "seed157", "date": "2026-03-16", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 MB ALLAUCH           14/03", "montant": 3.3}, {"id": "seed158", "date": "2026-03-15", "categorie": "SANTE", "libelle": "VIREMENT EMIS          \nWEB M. JAMET OLIVIER Remb du rem\nRemb du remb oli", "montant": 20.78}, {"id": "seed159", "date": "2026-03-13", "categorie": "SANTE", "libelle": "PAIEMENT PAR CARTE     \nX3351 PHCIE PATRIMOIN LA C 12/03", "montant": 17.4}, {"id": "seed160", "date": "2026-03-12", "categorie": "CARBURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 ESSO31775ROC2 MORIER 12/03", "montant": 20.22}, {"id": "seed161", "date": "2026-03-12", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 11/03", "montant": 28.49}, {"id": "seed162", "date": "2026-03-11", "categorie": "SANTE", "libelle": "PAIEMENT PAR CARTE     \nX3351 PHARMA MOULIERES MIM 10/03", "montant": 174.94}, {"id": "seed163", "date": "2026-03-10", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 09/03", "montant": 10.99}, {"id": "seed164", "date": "2026-03-10", "categorie": "LOISIRS", "libelle": "VIREMENT EMIS          \nWEB MME      JAMET ANA\nremboursement velo Pereira", "montant": 200.0}, {"id": "seed165", "date": "2026-03-10", "categorie": "FRAIS BANCAIRE", "libelle": "PRELEVEMENT            \nFRAIS CARTE A L'ETRANGER HORS UE", "montant": 0.96}, {"id": "seed166", "date": "2026-03-09", "categorie": "MAISON", "libelle": "PAIEMENT PAR CARTE     \nX3351 IKEA LA VALENTI MARS 07/03", "montant": 46.89}, {"id": "seed167", "date": "2026-03-09", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 07/03", "montant": 41.09}, {"id": "seed168", "date": "2026-03-09", "categorie": "RESTAURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 LUMYRASKIN.COM DALLA 07/03", "montant": 30.31}, {"id": "seed169", "date": "2026-03-09", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 06/03", "montant": 3.21}, {"id": "seed170", "date": "2026-03-06", "categorie": "RESTAURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 A L G DISTRIBUTI MAR 05/03", "montant": 0.5}, {"id": "seed171", "date": "2026-03-06", "categorie": "RESTAURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 A L G DISTRIBUTI MAR 05/03", "montant": 0.5}, {"id": "seed172", "date": "2026-03-06", "categorie": "TRANSPORT", "libelle": "PRELEVEMENT            \nRTM pass permanent prelv\nLRM---01250826135223250904093306  \nFR47ZZZ407728                     \n9815749", "montant": 29.2}, {"id": "seed173", "date": "2026-03-06", "categorie": "CARBURANT", "libelle": "PAIEMENT PAR CARTE     \nX3351 STATION CALAO119 13  04/03", "montant": 52.23}, {"id": "seed174", "date": "2026-03-06", "categorie": "SANTE", "libelle": "PAIEMENT PAR CARTE     \nX3351 HP BEAUREGARD MARSEI 05/03", "montant": 24.0}, {"id": "seed175", "date": "2026-03-06", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 FOURNEE DE PAUST MAR 05/03", "montant": 5.7}, {"id": "seed176", "date": "2026-03-05", "categorie": "CANTINE", "libelle": "PAIEMENT PAR CARTE     \nX3351 REGIE PRINCIPALE 13  04/03", "montant": 24.5}, {"id": "seed177", "date": "2026-03-05", "categorie": "ELECTROMENAGER", "libelle": "VIREMENT EMIS          \nWEB MME JAMET ANA thermomix 2\nthermomix 2", "montant": 559.5}, {"id": "seed178", "date": "2026-03-05", "categorie": "ENERGIE", "libelle": "PRELEVEMENT            \nTotalEnergies Electricite et Gaz Prelevement TotalEnergies Electricite et Gaz France-Reference client 116201090\nDEMP017664945                     \nFR03ZZZ488157                     \n0116201090-211014911918", "montant": 84.0}, {"id": "seed179", "date": "2026-03-05", "categorie": "INTERNET", "libelle": "PRELEVEMENT            \nFree Telecom Free HautDebit 1456509049\n48713912                          \nFR83ZZZ459654                     \nFHD-1456509049", "montant": 58.99}, {"id": "seed180", "date": "2026-03-05", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 04/03", "montant": 11.08}, {"id": "seed181", "date": "2026-03-05", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 04/03", "montant": 6.17}, {"id": "seed182", "date": "2026-03-04", "categorie": "FRAIS BANCAIRE", "libelle": "PRELEVEMENT            \nOffre Compte à composer", "montant": 9.76}, {"id": "seed183", "date": "2026-03-02", "categorie": "LOISIRS", "libelle": "PAIEMENT PAR CARTE     \nX3351 SC INTERSPORT CABRIE 28/02", "montant": 31.98}, {"id": "seed184", "date": "2026-03-02", "categorie": "ANIMAUX", "libelle": "PAIEMENT PAR CARTE     \nX3351 ANIMALIS PLAN DE LES 28/02", "montant": 18.98}, {"id": "seed185", "date": "2026-03-02", "categorie": "MAISON", "libelle": "PAIEMENT PAR CARTE     \nX3351 AMAZON PAYMENTS PAYL 25/02", "montant": 135.77}, {"id": "seed186", "date": "2026-03-02", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 LECLERC CABRIES      28/02", "montant": 17.98}, {"id": "seed187", "date": "2026-03-02", "categorie": "COURSE", "libelle": "PAIEMENT PAR CARTE     \nX3351 INTERMARCHE MARSEILL 28/02", "montant": 4.56}, {"id": "seed188", "date": "2026-03-02", "categorie": "LOYER", "libelle": "VIREMENT EMIS          \nWEB MYPROJECT-IMMO M.OU MME JAMET OLIVIER", "montant": 1200.0}, {"id": "seed189", "date": "2026-04-30", "categorie": "MAISON", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 Cookidoo Vorwerk Hom 30/04", "montant": 60.0}, {"id": "seed190", "date": "2026-04-30", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 29/04", "montant": 5.43}, {"id": "seed191", "date": "2026-04-29", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 APPLE.COM/BILL CORK  29/04", "montant": 6.0}, {"id": "seed192", "date": "2026-04-29", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 MB ALLAUCH           28/04", "montant": 3.3}, {"id": "seed193", "date": "2026-04-29", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 28/04", "montant": 8.83}, {"id": "seed194", "date": "2026-04-28", "categorie": "CONSEIL", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 JUSTICIACTE MARSEILL 27/04", "montant": 552.16}, {"id": "seed195", "date": "2026-04-27", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 NOSSO MARSEILLE      25/04", "montant": 40.99}, {"id": "seed196", "date": "2026-04-27", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 NOSSO MARSEILLE      25/04", "montant": 13.13}, {"id": "seed197", "date": "2026-04-27", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 UBER *ONE MEMBERSHI  26/04", "montant": 5.99}, {"id": "seed198", "date": "2026-04-27", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 LECLERC CABRIES      25/04", "montant": 102.8}, {"id": "seed199", "date": "2026-04-27", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 RYANAIR TPL0 K67X452 23/04", "montant": 39.5}, {"id": "seed200", "date": "2026-04-27", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 MAISON GOURMETS ALLA 25/04", "montant": 19.17}, {"id": "seed201", "date": "2026-04-27", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 WINE BAR MAIA        24/04", "montant": 16.8}, {"id": "seed202", "date": "2026-04-23", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 E.LECLERC VITROLLES  22/04", "montant": 38.98}, {"id": "seed203", "date": "2026-04-23", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 22/04", "montant": 19.93}, {"id": "seed204", "date": "2026-04-22", "categorie": "CANTINE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REGIE PRINCIPALE 13  21/04", "montant": 59.5}, {"id": "seed205", "date": "2026-04-21", "categorie": "VETEMENTS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PRIMARK PORTO NORTE  20/04", "montant": 91.5}, {"id": "seed206", "date": "2026-04-21", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 BK13792-NORTE PORTO  20/04", "montant": 23.25}, {"id": "seed207", "date": "2026-04-21", "categorie": "TELEPHONE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 Free Mobile PARIS    20/04", "montant": 72.95}, {"id": "seed208", "date": "2026-04-21", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 E017 Penafiel        20/04", "montant": 11.61}, {"id": "seed209", "date": "2026-04-21", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 AMZ DIGITAL FRA PAYL 20/04", "montant": 2.99}, {"id": "seed210", "date": "2026-04-20", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 17/04", "montant": 22.2}, {"id": "seed211", "date": "2026-04-20", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 19/04", "montant": 8.23}, {"id": "seed212", "date": "2026-04-18", "categorie": "VETEMENTS", "libelle": "Virement émis\nVIREMENT EMIS WEB paloma PINTO PEREIRA chaussu\nchaussure Paolo", "montant": 30.0}, {"id": "seed213", "date": "2026-04-18", "categorie": "RESTAURANT", "libelle": "Virement émis\nVIREMENT EMIS WEB MME JAMET ANA gouter\ngouter", "montant": 10.0}, {"id": "seed214", "date": "2026-04-17", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 16/04", "montant": 11.48}, {"id": "seed215", "date": "2026-04-15", "categorie": "VETEMENTS", "libelle": "Virement émis\nVIREMENT EMIS WEB MME JAMET ANA paolo chausettes calecons\npaolo", "montant": 15.0}, {"id": "seed216", "date": "2026-04-15", "categorie": "ASSURANCE", "libelle": "Prélèvement\nPRELEVEMENT MATMUT ROUEN 2026041500009480020656582\nSOC980003407797NMDT01\nFR43ZZZ299936\nC 34M980003407797N 0195365W 00", "montant": 139.8}, {"id": "seed217", "date": "2026-04-15", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 14/04", "montant": 21.56}, {"id": "seed218", "date": "2026-04-14", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 RYANAIR TPL0 K67X452 11/04", "montant": 41.5}, {"id": "seed219", "date": "2026-04-14", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 RELAY DAILY MON MARI 13/04", "montant": 19.2}, {"id": "seed220", "date": "2026-04-13", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 BOUCHERIE ENTRECOTE  11/04", "montant": 21.86}, {"id": "seed221", "date": "2026-04-13", "categorie": "TRANSPORT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 RTM MARSEILLE CEDEX  12/04", "montant": 10.0}, {"id": "seed222", "date": "2026-04-13", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 DAKAO CASTELLANE MAR 12/04", "montant": 7.1}, {"id": "seed223", "date": "2026-04-13", "categorie": "SANTE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PHARMACIE DESMOULINS 11/04", "montant": 65.46}, {"id": "seed224", "date": "2026-04-13", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 10/04", "montant": 23.89}, {"id": "seed225", "date": "2026-04-13", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 MAISON GOURMETS ALLA 11/04", "montant": 14.48}, {"id": "seed226", "date": "2026-04-13", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 11/04", "montant": 10.14}, {"id": "seed227", "date": "2026-04-13", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SAINT TROP CARRY LE  11/04", "montant": 6.5}, {"id": "seed228", "date": "2026-04-13", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 ANGEL BAKERY VAL MAR 11/04", "montant": 6.15}, {"id": "seed229", "date": "2026-04-13", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 LA BONNE MIGNE MARSE 12/04", "montant": 4.0}, {"id": "seed230", "date": "2026-04-13", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 11/04", "montant": 3.49}, {"id": "seed231", "date": "2026-04-11", "categorie": "SCOLAIRE", "libelle": "Virement émis\nVIREMENT EMIS WEB LPO LYC METIER REGIO interna paloma PINTO PEREIRA JAMET\ninternat paloma PINTO", "montant": 326.97}, {"id": "seed232", "date": "2026-04-10", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 09/04", "montant": 9.26}, {"id": "seed233", "date": "2026-04-10", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 4B01 Vitrolles 2     10/04", "montant": 7.9}, {"id": "seed234", "date": "2026-04-10", "categorie": "LOISIRS", "libelle": "Virement émis\nVIREMENT EMIS WEB MME      JAMET ANA\nremboursement velo Pereira", "montant": 200.0}, {"id": "seed235", "date": "2026-04-09", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 07/04", "montant": 15.16}, {"id": "seed236", "date": "2026-04-08", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 07/04", "montant": 9.65}, {"id": "seed237", "date": "2026-04-08", "categorie": "INTERNET", "libelle": "Prélèvement\nPRELEVEMENT Free Telecom Free HautDebit 1464114155\n48713912\nFR83ZZZ459654\nFHD-1464114155", "montant": 58.99}, {"id": "seed238", "date": "2026-04-07", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 E.LECLERC WEB LES PE 06/04", "montant": 31.38}, {"id": "seed239", "date": "2026-04-07", "categorie": "ENERGIE", "libelle": "Prélèvement\nPRELEVEMENT TotalEnergies Electricite et Gaz Prelevement TotalEnergies Electricite et Gaz France-Reference client 116201090\nDEMP017664945\nFR03ZZZ488157\n0116201090-221104276265", "montant": 84.0}, {"id": "seed240", "date": "2026-04-07", "categorie": "TRANSPORT", "libelle": "Prélèvement\nPRELEVEMENT RTM pass permanent prelv\nLRM---01250826135223250904093306\nFR47ZZZ407728\n9896369", "montant": 29.2}, {"id": "seed241", "date": "2026-04-07", "categorie": "SANTE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PHARMACIE OLIVES MAR 04/04", "montant": 181.85}, {"id": "seed242", "date": "2026-04-07", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 05/04", "montant": 40.78}, {"id": "seed243", "date": "2026-04-07", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SumUp *Rotisserie Li 04/04", "montant": 38.0}, {"id": "seed244", "date": "2026-04-07", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 05/04", "montant": 34.45}, {"id": "seed245", "date": "2026-04-07", "categorie": "TRANSPORT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 UBER *TRIP HELP.UBER 02/04", "montant": 32.56}, {"id": "seed246", "date": "2026-04-07", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 06/04", "montant": 29.51}, {"id": "seed247", "date": "2026-04-07", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 03/04", "montant": 11.74}, {"id": "seed248", "date": "2026-04-04", "categorie": "FRAIS BANCAIRE", "libelle": "Prélèvement\nPRELEVEMENT Offre Compte à composer", "montant": 9.76}, {"id": "seed249", "date": "2026-04-04", "categorie": "FRAIS BANCAIRE", "libelle": "Frais\nFRAIS Intérets débiteurs Période :  1 TRIM 26 TAEG=19,89%", "montant": 9.43}, {"id": "seed250", "date": "2026-04-02", "categorie": "TRANSPORT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 UBER *TRIP HELP.UBER 31/03", "montant": 34.97}, {"id": "seed251", "date": "2026-04-02", "categorie": "TRANSPORT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 UBER *TRIP HELP.UBER 01/04", "montant": 16.95}, {"id": "seed252", "date": "2026-04-02", "categorie": "LOYER", "libelle": "Virement émis\nVIREMENT EMIS WEB MYPROJECT-IMMO M.OU MME JAMET OLIVIER", "montant": 1200.0}, {"id": "seed253", "date": "2026-04-01", "categorie": "ESPECE", "libelle": "Retrait au distributeur\nRETRAIT AU DISTRIBUTEUR X3351 ALLAUCH        31/03 14H59", "montant": 100.0}, {"id": "seed254", "date": "2026-04-01", "categorie": "SANTE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PHARMACIE FONTVIEIL  31/03", "montant": 80.45}, {"id": "seed255", "date": "2026-04-01", "categorie": "CADEAU", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SC SARA JANE ALLAUCH 31/03", "montant": 69.0}, {"id": "seed256", "date": "2026-04-01", "categorie": "SANTE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 DENTAL IN ALLAU      31/03", "montant": 9.2}, {"id": "seed257", "date": "2026-04-01", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 L'HOSTELLERIE ALLAUC 31/03", "montant": 8.6}, {"id": "seed258", "date": "2026-04-01", "categorie": "SANTE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 DR ROSE PIERSON MARS 31/03", "montant": 30.0}, {"id": "seed259", "date": "2026-04-01", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PAIN ET CANTINE ALLA 31/03", "montant": 6.4}, {"id": "seed260", "date": "2026-05-29", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 DECATHLON VITROL 005 28/05", "montant": 99.97}, {"id": "seed261", "date": "2026-05-29", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 APPLE.COM/BILL CORK  28/05", "montant": 6.0}, {"id": "seed262", "date": "2026-05-29", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 28/05", "montant": 43.9}, {"id": "seed263", "date": "2026-05-28", "categorie": "FRAIS BANCAIRE", "libelle": "Prélèvement\nPRELEVEMENT Cotisation carte 513165XXXXX3351 Fourniture d'une carte de débit\nInternational à débit immédiat", "montant": 134.0}, {"id": "seed264", "date": "2026-05-27", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 26/05", "montant": 31.12}, {"id": "seed265", "date": "2026-05-26", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SumUp *Comite de jum 23/05", "montant": 60.5}, {"id": "seed266", "date": "2026-05-26", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 DAC SARL CARREFOUR C 25/05", "montant": 44.48}, {"id": "seed267", "date": "2026-05-26", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 25/05", "montant": 18.07}, {"id": "seed268", "date": "2026-05-26", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SumUp *Comite de jum 23/05", "montant": 12.0}, {"id": "seed269", "date": "2026-05-26", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SumUp *Comite de jum 23/05", "montant": 10.5}, {"id": "seed270", "date": "2026-05-26", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 MAISON CHENAVIER LE  24/05", "montant": 8.5}, {"id": "seed271", "date": "2026-05-26", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 23/05", "montant": 8.38}, {"id": "seed272", "date": "2026-05-26", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SumUp *Comite de jum 24/05", "montant": 5.5}, {"id": "seed273", "date": "2026-05-26", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 NALEX MARSEILLE      23/05", "montant": 3.3}, {"id": "seed274", "date": "2026-05-22", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 21/05", "montant": 26.01}, {"id": "seed275", "date": "2026-05-21", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 20/05", "montant": 18.08}, {"id": "seed276", "date": "2026-05-19", "categorie": "CARBURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 STATION CALAO119 13  17/05", "montant": 37.1}, {"id": "seed277", "date": "2026-05-19", "categorie": "TELEPHONE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 Free Mobile PARIS    18/05", "montant": 72.95}, {"id": "seed278", "date": "2026-05-18", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PARC SPIROU MONTEUX  17/05", "montant": 55.6}, {"id": "seed279", "date": "2026-05-18", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 P SPIROU BILLETS MON 17/05", "montant": 19.9}, {"id": "seed280", "date": "2026-05-18", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PARC SPIROU MONTEUX  17/05", "montant": 7.5}, {"id": "seed281", "date": "2026-05-18", "categorie": "TELEPEAGE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 BORNE SORTIE BEA 84  17/05", "montant": 7.0}, {"id": "seed282", "date": "2026-05-18", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PARC SPIROU MONTEUX  17/05", "montant": 7.0}, {"id": "seed283", "date": "2026-05-18", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PARC SPIROU MONTEUX  17/05", "montant": 5.4}, {"id": "seed284", "date": "2026-05-18", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 P SPIROU BOUTIQUE MO 17/05", "montant": 4.9}, {"id": "seed285", "date": "2026-05-18", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 E.LECLERC WEB LES PE 15/05", "montant": 57.61}, {"id": "seed286", "date": "2026-05-18", "categorie": "MAISON", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 IKEA LA VALENTI MARS 16/05", "montant": 14.94}, {"id": "seed287", "date": "2026-05-18", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 16/05", "montant": 12.46}, {"id": "seed288", "date": "2026-05-18", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 16/05", "montant": 8.98}, {"id": "seed289", "date": "2026-05-18", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 LIDL3899 VITROLLES   15/05", "montant": 2.6}, {"id": "seed290", "date": "2026-05-16", "categorie": "CARBURANT", "libelle": "Virement émis\nVIREMENT EMIS WEB MME JAMET ANA", "montant": 90.0}, {"id": "seed291", "date": "2026-05-15", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 Zettle_*LATIL CATHER 14/05", "montant": 40.0}, {"id": "seed292", "date": "2026-05-15", "categorie": "ASSURANCE", "libelle": "Prélèvement\nPRELEVEMENT MATMUT ROUEN 2026051500009540020657091\nSOC980003407797NMDT01\nFR43ZZZ299936\nC 34M980003407797N 0195365W 00", "montant": 139.8}, {"id": "seed293", "date": "2026-05-15", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 FDB ALLAUCH          13/05", "montant": 17.66}, {"id": "seed294", "date": "2026-05-15", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 14/05", "montant": 9.99}, {"id": "seed295", "date": "2026-05-15", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 14/05", "montant": 7.6}, {"id": "seed296", "date": "2026-05-15", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 13/05", "montant": 5.75}, {"id": "seed297", "date": "2026-05-13", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 FLUNCH VITROLLE      12/05", "montant": 38.75}, {"id": "seed298", "date": "2026-05-13", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 12/05", "montant": 9.86}, {"id": "seed299", "date": "2026-05-12", "categorie": "CARBURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 STATION CALAO119 13  10/05", "montant": 34.53}, {"id": "seed300", "date": "2026-05-11", "categorie": "ELECTROMENAGER", "libelle": "Chèque emis\nCHEQUE EMIS 0055963", "montant": 559.5}, {"id": "seed301", "date": "2026-05-11", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 Microsoft*Subscripti 09/05", "montant": 129.0}, {"id": "seed302", "date": "2026-05-11", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 LECLERC CABRIES      08/05", "montant": 123.6}, {"id": "seed303", "date": "2026-05-11", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 MC DO VITROLLES      07/05", "montant": 32.08}, {"id": "seed304", "date": "2026-05-11", "categorie": "VETEMENTS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 CHAUSSEA 1301 VALLER 08/05", "montant": 20.0}, {"id": "seed305", "date": "2026-05-11", "categorie": "LOISIRS", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SMYTHS TOYS FR Marse 08/05", "montant": 19.99}, {"id": "seed306", "date": "2026-05-11", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 09/05", "montant": 6.82}, {"id": "seed307", "date": "2026-05-11", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 08/05", "montant": 6.35}, {"id": "seed308", "date": "2026-05-11", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 LE SAVEURS DE CA VER 09/05", "montant": 6.3}, {"id": "seed309", "date": "2026-05-11", "categorie": "VEHICULE", "libelle": "Virement émis\nVIREMENT EMIS WEB MME      JAMET ANA\nremboursement velo Pereira", "montant": 200.0}, {"id": "seed310", "date": "2026-05-10", "categorie": "RESTAURANT", "libelle": "Virement émis\nVIREMENT EMIS VIR INST vers Club Motard les Te\nsoiree fado", "montant": 50.0}, {"id": "seed311", "date": "2026-05-06", "categorie": "CANTINE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REGIE PRINCIPALE 13  05/05", "montant": 28.0}, {"id": "seed312", "date": "2026-05-06", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 REMISE DU PAYSA PLAN 05/05", "montant": 12.35}, {"id": "seed313", "date": "2026-05-06", "categorie": "INTERNET", "libelle": "Prélèvement\nPRELEVEMENT Free Telecom Free HautDebit 1471351405\n48713912\nFR83ZZZ459654\nFHD-1471351405", "montant": 108.99}, {"id": "seed314", "date": "2026-05-06", "categorie": "ENERGIE", "libelle": "Prélèvement\nPRELEVEMENT TotalEnergies Electricite et Gaz Prelevement TotalEnergies Electricite et Gaz France-Reference client 116201090\nDEMP017664945\nFR03ZZZ488157\n0116201090-202014371665", "montant": 84.0}, {"id": "seed315", "date": "2026-05-06", "categorie": "TRANSPORT", "libelle": "Prélèvement\nPRELEVEMENT RTM pass permanent prelv\nLRM---01250826135223250904093306\nFR47ZZZ407728\n9977589", "montant": 29.2}, {"id": "seed316", "date": "2026-05-06", "categorie": "SANTE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 PHARMACIE OLIVES MAR 05/05", "montant": 169.9}, {"id": "seed317", "date": "2026-05-05", "categorie": "FRAIS BANCAIRE", "libelle": "Prélèvement\nPRELEVEMENT Offre Compte à composer", "montant": 9.76}, {"id": "seed318", "date": "2026-05-04", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 LECLERC CABRIES      02/05", "montant": 77.49}, {"id": "seed319", "date": "2026-05-04", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 30/04", "montant": 27.8}, {"id": "seed320", "date": "2026-05-04", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 NALEX MARSEILLE      02/05", "montant": 9.9}, {"id": "seed321", "date": "2026-05-04", "categorie": "RESTAURANT", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 SALENA TRETS         01/05", "montant": 7.0}, {"id": "seed322", "date": "2026-05-04", "categorie": "COURSE", "libelle": "Paiement par carte\nPAIEMENT PAR CARTE X3351 INTERMARCHE MARSEILL 03/05", "montant": 2.5}, {"id": "seed323", "date": "2026-05-04", "categorie": "LOYER", "libelle": "Virement émis\nVIREMENT EMIS WEB MYPROJECT-IMMO M.OU MME JAMET OLIVIER", "montant": 1200.0}, {"id": "seed324", "date": "2026-05-01", "categorie": "MAISON", "libelle": "Prélèvement\nPRELEVEMENT FRAIS CARTE A L'ETRANGER HORS UE X3351 Cookidoo Vorwerk Home", "montant": 1.66}, {"id": "seed325", "date": "2026-06-30", "categorie": "TELEPHONE", "libelle": "Paiement par carte - X3351 Back Market Paris    30/06 - Back Market", "montant": 89.99}, {"id": "seed326", "date": "2026-06-30", "categorie": "VETEMENTS", "libelle": "Paiement par carte - X3351 BESSON MARSEILLE     29/06 - Besson", "montant": 15.0}, {"id": "seed327", "date": "2026-06-30", "categorie": "VEHICULE", "libelle": "Paiement par carte - X3351 FEU VERT MARSEILL022 29/06 - Feu Vert", "montant": 109.99}, {"id": "seed328", "date": "2026-06-30", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 INTERSPORT MARSEILLE 29/06 - Intersport", "montant": 29.98}, {"id": "seed329", "date": "2026-06-29", "categorie": "VEHICULE", "libelle": "Paiement par carte - X3351 LMW*SECURITEST Le Ma 28/06 - Auto Sécurité", "montant": 75.0}, {"id": "seed330", "date": "2026-06-29", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 APPLE.COM/BILL CORK  28/06 - Apple", "montant": 6.0}, {"id": "seed331", "date": "2026-06-29", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 M S BOULANGERIE BRUE 27/06 - M.S Boulangerie", "montant": 5.2}, {"id": "seed332", "date": "2026-06-29", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 Boulanger MARSEILLE  29/06 - Boulanger", "montant": 4.99}, {"id": "seed333", "date": "2026-06-29", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *Association M 27/06", "montant": 69.0}, {"id": "seed334", "date": "2026-06-29", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SC SECRET PORTU ST M 27/06 - Secret Du Portugal", "montant": 19.7}, {"id": "seed335", "date": "2026-06-29", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 27/06 - Intermarché", "montant": 13.83}, {"id": "seed336", "date": "2026-06-26", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 E.LECLERC WEB LES PE 25/06 - E.Leclerc", "montant": 84.75}, {"id": "seed337", "date": "2026-06-26", "categorie": "MAISON", "libelle": "Paiement par carte - X3351 AMAZON EU SARL PAYLI 25/06 - Amazon", "montant": 64.9}, {"id": "seed338", "date": "2026-06-26", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 Boulanger CABRIES    25/06 - Boulanger", "montant": 1399.0}, {"id": "seed339", "date": "2026-06-26", "categorie": "MAISON", "libelle": "Paiement par carte - X3351 AMAZON PAYMENTS PARI 24/06 - Amazon", "montant": 73.02}, {"id": "seed340", "date": "2026-06-25", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 ANTIK LA ROSE MARSEI 24/06 - Maison Cesar", "montant": 8.1}, {"id": "seed341", "date": "2026-06-25", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 24/06 - Intermarché", "montant": 28.16}, {"id": "seed342", "date": "2026-06-24", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 SumUp *Marie Nguyen  24/06", "montant": 200.0}, {"id": "seed343", "date": "2026-06-24", "categorie": "STATIONNEMENT", "libelle": "Virement émis - WEB MME JAMET ANA stationnement\nstationnement ergotherapeute", "montant": 6.0}, {"id": "seed344", "date": "2026-06-24", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 SYNEVENT MARSEILLE   23/06 - Synevent", "montant": 27.0}, {"id": "seed345", "date": "2026-06-23", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 Doctolib PARIS       17/06", "montant": 30.0}, {"id": "seed346", "date": "2026-06-22", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 NATURE ET DECOUV CAB 21/06 - Nature & Découvertes", "montant": 25.0}, {"id": "seed347", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 NORMAL CABRIES Cabri 21/06 - Normal", "montant": 24.3}, {"id": "seed348", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 ELECTRO DEPOT MARSEI 20/06 - Electro Dépôt", "montant": 19.98}, {"id": "seed349", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 ANIMALIS PLAN DE LES 21/06 - Animalis", "montant": 16.99}, {"id": "seed350", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 NOSSO MARSEILLE      20/06 - Supermercado Barato", "montant": 34.38}, {"id": "seed351", "date": "2026-06-22", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *CLOS DE TABAG 19/06", "montant": 12.0}, {"id": "seed352", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 20/06 - Hela", "montant": 11.04}, {"id": "seed353", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 PAIN ET CANTINE ALLA 20/06 - Boulangerie De Fontvieille", "montant": 10.3}, {"id": "seed354", "date": "2026-06-22", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *Artigues Sorg 19/06", "montant": 9.0}, {"id": "seed355", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 BOULANGERIE ANGE CAB 21/06 - Boulangerie Ange", "montant": 8.2}, {"id": "seed356", "date": "2026-06-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 SumUp *Ganache trait 19/06", "montant": 7.0}, {"id": "seed357", "date": "2026-06-19", "categorie": "SCOLAIRE", "libelle": "Paiement par carte - X3351 PHOTOMATON Echirolle 17/06 - Photomaton", "montant": 14.5}, {"id": "seed358", "date": "2026-06-19", "categorie": "CADEAU", "libelle": "Virement émis - VIR INST vers Clara Pinto pereir", "montant": 200.0}, {"id": "seed359", "date": "2026-06-19", "categorie": "TELEPHONE", "libelle": "Paiement par carte - X3351 Free Mobile PARIS    18/06 - Free", "montant": 72.95}, {"id": "seed360", "date": "2026-06-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 LECLERC CABRIES      18/06 - E.Leclerc", "montant": 37.12}, {"id": "seed361", "date": "2026-06-19", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 18/06 - Intermarché", "montant": 4.9}, {"id": "seed362", "date": "2026-06-18", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 MB ALLAUCH           17/06 - Marie Blachere", "montant": 13.9}, {"id": "seed363", "date": "2026-06-16", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 15/06 - Intermarché", "montant": 71.71}, {"id": "seed364", "date": "2026-06-16", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 15/06 - Hela", "montant": 5.95}, {"id": "seed365", "date": "2026-06-15", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 BUFFALO GRILL MARSEI 13/06 - Buffalo Grill", "montant": 48.45}, {"id": "seed366", "date": "2026-06-15", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 IKEA LA VALENTI MARS 13/06 - IKEA", "montant": 5.95}, {"id": "seed367", "date": "2026-06-15", "categorie": "SANTE", "libelle": "Virement émis - WEB MME JAMET ANA oosteopathe\noosteopathe", "montant": 65.0}, {"id": "seed368", "date": "2026-06-15", "categorie": "LOISIRS", "libelle": "Virement émis - WEB MME JAMET ANA support tele\nsupport tele", "montant": 36.0}, {"id": "seed369", "date": "2026-06-15", "categorie": "VEHICULE", "libelle": "Virement émis - WEB MME JAMET ANA carburant\ncarburant", "montant": 75.76}, {"id": "seed370", "date": "2026-06-15", "categorie": "ASSURANCE", "libelle": "Prélèvement - MATMUT ROUEN - Matmut - 2026061500009610020655685\nSOC980003407797NMDT01\nFR43ZZZ299936\nC 34M980003407797N 0195365W 00", "montant": 139.8}, {"id": "seed371", "date": "2026-06-15", "categorie": "MUTUELLE", "libelle": "Prélèvement - PRISTINE FIDUCIEGESTION CGRM - Pristine Sas - Periode du 01/06/2026 au 30/06/2026\n3948049C3948049-100599-1\nFR56ZZZ827BCC\n3948049 3948049-100599-1 202605", "montant": 117.43}, {"id": "seed372", "date": "2026-06-15", "categorie": "TELEPEAGE", "libelle": "Prélèvement - FULLI - mobilis - Fulli - FULLI PEAGE/Contrat 250092814405/REF: 92603838530 250092814405/00SIT00000I9499041/1986-07-17\n00SIT00000I9499041\nFR59ZZZ816C07\nREF: 92603838530 250092814405", "montant": 4.5}, {"id": "seed373", "date": "2026-06-15", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 12/06 - Intermarché", "montant": 28.18}, {"id": "seed374", "date": "2026-06-12", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 RYANAIR 1TW0 K67X452 10/06 - Ryanair", "montant": 367.74}, {"id": "seed375", "date": "2026-06-12", "categorie": "TELEPHONE", "libelle": "Paiement par carte - X3351 SumUp *Bastien Infot 12/06", "montant": 119.36}, {"id": "seed376", "date": "2026-06-12", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 SYNEVENT MARSEILLE   11/06 - Synevent", "montant": 17.0}, {"id": "seed377", "date": "2026-06-11", "categorie": "VEHICULE", "libelle": "Paiement par carte - X3351 FEU VERT ECULLY      09/06 - Feu Vert", "montant": 222.42}, {"id": "seed378", "date": "2026-06-11", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 SOFIA MARSEILLE      10/06 - Sas Sofia", "montant": 6.5}, {"id": "seed379", "date": "2026-06-11", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 10/06 - Intermarché", "montant": 17.83}, {"id": "seed380", "date": "2026-06-10", "categorie": "INTERNET", "libelle": "Paiement par carte - X3351 SumUp *Bastien Infot 10/06", "montant": 50.0}, {"id": "seed381", "date": "2026-06-10", "categorie": "VEHICULE", "libelle": "Virement émis - WEB MME      JAMET ANA\nremboursement velo Pereira", "montant": 200.0}, {"id": "seed382", "date": "2026-06-09", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 08/06 - Intermarché", "montant": 1.75}, {"id": "seed383", "date": "2026-06-08", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 NALEX MARSEILLE      07/06 - Nalex", "montant": 3.3}, {"id": "seed384", "date": "2026-06-08", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 06/06 - Intermarché", "montant": 80.04}, {"id": "seed385", "date": "2026-06-08", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 05/06 - Intermarché", "montant": 17.96}, {"id": "seed386", "date": "2026-06-08", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *CLUB MOTARD L 06/06", "montant": 5.0}, {"id": "seed387", "date": "2026-06-08", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *CLUB MOTARD L 06/06", "montant": 3.5}, {"id": "seed388", "date": "2026-06-08", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 BOULANGERIE ANGE LA  05/06 - Boulangerie Ange", "montant": 3.3}, {"id": "seed389", "date": "2026-06-08", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 06/06 - Hela", "montant": 2.98}, {"id": "seed390", "date": "2026-06-05", "categorie": "SCOLAIRE", "libelle": "Paiement par carte - X3351 REGIE PRINCIPALE 13  04/06 - Commune D Allauch", "montant": 31.5}, {"id": "seed391", "date": "2026-06-05", "categorie": "INTERNET", "libelle": "Prélèvement - Free Telecom - Free - Free HautDebit 1478882361\n48713912\nFR83ZZZ459654\nFHD-1478882361", "montant": 59.99}, {"id": "seed392", "date": "2026-06-05", "categorie": "TRANSPORT", "libelle": "Prélèvement - RTM pass permanent prelv - RTM\nLRM---01250826135223250904093306\nFR47ZZZ407728\n10059183", "montant": 29.2}, {"id": "seed393", "date": "2026-06-04", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 PHARMACIE DESMOULINS 03/06 - Pharmacie Desmoulins Depieds", "montant": 13.25}, {"id": "seed394", "date": "2026-06-04", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 PHARMACIE DESMOULINS 03/06 - Pharmacie Desmoulins Depieds", "montant": 13.25}, {"id": "seed395", "date": "2026-06-04", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 OUMNIA BOUNAB MARSEI 03/06", "montant": 9.0}, {"id": "seed396", "date": "2026-06-04", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 OUMNIA BOUNAB MARSEI 03/06", "montant": 9.0}, {"id": "seed397", "date": "2026-06-04", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 FDB ALLAUCH          03/06 - Fdb", "montant": 27.5}, {"id": "seed398", "date": "2026-06-04", "categorie": "FRAIS BANCAIRE", "libelle": "Prélèvement - Offre Compte à composer", "montant": 9.76}, {"id": "seed399", "date": "2026-06-03", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 PHARMACIE OLIVES MAR 02/06 - Pharmacie Des Olives", "montant": 169.9}, {"id": "seed400", "date": "2026-06-03", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 02/06 - Intermarché", "montant": 58.48}, {"id": "seed401", "date": "2026-06-03", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 02/06 - Hela", "montant": 10.82}, {"id": "seed402", "date": "2026-06-02", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 01/06 - Intermarché", "montant": 7.0}, {"id": "seed403", "date": "2026-06-02", "categorie": "LOYER", "libelle": "Virement émis - WEB MYPROJECT-IMMO - M.OU MME JAMET OLIVIER", "montant": 1200.0}, {"id": "seed404", "date": "2026-06-01", "categorie": "ESPECE", "libelle": "Retrait au distributeur - X3351 U EXPRESS ALLAUCH    31/05 - U Express", "montant": 20.0}, {"id": "seed405", "date": "2026-06-01", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 UBER *ONE MEMBERSHI  31/05 - Uber", "montant": 5.99}, {"id": "seed406", "date": "2026-06-01", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 RTB V1 NICE          29/05 - Rtb V1", "montant": 47.2}, {"id": "seed407", "date": "2026-06-01", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 FDB ALLAUCH          30/05 - Fdb", "montant": 18.97}, {"id": "seed408", "date": "2026-06-01", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE GINA GIN 30/05 - Intermarché", "montant": 11.86}, {"id": "seed409", "date": "2026-07-31", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 PAIN ET CANTINE ALLA 30/07 - Boulangerie De Fontvieille", "montant": 6.8}, {"id": "seed410", "date": "2026-07-30", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 OUMNIA BOUNAB MARSEI 29/07", "montant": 9.0}, {"id": "seed411", "date": "2026-07-30", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 29/07 - Intermarché", "montant": 14.2}, {"id": "seed412", "date": "2026-07-29", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 PHARMACIE OLIVES MAR 28/07 - Pharmacie Des Olives", "montant": 147.93}, {"id": "seed413", "date": "2026-07-29", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 APPLE.COM/BILL CORK  28/07 - Apple", "montant": 6.0}, {"id": "seed414", "date": "2026-07-28", "categorie": "CANTINE", "libelle": "Paiement par carte - X3351 REGIE PRINCIPALE 13  27/07 - Commune D Allauch", "montant": 63.0}, {"id": "seed415", "date": "2026-07-28", "categorie": "ELECTROMENAGER", "libelle": "Paiement par carte - X3351 AMAZON EU SARL PAYLI 26/07 - Amazon", "montant": 544.9}, {"id": "seed416", "date": "2026-07-28", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 27/07 - Intermarché", "montant": 5.62}, {"id": "seed417", "date": "2026-07-27", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AUCHAN HYP 274 MARSE 25/07 - Auchan", "montant": 56.48}, {"id": "seed418", "date": "2026-07-27", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 FOURNEE ROGNAC       26/07 - La Fournee De Rognac", "montant": 12.0}, {"id": "seed419", "date": "2026-07-27", "categorie": "MAISON", "libelle": "Paiement par carte - X3351 IKEA LA VALENTI MARS 25/07 - IKEA", "montant": 15.95}, {"id": "seed420", "date": "2026-07-27", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 25/07 - Intermarché", "montant": 9.3}, {"id": "seed421", "date": "2026-07-24", "categorie": "PERMIS PALOMA", "libelle": "Paiement par carte - X3351 NOUVELLE CONDUIT MAR 23/07", "montant": 1000.0}, {"id": "seed422", "date": "2026-07-23", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 NOSSO MARSEILLE      22/07 - Supermercado Barato", "montant": 82.16}, {"id": "seed423", "date": "2026-07-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 21/07 - Intermarché", "montant": 92.14}, {"id": "seed424", "date": "2026-07-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 MAISON CESAR VITROLL 21/07 - Maison Cesar", "montant": 10.8}, {"id": "seed425", "date": "2026-07-22", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 21/07 - Hela", "montant": 4.64}, {"id": "seed426", "date": "2026-07-21", "categorie": "TELEPHONE", "libelle": "Paiement par carte - X3351 Free Mobile PARIS    20/07 - Free", "montant": 72.95}, {"id": "seed427", "date": "2026-07-21", "categorie": "ESPECE", "libelle": "Retrait au distributeur - X3351 PORT DE BOUC   20/07 12H20 - Carrefour", "montant": 40.0}, {"id": "seed428", "date": "2026-07-21", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 20/07 - Intermarché", "montant": 13.39}, {"id": "seed429", "date": "2026-07-21", "categorie": "TRAVAUX", "libelle": "Paiement par carte - X3351 CHALET BR SS CO MARS 20/07", "montant": 4.19}, {"id": "seed430", "date": "2026-07-20", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 18/07 - Intermarché", "montant": 51.23}, {"id": "seed431", "date": "2026-07-20", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 Pharma Vitrolle VITR 17/07 - Pharmacie Du Grand Vitrolles", "montant": 26.0}, {"id": "seed432", "date": "2026-07-20", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 BAUMA & CO ALLAUCH   18/07 - Bauma & Co", "montant": 8.6}, {"id": "seed433", "date": "2026-07-17", "categorie": "CARBURANT", "libelle": "Virement émis - WEB MME JAMET ANA carburant\ncarburant", "montant": 80.19}, {"id": "seed434", "date": "2026-07-17", "categorie": "VEHICULE", "libelle": "Paiement par carte - X3351 A.B.O. MARSEILLE     16/07 - Auto Bilan Des Olives", "montant": 10.0}, {"id": "seed435", "date": "2026-07-16", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 CARREFOUR ALLAUCH    15/07 - Carrefour", "montant": 4.5}, {"id": "seed436", "date": "2026-07-15", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *Goodmama Brun 14/07", "montant": 34.0}, {"id": "seed437", "date": "2026-07-15", "categorie": "ESPECE", "libelle": "Retrait au distributeur - X3351 EXT ALLAUCH LA 13/07 10H18 - La Banque Postale", "montant": 20.0}, {"id": "seed438", "date": "2026-07-15", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 SumUp *Goodmama Brun 14/07", "montant": 8.0}, {"id": "seed439", "date": "2026-07-15", "categorie": "ASSURANCE", "libelle": "Prélèvement - MATMUT ROUEN - Matmut - 2026071500009670020656488\nSOC980003407797NMDT01\nFR43ZZZ299936\nC 34M980003407797N 0195365W 00", "montant": 139.8}, {"id": "seed440", "date": "2026-07-15", "categorie": "MUTUELLE", "libelle": "Prélèvement - PRISTINE FIDUCIEGESTION CGRM - Pristine Sas - Periode du 01/07/2026 au 31/07/2026\n3948049C3948049-100599-1\nFR56ZZZ827BCC\n3948049 3948049-100599-1 202606", "montant": 60.38}, {"id": "seed441", "date": "2026-07-15", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 INTERSPORT MARSEILLE 13/07 - Intersport", "montant": 47.63}, {"id": "seed442", "date": "2026-07-15", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 14/07 - Intermarché", "montant": 35.26}, {"id": "seed443", "date": "2026-07-15", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 REMISE DU PAYSA PLAN 13/07 - Hela", "montant": 11.87}, {"id": "seed444", "date": "2026-07-13", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 FOURNIL DU PRADO MAR 10/07 - Le Fournil Du Prado", "montant": 6.9}, {"id": "seed445", "date": "2026-07-13", "categorie": "CADEAU", "libelle": "Virement émis - WEB MME JAMET ANA remboursement - meuble Paolo\nremboursement espece", "montant": 5.0}, {"id": "seed446", "date": "2026-07-13", "categorie": "VEHICULE", "libelle": "Virement émis - WEB MME JAMET ANA oscaro\noscaro", "montant": 121.86}, {"id": "seed447", "date": "2026-07-13", "categorie": "CARBURANT", "libelle": "Virement émis - WEB MME JAMET ANA carburant\ncarburant", "montant": 80.86}, {"id": "seed448", "date": "2026-07-13", "categorie": "CONSEIL", "libelle": "Paiement par carte - X3351 CMAR PACA MRS PR MAR 10/07 - Delegation Des Bdr - Agence De Marseille", "montant": 84.0}, {"id": "seed449", "date": "2026-07-13", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 DU THYM A L AIL BAND 11/07 - Du Thym A L'Ail", "montant": 66.8}, {"id": "seed450", "date": "2026-07-13", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 12/07 - Intermarché", "montant": 30.06}, {"id": "seed451", "date": "2026-07-13", "categorie": "CADEAU", "libelle": "Paiement par carte - X3351 LEROY MERLIN MARSEIL 11/07 - Leroy Merlin", "montant": 19.9}, {"id": "seed452", "date": "2026-07-13", "categorie": "MAISON", "libelle": "Paiement par carte - X3351 IKEA LA VALENTI MARS 11/07 - IKEA", "montant": 13.96}, {"id": "seed453", "date": "2026-07-13", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 SumUp *CLUB TAURIN D 10/07", "montant": 10.0}, {"id": "seed454", "date": "2026-07-13", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 SumUp *CLUB TAURIN D 10/07", "montant": 8.0}, {"id": "seed455", "date": "2026-07-13", "categorie": "LOISIRS", "libelle": "Paiement par carte - X3351 SumUp *CLUB TAURIN D 10/07", "montant": 7.5}, {"id": "seed456", "date": "2026-07-13", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 12/07 - Intermarché", "montant": 5.57}, {"id": "seed457", "date": "2026-07-10", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 A L G DISTRIBUTI MAR 09/07", "montant": 0.5}, {"id": "seed458", "date": "2026-07-09", "categorie": "TRAVAUX", "libelle": "Paiement par carte - X3351 CHALET BR SS CO MARS 08/07", "montant": 102.7}, {"id": "seed459", "date": "2026-07-09", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 08/07 - Intermarché", "montant": 34.56}, {"id": "seed460", "date": "2026-07-08", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 QUICK ST VICTORET    07/07 - Quick", "montant": 33.5}, {"id": "seed461", "date": "2026-07-07", "categorie": "VEHICULE", "libelle": "Paiement par carte - X3351 CARTER-CASH MARSEILL 06/07 - Carter-Cash", "montant": 207.6}, {"id": "seed462", "date": "2026-07-07", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 UBER *ONE MEMBERSHI  06/07 - Uber", "montant": 5.99}, {"id": "seed463", "date": "2026-07-07", "categorie": "TRANSPORT", "libelle": "Prélèvement - RTM pass permanent prelv - RTM\nLRM---01250826135223250904093306\nFR47ZZZ407728\n10140784", "montant": 29.2}, {"id": "seed464", "date": "2026-07-07", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 INTERMARCHE MARSEILL 06/07 - Intermarché", "montant": 17.24}, {"id": "seed465", "date": "2026-07-07", "categorie": "FRAIS BANCAIRE", "libelle": "Frais - Intérets débiteurs - Période :  2 TRIM 26 TAEG=19,92%", "montant": 6.85}, {"id": "seed466", "date": "2026-07-06", "categorie": "ENERGIE", "libelle": "Prélèvement - TotalEnergies Electricite et Gaz - TotalEnergies Electricité et Gaz - Prelevement TotalEnergies Electricite et Gaz France-Reference client 116201090\nDEMP017664945\nFR03ZZZ488157\n0116201090-215014326250", "montant": 88.0}, {"id": "seed467", "date": "2026-07-06", "categorie": "INTERNET", "libelle": "Prélèvement - Free Telecom - Free - Free HautDebit 1486370650\n48713912\nFR83ZZZ459654\nFHD-1486370650", "montant": 59.99}, {"id": "seed468", "date": "2026-07-06", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 NOSSO MARSEILLE      03/07 - Supermercado Barato", "montant": 20.12}, {"id": "seed469", "date": "2026-07-06", "categorie": "ESPECE", "libelle": "Retrait au distributeur - X3351 ALLAUCH        04/07 10H37 - Crédit Agricole", "montant": 20.0}, {"id": "seed470", "date": "2026-07-06", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 A L G DISTRIBUTI MAR 03/07", "montant": 1.2}, {"id": "seed471", "date": "2026-07-06", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 A L G DISTRIBUTI MAR 03/07", "montant": 0.5}, {"id": "seed472", "date": "2026-07-06", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 A L G DISTRIBUTI MAR 03/07", "montant": 0.5}, {"id": "seed473", "date": "2026-07-06", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 A L G DISTRIBUTI MAR 03/07", "montant": 0.5}, {"id": "seed474", "date": "2026-07-06", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 A L G DISTRIBUTI MAR 03/07", "montant": 0.5}, {"id": "seed475", "date": "2026-07-04", "categorie": "CADEAU", "libelle": "Virement émis - WEB paloma PINTO PEREIRA coque P\ncoque Paolo", "montant": 22.0}, {"id": "seed476", "date": "2026-07-04", "categorie": "FRAIS BANCAIRE", "libelle": "Prélèvement - Offre Compte à composer", "montant": 10.36}, {"id": "seed477", "date": "2026-07-03", "categorie": "COURSE", "libelle": "Paiement par carte - X3351 AUCHAN HYP 274 MARSE 02/07 - Auchan", "montant": 105.88}, {"id": "seed478", "date": "2026-07-03", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 PHARMACIE DESMOULINS 02/07 - Pharmacie Desmoulins Depieds", "montant": 79.96}, {"id": "seed479", "date": "2026-07-03", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 QTO*EI - FRANCESCHI  02/07", "montant": 80.0}, {"id": "seed480", "date": "2026-07-02", "categorie": "RESTAURANT", "libelle": "Paiement par carte - X3351 NALEX MARSEILLE      01/07 - Nalex", "montant": 3.3}, {"id": "seed481", "date": "2026-07-02", "categorie": "LOYER", "libelle": "Virement émis - WEB MYPROJECT-IMMO - M.OU MME JAMET OLIVIER", "montant": 1200.0}, {"id": "seed482", "date": "2026-07-01", "categorie": "SANTE", "libelle": "Paiement par carte - X3351 PHARMACIE OLIVES MAR 30/06 - Pharmacie Des Olives", "montant": 170.82}, {"id": "seed483", "date": "2026-07-01", "categorie": "COURSE", "libelle": "Chèque emis - 9306521", "montant": 10.0}], "incomeCategories": ["CAF", "MUTUELLE", "REMBOURSEMENT", "AUTRE"], "incomeRules": [{"motcle": "CAF", "categorie": "CAF"}, {"motcle": "CGRM", "categorie": "MUTUELLE"}, {"motcle": "MUTUELLE", "categorie": "MUTUELLE"}, {"motcle": "CPAM", "categorie": "MUTUELLE"}, {"motcle": "CPMS", "categorie": "MUTUELLE"}, {"motcle": "SECURITE SOCIAL", "categorie": "MUTUELLE"}, {"motcle": "RBRS", "categorie": "REMBOURSEMENT"}, {"motcle": "REMBOURS", "categorie": "REMBOURSEMENT"}, {"motcle": "AVOIR", "categorie": "REMBOURSEMENT"}, {"motcle": "TOTALENERGIES", "categorie": "REMBOURSEMENT"}, {"motcle": "SOGEC", "categorie": "REMBOURSEMENT"}], "incomes": [{"id": "seedinc0", "date": "2026-07-24", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - SAS CGRM 3948049 CGRM 2026-07-08 - 08072026-3948049\n3948049 CGRM 2026-07-08 PR 1", "montant": 18.0}, {"id": "seedinc1", "date": "2026-07-15", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - SAS CGRM 3948049 CGRM 2026-06-26 - 26062026-3948049\n3948049 CGRM 2026-06-26 PR 1", "montant": 14.26}, {"id": "seedinc2", "date": "2026-07-07", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPAM 131 MARSEILLE 261870017734 - 261870017734\n261870017734", "montant": 40.0}, {"id": "seedinc3", "date": "2026-07-06", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 82226933V16 - 2626652CJAMET       062026ME\n82226933V16", "montant": 152.25}, {"id": "seedinc4", "date": "2026-07-02", "categorie": "REMBOURSEMENT", "libelle": "Virement en votre faveur - SOGEC GESTION T-2607010066.GE61. - SOGEC T -4701861916 GE61 VORWERK REPRISE THERMOMIX 2026\nT-2607010066.GE61.VIRT000161", "montant": 250.0}, {"id": "seedinc5", "date": "2026-06-25", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPAM 131 MARSEILLE 261750018219 - 261750018219\n261750018219", "montant": 10.15}, {"id": "seedinc6", "date": "2026-06-16", "categorie": "AUTRE", "libelle": "Virement en votre faveur - VIR INST de MR JAMET JEAN-LUC", "montant": 360.0}, {"id": "seedinc7", "date": "2026-06-05", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 81766140V16 - 2626652CJAMET       052026ME\n81766140V16", "montant": 152.25}, {"id": "seedinc8", "date": "2026-05-29", "categorie": "REMBOURSEMENT", "libelle": "Virement en votre faveur - TOTALENERGIES ELECTRICITE 011620 - VIREMENT TOTALENERGIES ELECTRICITE ET GAZ FRANCE-REFERENCE CLIENT 116201090\n0116201090-224004334912", "montant": 123.58}, {"id": "seedinc9", "date": "2026-05-05", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 81314355V16 - 2626652CJAMET       042026ME\n81314355V16", "montant": 152.25}, {"id": "seedinc10", "date": "2026-04-08", "categorie": "AUTRE", "libelle": "Régul opé débitrices - Franchise intérets débiteurs - Offre compte à composer", "montant": 0.23}, {"id": "seedinc11", "date": "2026-04-07", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 80845074V16 - 2626652CJAMET       032026ME\n80845074V16", "montant": 151.05}, {"id": "seedinc12", "date": "2026-03-12", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPMS VIR/2026-03-11T15:05:02-112 - COMPLEMENT SECURITE SOCIAL\nVIR/2026-03-11T15:05:02-1120/1504", "montant": 18.0}, {"id": "seedinc13", "date": "2026-03-11", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPAM 131 MARSEILLE 260690019608 - 260690019608\n260690019608", "montant": 30.91}, {"id": "seedinc14", "date": "2026-03-05", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 80370426V16 - 2626652CJAMET       022026ME\n80370426V16", "montant": 151.05}, {"id": "seedinc15", "date": "2026-03-04", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPMS VIR/2026-03-03T17:07:36-809 - COMPLEMENT SECURITE SOCIAL\nVIR/2026-03-03T17:07:36-809/1095", "montant": 9.0}, {"id": "seedinc16", "date": "2026-03-02", "categorie": "REMBOURSEMENT", "libelle": "Avoir - CARTE X3351 AMAZON PAYMENT 01/03 - Amazon", "montant": 63.3}, {"id": "seedinc17", "date": "2026-02-27", "categorie": "AUTRE", "libelle": "Virement en votre faveur - VIR INST de LEGLUAIS BENOIT - Virement avec Fortuneo JAMET OL", "montant": 100.0}, {"id": "seedinc18", "date": "2026-02-26", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPMS VIR/2026-02-25T15:16:16-105 - COMPLEMENT SECURITE SOCIAL\nVIR/2026-02-25T15:16:16-1050/1394", "montant": 10.5}, {"id": "seedinc19", "date": "2026-02-24", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPMS VIR/2026-02-20T14:47:13-912 - COMPLEMENT SECURITE SOCIAL\nVIR/2026-02-20T14:47:13-912/1223", "montant": 7.5}, {"id": "seedinc20", "date": "2026-02-23", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - MUTUELLE MIP L'ENTREPRISE SANTE - 7MCN3 016 - 1319485Y JAMET Olivier - remboursement Sante MIP\n7MCN3 016", "montant": 322.5}, {"id": "seedinc21", "date": "2026-02-19", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - CPMS VIR/2026-02-18T14:45:09-116 - COMPLEMENT SECURITE SOCIAL\nVIR/2026-02-18T14:45:09-1166/1556", "montant": 17.13}, {"id": "seedinc22", "date": "2026-02-14", "categorie": "REMBOURSEMENT", "libelle": "Virement en votre faveur - rbrs Ubers MME      JAMET ANA\nrbrs Ubers", "montant": 80.0}, {"id": "seedinc23", "date": "2026-02-08", "categorie": "REMBOURSEMENT", "libelle": "Virement en votre faveur - rbrs amazon MME      JAMET ANA\nrbrs amazon", "montant": 66.65}, {"id": "seedinc24", "date": "2026-02-05", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 79917019V16 - 2626652CJAMET       012026ME\n79917019V16", "montant": 151.05}, {"id": "seedinc25", "date": "2026-02-05", "categorie": "MUTUELLE", "libelle": "Virement en votre faveur - MUTUELLE MIP L'ENTREPRISE SANTE - 7LR7P 008 - 1319485Y JAMET Olivier - remboursement Sante MIP\n7LR7P 008", "montant": 13.94}, {"id": "seedinc26", "date": "2026-01-25", "categorie": "AUTRE", "libelle": "Virement en votre faveur - anniverdaire paolo MR OU MME PER\nanniverdaire paolo", "montant": 50.0}, {"id": "seedinc27", "date": "2026-01-21", "categorie": "AUTRE", "libelle": "Virement en votre faveur - VIR INST de MR JAMET JEAN-LUC - anniversaire paolo", "montant": 50.0}, {"id": "seedinc28", "date": "2026-01-21", "categorie": "REMBOURSEMENT", "libelle": "Virement en votre faveur - rbrs repas MME      JAMET ANA\nrbrs repas", "montant": 22.9}, {"id": "seedinc29", "date": "2026-01-18", "categorie": "REMBOURSEMENT", "libelle": "Virement en votre faveur - rbrs commande jolimoi MR OU MME\nrbrs commande jolimoi", "montant": 100.2}, {"id": "seedinc30", "date": "2026-01-09", "categorie": "AUTRE", "libelle": "Régul opé débitrices - Franchise intérets débiteurs - Offre compte à composer", "montant": 9.77}, {"id": "seedinc31", "date": "2026-01-05", "categorie": "CAF", "libelle": "Virement en votre faveur - CAF BOUCHES DU RHONE 79442424V16 - 2626652CJAMET       122025ME\n79442424V16", "montant": 151.05}], "contributionRules": [{"motcle": "JAMET OLIVIER", "personne": "Olivier"}, {"motcle": "JAMET ANA", "personne": "Ana Paula"}], "contributions": [{"id": "seedcon0", "date": "2026-07-28", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1500.0}, {"id": "seedcon1", "date": "2026-07-11", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 2000.0}, {"id": "seedcon2", "date": "2026-07-08", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1300.0}, {"id": "seedcon3", "date": "2026-07-01", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1800.0}, {"id": "seedcon4", "date": "2026-06-12", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1600.0}, {"id": "seedcon5", "date": "2026-06-12", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 2000.0}, {"id": "seedcon6", "date": "2026-06-10", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 200.0}, {"id": "seedcon7", "date": "2026-06-02", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 800.0}, {"id": "seedcon8", "date": "2026-05-15", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 1000.0}, {"id": "seedcon9", "date": "2026-05-11", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 1300.0}, {"id": "seedcon10", "date": "2026-05-07", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 250.0}, {"id": "seedcon11", "date": "2026-04-30", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1700.0}, {"id": "seedcon12", "date": "2026-04-11", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 1000.0}, {"id": "seedcon13", "date": "2026-04-02", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 2000.0}, {"id": "seedcon14", "date": "2026-04-02", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1800.0}, {"id": "seedcon15", "date": "2026-03-18", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 397.0}, {"id": "seedcon16", "date": "2026-03-03", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 1700.0}, {"id": "seedcon17", "date": "2026-02-26", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1800.0}, {"id": "seedcon18", "date": "2026-02-20", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1000.0}, {"id": "seedcon19", "date": "2026-02-14", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 66.65}, {"id": "seedcon20", "date": "2026-02-07", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 300.0}, {"id": "seedcon21", "date": "2026-02-03", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1700.0}, {"id": "seedcon22", "date": "2026-01-29", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 1500.0}, {"id": "seedcon23", "date": "2026-01-07", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 1000.0}, {"id": "seedcon24", "date": "2026-01-03", "personne": "Olivier", "libelle": "Virement en votre faveur - DE M.       JAMET OLIVIER", "montant": 1400.0}, {"id": "seedcon25", "date": "2026-01-03", "personne": "Ana Paula", "libelle": "Virement en votre faveur - DE MME      JAMET ANA", "montant": 300.0}, {"id": "seedcon26", "date": "2026-03-13", "personne": "Olivier", "libelle": "Virement en votre faveur - VIR INST de M2T NETTOYAGE - Remboursement carburant", "montant": 20.22}, {"id": "seedcon27", "date": "2026-03-13", "personne": "Olivier", "libelle": "Virement en votre faveur - VIR INST de M2T NETTOYAGE - Remboursement repas", "montant": 20.78}], "startingBalances": {"Olivier": 2945.58, "Ana Paula": -1685.81}};
+
+const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const STORAGE_KEY = "budgetEnveloppesJametV1";
+
+function normalize(s){
+  return (s||"").toString().toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+}
+
+const SCHEMA_VERSION = 3; // v2 = entrées d'argent + compte commun ; v3 = solde de départ
+
+function withDefaults(s){
+  const clone = (v)=> JSON.parse(JSON.stringify(v));
+  // Migration one-shot : une sauvegarde locale faite avant (ou pendant un bug de) l'ajout
+  // des entrées d'argent / du compte commun peut avoir ces champs manquants OU déjà
+  // enregistrés vides. Tant que la sauvegarde n'a pas le tampon de version actuel, on
+  // récupère les vraies données du fichier (SEED_DATA) pour les champs vides — sans jamais
+  // toucher aux dépenses/catégories/règles déjà saisies par l'utilisatrice.
+  const needsMigration = !s.__schemaVersion || s.__schemaVersion < SCHEMA_VERSION;
+  const fillFromSeed = (field, fallback) => {
+    if(needsMigration && (!s[field] || s[field].length===0)) s[field] = clone(SEED_DATA[field] || fallback);
+    else if(!s[field]) s[field] = clone(fallback);
+  };
+  fillFromSeed('incomes', []);
+  fillFromSeed('incomeCategories', ["CAF","MUTUELLE","REMBOURSEMENT","AUTRE"]);
+  fillFromSeed('incomeRules', []);
+  fillFromSeed('contributions', []);
+  fillFromSeed('contributionRules', []);
+  if(!s.startingBalances || Object.keys(s.startingBalances).length===0) s.startingBalances = clone(SEED_DATA.startingBalances || {"Olivier":0,"Ana Paula":0});
+  s.__schemaVersion = SCHEMA_VERSION;
+  return s;
+}
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{ return withDefaults(JSON.parse(raw)); }catch(e){ /* fallthrough */ }
+  }
+  return withDefaults(JSON.parse(JSON.stringify(SEED_DATA)));
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+
+let state = loadState();
+saveState(); // verrouille immédiatement une éventuelle migration de données
+let currentView = "dashboard";
+let dashDate = new Date();
+let dashYear = dashDate.getFullYear();
+let dashMonth = dashDate.getMonth(); // 0-indexed
+// If no data exists at all for this year, fall back to the latest year with data, else keep current.
+(function initPeriod(){
+  const years = new Set(state.transactions.map(t=>t.date.slice(0,4)));
+  if(years.size && !years.has(String(dashYear))){
+    dashYear = Math.max(...Array.from(years).map(Number));
+  }
+})();
+let recapYear = dashYear;
+let dashSort = "ordre";
+
+function fmtEUR(n){
+  return (Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + " €";
+}
+function monthKey(y,m){ return y + "-" + String(m+1).padStart(2,"0"); }
+
+function txForMonth(y,m){
+  const key = monthKey(y,m);
+  return state.transactions.filter(t=>t.date.slice(0,7)===key);
+}
+function spentByCategory(txList){
+  const map = {};
+  txList.forEach(t=>{ map[t.categorie] = (map[t.categorie]||0) + t.montant; });
+  return map;
+}
+
+/* Enveloppe annuelle : le budget annuel complet (budget mensuel x 12) est
+   disponible dès le 1er janvier de l'année. Le solde affiché pour un mois donné
+   est ce budget annuel, moins tout ce qui a été dépensé depuis janvier (mois
+   cible inclus). Il baisse quand on dépasse la référence mensuelle, il monte
+   (ou baisse moins vite) quand on reste en-dessous. L'enveloppe repart à zéro
+   au 1er janvier de chaque année. */
+function effectiveBudgetsForMonth(year, month){
+  const targetYM = monthKey(year, month);
+  const yearStr = String(year);
+  const result = {};
+  state.categories.forEach(c=>{
+    const annualBudget = c.budget * 12;
+    let spentBefore = 0, spentThisMonth = 0;
+    state.transactions.forEach(t=>{
+      if(t.categorie !== c.nom) return;
+      if(t.date.slice(0,4) !== yearStr) return;
+      const tym = t.date.slice(0,7);
+      if(tym === targetYM) spentThisMonth += t.montant;
+      else if(tym < targetYM) spentBefore += t.montant;
+    });
+    const carryIn = annualBudget - spentBefore; // solde annuel disponible au 1er du mois
+    const restant = carryIn - spentThisMonth;   // solde annuel après ce mois-ci
+    result[c.nom] = { budgetBase:c.budget, effective:carryIn, spent:spentThisMonth, restant, carryIn };
+  });
+  return result;
+}
+
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>el.classList.remove("show"), 2200);
+}
+
+/* ---------- NAV ---------- */
+document.querySelectorAll(".nav-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    currentView = btn.dataset.view;
+    document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b===btn));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("view-"+currentView).classList.add("active");
+    renderCurrentView();
+  });
+});
+document.querySelector('.nav-btn[data-view="dashboard"]').classList.add("active");
+document.getElementById("view-dashboard").classList.add("active");
+
+function renderCurrentView(){
+  if(currentView==="dashboard") renderDashboard();
+  else if(currentView==="ajouter") renderAjouter();
+  else if(currentView==="historique") renderHistorique();
+  else if(currentView==="enveloppes") renderEnveloppes();
+  else if(currentView==="recap") renderRecap();
+  else if(currentView==="entrees") renderEntrees();
+  else if(currentView==="commun") renderCommun();
+  else if(currentView==="regles") renderRegles();
+}
+
+/* ---------- DASHBOARD ---------- */
+let donutChart = null;
+
+function fillPeriodSelectors(){
+  const monthSel = document.getElementById("dash-month");
+  monthSel.innerHTML = MOIS_FR.map((m,i)=>`<option value="${i}">${m}</option>`).join("");
+  monthSel.value = dashMonth;
+  const yearSel = document.getElementById("dash-year");
+  const years = new Set(state.transactions.map(t=>Number(t.date.slice(0,4))));
+  years.add(dashYear);
+  const yearsArr = Array.from(years).sort();
+  yearSel.innerHTML = yearsArr.map(y=>`<option value="${y}">${y}</option>`).join("");
+  yearSel.value = dashYear;
+}
+
+function renderDashboard(){
+  fillPeriodSelectors();
+  const eff = effectiveBudgetsForMonth(dashYear, dashMonth);
+  // "Budget du mois" = référence fixe (somme des budgets de base, ne varie jamais avec le report)
+  const totalBudgetRef = state.categories.reduce((s,c)=>s+c.budget,0);
+  const totalSpent = state.categories.reduce((s,c)=>s+(eff[c.nom]?eff[c.nom].spent:0),0);
+  // "Solde de l'enveloppe annuelle" = pot cumulé (baisse si dépassement, monte si non dépensé)
+  const totalSolde = state.categories.reduce((s,c)=>s+(eff[c.nom]?eff[c.nom].restant:c.budget),0);
+  const pctUsed = totalBudgetRef>0 ? (totalSpent/totalBudgetRef*100) : 0;
+  const nbTx = txForMonth(dashYear, dashMonth).length;
+
+  const kpis = document.getElementById("dash-kpis");
+  kpis.innerHTML = `
+    <div class="kpi"><div class="label">Budget du mois (référence)</div><div class="value">${fmtEUR(totalBudgetRef)}</div><div class="hint">fixe, ne change jamais</div></div>
+    <div class="kpi"><div class="label">Dépensé</div><div class="value">${fmtEUR(totalSpent)}</div><div class="hint">${pctUsed.toFixed(0)}% du budget de référence</div></div>
+    <div class="kpi"><div class="label">Solde de l'enveloppe annuelle</div><div class="value ${totalSolde<0?'bad':'good'}">${fmtEUR(totalSolde)}</div><div class="hint">cumulé depuis janvier</div></div>
+    <div class="kpi"><div class="label">Dépenses saisies</div><div class="value">${nbTx}</div><div class="hint">ce mois-ci</div></div>
+  `;
+
+  const over = state.categories.filter(c=> eff[c.nom] && eff[c.nom].restant < 0);
+  const alertEl = document.getElementById("dash-alert");
+  if(over.length){
+    const items = over.sort((a,b)=> eff[a.nom].restant - eff[b.nom].restant)
+      .map(c=>`<b>${c.nom}</b> (${fmtEUR(eff[c.nom].restant)})`).join(", ");
+    alertEl.innerHTML = `<div class="alert">⚠️ ${over.length} enveloppe${over.length>1?'s':''} annuelle${over.length>1?'s':''} dans le rouge : ${items}</div>`;
+  } else if(nbTx>0){
+    alertEl.innerHTML = `<div class="alert ok">✅ Aucune enveloppe dans le rouge, bien joué.</div>`;
+  } else {
+    alertEl.innerHTML = "";
+  }
+
+  renderEnvelopeCards(eff);
+  const spentOnly = {};
+  Object.keys(eff).forEach(k=>{ if(eff[k].spent>0) spentOnly[k]=eff[k].spent; });
+  renderDonut(spentOnly);
+}
+
+function renderEnvelopeCards(eff){
+  let cats = state.categories.slice();
+  if(dashSort==="pct"){
+    cats.sort((a,b)=> {
+      const ea=eff[a.nom], eb=eff[b.nom];
+      return (b.budget>0?eb.spent/b.budget:0) - (a.budget>0?ea.spent/a.budget:0);
+    });
+  } else if(dashSort==="montant"){
+    cats.sort((a,b)=> eff[b.nom].spent - eff[a.nom].spent);
+  }
+  const wrap = document.getElementById("dash-envelopes");
+  wrap.innerHTML = cats.map(c=>{
+    const e = eff[c.nom] || {effective:c.budget, spent:0, restant:c.budget, carryIn:0};
+    // La barre compare la dépense du mois au budget DE RÉFÉRENCE fixe (pas à l'effectif avec report)
+    const pct = c.budget>0 ? (e.spent/c.budget*100) : (e.spent>0?100:0);
+    let barClass = "";
+    if(pct>=100) barClass="bad"; else if(pct>=80) barClass="warn";
+    let carryBadge = "";
+    if(e.carryIn>0) carryBadge = `<span class="badge good" title="Solde annuel avant ce mois-ci">+${fmtEUR(e.carryIn)} avant ce mois</span>`;
+    else if(e.carryIn<0) carryBadge = `<span class="badge bad" title="Solde annuel avant ce mois-ci">${fmtEUR(e.carryIn)} avant ce mois</span>`;
+    return `<div class="envelope">
+      <div class="top"><span class="cat">${c.nom}</span><span class="pct">${pct.toFixed(0)}%</span></div>
+      <div class="bar-track"><div class="bar-fill ${barClass}" style="width:${Math.min(pct,100)}%"></div></div>
+      <div class="nums"><span>${fmtEUR(e.spent)} / ${fmtEUR(c.budget)} <span style="color:var(--muted);">réf.</span></span></div>
+      <div class="restant ${e.restant<0?'bad':'good'}">Solde annuel : ${fmtEUR(e.restant)}</div>
+      ${carryBadge?`<div style="margin-top:6px;">${carryBadge}</div>`:''}
+    </div>`;
+  }).join("") || `<div class="empty">Aucune catégorie. Ajoute-en dans « Mes enveloppes ».</div>`;
+
+  document.querySelectorAll(".sort-row button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.sort===dashSort);
+    b.onclick = ()=>{ dashSort=b.dataset.sort; renderEnvelopeCards(eff); };
+  });
+}
+
+function renderDonut(spent){
+  const entries = Object.entries(spent).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const ctx = document.getElementById("chart-donut");
+  if(donutChart) donutChart.destroy();
+  if(!entries.length){
+    ctx.getContext("2d").clearRect(0,0,ctx.width,ctx.height);
+    return;
+  }
+  const palette = ["#a8425a","#c98a2c","#3f8f5f","#5b7fa6","#8a6bb8","#c1473f","#4fa3a3","#d68fae","#7d8f4a","#b58b3f","#6a6f9c","#a85a3f"];
+  donutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: entries.map(e=>e[0]),
+      datasets: [{ data: entries.map(e=>e[1]), backgroundColor: entries.map((_,i)=>palette[i%palette.length]), borderWidth:2, borderColor:"#fff" }]
+    },
+    options: {
+      plugins: { legend: { position:"right", labels:{ boxWidth:10, font:{size:10.5} } } },
+      cutout: "62%"
+    }
+  });
+}
+
+document.getElementById("dash-prev").onclick = ()=>{ dashMonth--; if(dashMonth<0){dashMonth=11;dashYear--;} renderDashboard(); };
+document.getElementById("dash-next").onclick = ()=>{ dashMonth++; if(dashMonth>11){dashMonth=0;dashYear++;} renderDashboard(); };
+document.getElementById("dash-month").onchange = e=>{ dashMonth = Number(e.target.value); renderDashboard(); };
+document.getElementById("dash-year").onchange = e=>{ dashYear = Number(e.target.value); renderDashboard(); };
+
+/* ---------- AJOUTER ---------- */
+function fillCategorySelect(sel, includeEmpty){
+  sel.innerHTML = (includeEmpty?'<option value="">— Choisir —</option>':'') +
+    state.categories.map(c=>`<option value="${c.nom}">${c.nom}</option>`).join("");
+}
+
+function matchRule(libelle){
+  const norm = normalize(libelle);
+  if(!norm) return null;
+  for(const r of state.rules){
+    if(norm.includes(normalize(r.motcle))) return r;
+  }
+  return null;
+}
+
+let lastAutoCat = null; // track if category was auto-filled so manual edits aren't overridden
+
+function renderAjouter(){
+  const dateEl = document.getElementById("in-date");
+  if(!dateEl.value){
+    const today = new Date();
+    dateEl.value = today.toISOString().slice(0,10);
+  }
+  fillCategorySelect(document.getElementById("in-categorie"), true);
+  renderRecentList();
+}
+
+document.getElementById("in-libelle").addEventListener("input", e=>{
+  const rule = matchRule(e.target.value);
+  const sugBox = document.getElementById("rule-suggestion");
+  const catSel = document.getElementById("in-categorie");
+  if(rule){
+    sugBox.classList.add("show");
+    sugBox.innerHTML = `🔎 Détecté : « ${rule.motcle} » → <b>${rule.categorie}</b>
+      <label><input type="checkbox" id="chk-remember" checked disabled> catégorie appliquée</label>`;
+    if(!catSel.value || catSel.dataset.auto==="1"){
+      catSel.value = rule.categorie;
+      catSel.dataset.auto = "1";
+    }
+  } else {
+    sugBox.classList.remove("show");
+    sugBox.innerHTML = "";
+    if(catSel.dataset.auto==="1"){ catSel.value=""; catSel.dataset.auto=""; }
+  }
+});
+document.getElementById("in-categorie").addEventListener("change", e=>{ e.target.dataset.auto=""; });
+
+document.getElementById("form-ajouter").addEventListener("submit", e=>{
+  e.preventDefault();
+  const date = document.getElementById("in-date").value;
+  const libelle = document.getElementById("in-libelle").value.trim();
+  const montant = parseFloat(document.getElementById("in-montant").value);
+  const categorie = document.getElementById("in-categorie").value;
+  if(!date || !categorie || isNaN(montant)) return;
+
+  const noRuleMatched = !matchRule(libelle);
+  const tx = { id: "t"+Date.now()+Math.random().toString(16).slice(2), date, categorie, libelle, montant: Math.round(montant*100)/100 };
+  state.transactions.push(tx);
+
+  // Offer to remember a new keyword rule if none matched and libellé has a usable word
+  if(noRuleMatched && libelle){
+    const STOPWORDS = new Set(["PRLV","PRELEVEMENT","VIR","VIREMENT","VIREMENTS","EMIS","RECU","CARTE","PAIEMENT","REGLEMENT","ACHAT","FACTURE","ABONNEMENT","RETRAIT","ESPECES","CHEQUE","WEB","TPE","ECH","REF","OPERATION","COMPTE","FRAIS","INTERETS","DEBITEURS","MME","MR","MLLE","AVEC","POUR","DANS","CB*","REMISE"]);
+    const word = libelle.toUpperCase().split(/[^A-ZÀ-Ÿ0-9]+/).filter(w=>w.length>=4 && !STOPWORDS.has(w))[0];
+    if(word && !state.rules.some(r=>normalize(r.motcle)===normalize(word))){
+      state.rules.push({ motcle: word, categorie });
+      showToast(`Ajoutée + règle retenue : « ${word} » → ${categorie}`);
+    } else {
+      showToast("Dépense ajoutée");
+    }
+  } else {
+    showToast("Dépense ajoutée");
+  }
+
+  saveState();
+  document.getElementById("in-libelle").value="";
+  document.getElementById("in-montant").value="";
+  document.getElementById("in-categorie").value="";
+  document.getElementById("in-categorie").dataset.auto="";
+  document.getElementById("rule-suggestion").classList.remove("show");
+  document.getElementById("in-libelle").focus();
+  renderRecentList();
+  if(currentView==="dashboard") renderDashboard();
+});
+
+function renderRecentList(){
+  const list = state.transactions.slice().sort((a,b)=> b.id.localeCompare(a.id) ).slice(0,15);
+  const wrap = document.getElementById("recent-list");
+  if(!list.length){ wrap.innerHTML = `<div class="empty">Aucune dépense saisie pour l'instant.</div>`; return; }
+  wrap.innerHTML = list.map(t=>`
+    <div class="pending-item">
+      <span class="meta">${t.date} · <b>${t.categorie}</b> · ${t.libelle||"—"}</span>
+      <span>${fmtEUR(t.montant)}</span>
+      <button class="tag-del" data-id="${t.id}" title="Supprimer">✕</button>
+    </div>`).join("");
+  wrap.querySelectorAll(".tag-del").forEach(b=>{
+    b.onclick = ()=>{
+      state.transactions = state.transactions.filter(t=>t.id!==b.dataset.id);
+      saveState(); renderRecentList();
+    };
+  });
+}
+
+/* ---------- IMPORT RELEVÉ BANCAIRE ---------- */
+let importRows = null; // raw rows from file (array of arrays), row 0 = headers
+let importHeaders = [];
+let importPreviewData = [];
+
+function normHeader(h){ return normalize(h); }
+
+function detectCol(headers, regex, exclude){
+  for(let i=0;i<headers.length;i++){
+    if(exclude && exclude.has(i)) continue;
+    if(regex.test(normHeader(headers[i]))) return i;
+  }
+  return -1;
+}
+
+function cellToText(val){
+  if(val===null || val===undefined || val==="") return "";
+  if(val instanceof Date && !isNaN(val)) return val.toLocaleDateString("fr-FR");
+  return String(val).trim();
+}
+
+// Beaucoup de relevés bancaires (dont les exports Crédit Agricole) commencent par
+// plusieurs lignes de préambule (titre, titulaire, n° de compte, solde, etc.) avant
+// la vraie ligne d'en-têtes. On cherche donc la ligne qui ressemble le plus à des
+// en-têtes de colonnes (au moins 2 cellules reconnues), plutôt que de prendre
+// systématiquement la première ligne non vide.
+function findHeaderRowIndex(rows){
+  const headerRegexes = [/DATE/, /LIBEL/, /DESCRIPTION/, /INTITULE/, /DETAIL/, /OPERATION/, /DEBIT/, /CREDIT/, /MONTANT/, /VALEUR/, /AMOUNT/, /CATEGORIE/, /CATEGORY/, /CHARGE/];
+  let bestIdx = -1, bestScore = 0;
+  const scanLimit = Math.min(rows.length, 40);
+  for(let i=0;i<scanLimit;i++){
+    const row = rows[i];
+    let score = 0;
+    row.forEach(cell=>{
+      const h = normHeader(cellToText(cell));
+      if(h && headerRegexes.some(re=>re.test(h))) score++;
+    });
+    if(score > bestScore){ bestScore = score; bestIdx = i; }
+  }
+  return bestScore>=2 ? bestIdx : -1;
+}
+
+function excelSerialToDate(serial){
+  const utcDays = Math.floor(serial - 25569);
+  const utcValue = utcDays * 86400;
+  const d = new Date(utcValue * 1000);
+  return d;
+}
+
+function parseDateCell(val){
+  if(val===null || val===undefined || val==="") return null;
+  if(val instanceof Date && !isNaN(val)) return val.toISOString().slice(0,10);
+  if(typeof val === "number") return excelSerialToDate(val).toISOString().slice(0,10);
+  const s = String(val).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if(m){
+    let [,d,mo,y] = m;
+    if(y.length===2) y = "20"+y;
+    return `${y}-${mo.padStart(2,"0")}-${d.padStart(2,"0")}`;
+  }
+  return null;
+}
+
+function parseMontantCell(val){
+  if(val===null || val===undefined || val==="") return null;
+  if(typeof val === "number") return val;
+  const raw = String(val).trim().replace(/[€\s]/g,"");
+  let n;
+  if(/^-?\d+,\d+$/.test(raw)) n = parseFloat(raw.replace(",","."));
+  else if(/^-?\d+\.\d+$/.test(raw)) n = parseFloat(raw);
+  else n = parseFloat(raw.replace(/\.(?=\d{3}(\D|$))/g,"").replace(",","."));
+  return isNaN(n) ? null : n;
+}
+
+document.getElementById("file-releve").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById("import-status");
+  statusEl.style.display = "block";
+  statusEl.textContent = "Lecture du fichier...";
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type:"array", cellDates:true });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, raw:true, defval:"" });
+    const nonEmpty = rows.filter(r=> r.some(c=> c!=="" && c!==null && c!==undefined));
+    if(nonEmpty.length < 2) throw new Error("Le fichier semble vide.");
+    let headerRowIdx = findHeaderRowIndex(nonEmpty);
+    if(headerRowIdx === -1) headerRowIdx = 0; // repli : comportement précédent si rien de fiable n'est trouvé
+    importHeaders = nonEmpty[headerRowIdx].map(h=>cellToText(h));
+    importRows = nonEmpty.slice(headerRowIdx+1);
+    const skipped = headerRowIdx>0 ? ` (${headerRowIdx} ligne(s) d'en-tête/préambule ignorée(s))` : "";
+    statusEl.textContent = `${importRows.length} lignes détectées dans « ${wb.SheetNames[0]} »${skipped}. Vérifie les colonnes ci-dessous.`;
+    buildMappingUI();
+  }catch(err){
+    statusEl.textContent = "Erreur de lecture : " + err.message;
+    importRows = null;
+  }
+  document.getElementById("btn-cancel-import").style.display = "inline-block";
+});
+
+function buildMappingUI(){
+  const dateIdx = detectCol(importHeaders, /DATE/);
+  const used1 = new Set([dateIdx].filter(i=>i>=0));
+  const libIdx = detectCol(importHeaders, /LIBEL|DESCRIPTION|INTITULE|DETAIL|OPERATION/, used1);
+  const used2 = new Set([dateIdx, libIdx].filter(i=>i>=0));
+  const debitIdx = detectCol(importHeaders, /DEBIT/, used2);
+  let montantIdx = debitIdx>=0 ? debitIdx : detectCol(importHeaders, /MONTANT|VALEUR|AMOUNT/, used2);
+  const used3 = new Set([dateIdx, libIdx, montantIdx].filter(i=>i>=0));
+  const catIdx = detectCol(importHeaders, /CHARGE|CATEGORIE|CATEGORY/, used3);
+
+  const used4 = new Set([dateIdx, libIdx, montantIdx, catIdx].filter(i=>i>=0));
+  const creditIdx = detectCol(importHeaders, /CREDIT/, used4);
+
+  const opts = (selected)=> importHeaders.map((h,i)=>`<option value="${i}" ${i===selected?'selected':''}>${h || "(colonne "+(i+1)+")"}</option>`).join("");
+  document.getElementById("map-date").innerHTML = opts(dateIdx);
+  document.getElementById("map-libelle").innerHTML = opts(libIdx);
+  document.getElementById("map-montant").innerHTML = opts(montantIdx);
+  document.getElementById("map-categorie").innerHTML = `<option value="-1">— Aucune (auto-détection) —</option>` + opts(catIdx);
+  document.getElementById("map-credit").innerHTML = `<option value="-1">— Aucune (pas d'entrées d'argent dans ce fichier) —</option>` + opts(creditIdx);
+
+  // Detect sign convention: if any negative montant present, assume negative = expense
+  let hasNegative = false;
+  if(montantIdx>=0){
+    importRows.forEach(r=>{ const n = parseMontantCell(r[montantIdx]); if(n!==null && n<0) hasNegative = true; });
+  }
+  document.getElementById("chk-neg-expense").checked = hasNegative;
+
+  document.getElementById("import-mapping").style.display = "block";
+  document.getElementById("import-preview").style.display = "none";
+}
+
+document.getElementById("btn-build-preview").addEventListener("click", ()=>{
+  const dateIdx = Number(document.getElementById("map-date").value);
+  const libIdx = Number(document.getElementById("map-libelle").value);
+  const montantIdx = Number(document.getElementById("map-montant").value);
+  const catIdx = Number(document.getElementById("map-categorie").value);
+  const creditIdx = Number(document.getElementById("map-credit").value);
+  const negIsExpense = document.getElementById("chk-neg-expense").checked;
+
+  const existingDepKeys = new Set(state.transactions.map(t=> t.date+"|"+Math.abs(t.montant).toFixed(2)+"|"+normalize(t.libelle)));
+  const existingIncKeys = new Set(state.incomes.map(t=> t.date+"|"+Math.abs(t.montant).toFixed(2)+"|"+normalize(t.libelle)));
+  const existingContribKeys = new Set(state.contributions.map(t=> t.date+"|"+Math.abs(t.montant).toFixed(2)+"|"+normalize(t.libelle)));
+
+  const depenseRows = importRows.map(r=>{
+    const raw = parseMontantCell(r[montantIdx]);
+    // Si la colonne dépense est vide/nulle sur cette ligne mais qu'il y a une vraie
+    // valeur en colonne Crédit, c'est une ligne d'entrée d'argent, pas une dépense :
+    // on ne crée pas de ligne "dépense" fantôme (invalide) en double pour elle.
+    if((raw===null || raw===0) && creditIdx>=0){
+      const creditRaw = parseMontantCell(r[creditIdx]);
+      if(creditRaw!==null && creditRaw>0) return null;
+    }
+    const date = parseDateCell(r[dateIdx]);
+    const libelle = cellToText(r[libIdx]);
+    let montant = null;
+    if(raw!==null){
+      if(negIsExpense){ if(raw<0) montant = Math.abs(raw); }
+      else { if(raw>0) montant = raw; }
+    }
+    let categorie = "";
+    if(catIdx>=0){
+      const catVal = String(r[catIdx]||"").trim().toUpperCase();
+      if(state.categories.some(c=>c.nom===catVal)) categorie = catVal;
+    }
+    if(!categorie){ const rule = matchRule(libelle); if(rule) categorie = rule.categorie; }
+    const valid = !!(date && montant!==null && montant>0);
+    const dupKey = date && montant!==null ? date+"|"+Math.abs(montant).toFixed(2)+"|"+normalize(libelle) : null;
+    const isDup = dupKey && existingDepKeys.has(dupKey);
+    return { kind:"depense", date, libelle, montant, categorie, include: valid && !isDup, valid, isDup };
+  }).filter(Boolean);
+
+  let creditRows = [];
+  if(creditIdx>=0){
+    // ne garder que les lignes où la colonne Crédit contient une valeur positive
+    creditRows = importRows.map(r=>{
+      const raw = parseMontantCell(r[creditIdx]);
+      if(raw===null || raw<=0) return null;
+      const date = parseDateCell(r[dateIdx]);
+      const libelle = cellToText(r[libIdx]);
+      const valid = !!date;
+      if(!valid) return { kind:"entree", date, libelle, montant:raw, categorie:"", include:false, valid:false, isDup:false };
+      const dupKey = date+"|"+raw.toFixed(2)+"|"+normalize(libelle);
+      // Les règles de revenu (RBRS, CAF, MUTUELLE...) sont vérifiées AVANT le nom de la personne :
+      // un virement "rbrs amazon MME JAMET ANA" est un remboursement, pas une contribution.
+      const incRule = matchIncomeRule(libelle);
+      if(incRule){
+        const isDup = existingIncKeys.has(dupKey);
+        return { kind:"entree", date, libelle, montant:raw, categorie: incRule.categorie, include: !isDup, valid:true, isDup };
+      }
+      const contribRule = matchContribRule(libelle);
+      if(contribRule){
+        const isDup = existingContribKeys.has(dupKey);
+        return { kind:"contribution", date, libelle, montant:raw, personne:contribRule.personne, include:!isDup, valid:true, isDup };
+      }
+      const isDup = existingIncKeys.has(dupKey);
+      return { kind:"entree", date, libelle, montant:raw, categorie:"", include: !isDup, valid:true, isDup };
+    }).filter(Boolean);
+  }
+
+  importPreviewData = depenseRows.concat(creditRows);
+  drawImportPreview();
+});
+
+function drawImportPreview(){
+  const tbody = document.getElementById("import-preview-tbody");
+  const typeLabel = {depense:"Dépense", entree:"Entrée d'argent", contribution:"Contribution"};
+  tbody.innerHTML = importPreviewData.map((r,i)=>{
+    let flag = "";
+    if(!r.valid) flag = `<span class="badge bad" title="Date ou montant invalide">invalide</span>`;
+    else if(r.isDup) flag = `<span class="badge bad" title="Une ligne identique existe déjà">déjà présent</span>`;
+
+    let typeCell;
+    if(r.kind==="depense"){
+      typeCell = `<span class="badge good">Dépense</span>`;
+    } else {
+      typeCell = `<select data-role="kind">
+        <option value="entree" ${r.kind==='entree'?'selected':''}>Entrée d'argent</option>
+        <option value="contribution" ${r.kind==='contribution'?'selected':''}>Contribution</option>
+      </select>`;
+    }
+
+    let secondaryCell;
+    if(r.kind==="depense" || r.kind==="entree"){
+      const list = r.kind==="depense" ? state.categories.map(c=>c.nom) : state.incomeCategories;
+      secondaryCell = `<select data-role="categorie">${!r.categorie?'<option value="">— Choisir —</option>':''}${list.map(c=>`<option value="${c}" ${c===r.categorie?'selected':''}>${c}</option>`).join("")}</select>`;
+    } else {
+      secondaryCell = `<select data-role="personne">
+        <option value="Ana Paula" ${r.personne==='Ana Paula'?'selected':''}>Ana Paula</option>
+        <option value="Olivier" ${r.personne==='Olivier'?'selected':''}>Olivier</option>
+      </select>`;
+    }
+
+    return `<tr data-i="${i}">
+      <td><input type="checkbox" data-role="include" ${r.include?'checked':''} ${!r.valid?'disabled':''}></td>
+      <td>${typeCell}</td>
+      <td>${r.date || '—'} ${flag}</td>
+      <td>${r.libelle || '—'}</td>
+      <td class="num">${r.montant!==null? fmtEUR(r.montant) : '—'}</td>
+      <td>${secondaryCell}</td>
+    </tr>`;
+  }).join("");
+
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const i = Number(tr.dataset.i);
+    tr.querySelector("[data-role='include']").addEventListener("change", e=>{ importPreviewData[i].include = e.target.checked; updateImportSummary(); });
+    const catSel = tr.querySelector("[data-role='categorie']");
+    if(catSel) catSel.addEventListener("change", e=>{ importPreviewData[i].categorie = e.target.value; });
+    const persSel = tr.querySelector("[data-role='personne']");
+    if(persSel) persSel.addEventListener("change", e=>{ importPreviewData[i].personne = e.target.value; });
+    const kindSel = tr.querySelector("[data-role='kind']");
+    if(kindSel) kindSel.addEventListener("change", e=>{
+      importPreviewData[i].kind = e.target.value;
+      if(importPreviewData[i].kind==="contribution" && !importPreviewData[i].personne) importPreviewData[i].personne = "Ana Paula";
+      if(importPreviewData[i].kind==="entree" && !importPreviewData[i].categorie) importPreviewData[i].categorie = "";
+      drawImportPreview();
+    });
+  });
+
+  updateImportSummary();
+  document.getElementById("import-preview").style.display = "block";
+}
+
+function updateImportSummary(){
+  const total = importPreviewData.length;
+  const invalid = importPreviewData.filter(r=>!r.valid).length;
+  const dup = importPreviewData.filter(r=>r.isDup && r.valid).length;
+  const included = importPreviewData.filter(r=>r.include).length;
+  const nbDep = importPreviewData.filter(r=>r.kind==="depense").length;
+  const nbEnt = importPreviewData.filter(r=>r.kind==="entree").length;
+  const nbCon = importPreviewData.filter(r=>r.kind==="contribution").length;
+  document.getElementById("import-summary").textContent =
+    `${total} lignes (${nbDep} dépenses, ${nbEnt} entrées d'argent, ${nbCon} contributions) · ${included} sélectionnées` +
+    (invalid? ` · ${invalid} ignorées (invalides)`:'') +
+    (dup? ` · ${dup} doublons détectés (décochés)`:'');
+}
+
+document.getElementById("btn-commit-import").addEventListener("click", ()=>{
+  const eligible = r => r.include && r.valid;
+  const toImportDep = importPreviewData.filter(r=> eligible(r) && r.kind==="depense" && r.categorie);
+  const toImportEnt = importPreviewData.filter(r=> eligible(r) && r.kind==="entree" && r.categorie);
+  const toImportCon = importPreviewData.filter(r=> eligible(r) && r.kind==="contribution" && r.personne);
+  const skippedNoCat = importPreviewData.filter(r=> eligible(r) && (r.kind==="depense"||r.kind==="entree") && !r.categorie).length;
+
+  const totalToImport = toImportDep.length + toImportEnt.length + toImportCon.length;
+  if(!totalToImport){
+    showToast(skippedNoCat ? "Choisis une catégorie avant d'importer" : "Rien à importer");
+    return;
+  }
+  toImportDep.forEach(r=>{
+    state.transactions.push({ id:"imp"+Date.now()+Math.random().toString(16).slice(2), date:r.date, categorie:r.categorie, libelle:r.libelle, montant: Math.round(r.montant*100)/100 });
+  });
+  toImportEnt.forEach(r=>{
+    state.incomes.push({ id:"impinc"+Date.now()+Math.random().toString(16).slice(2), date:r.date, categorie:r.categorie, libelle:r.libelle, montant: Math.round(r.montant*100)/100 });
+  });
+  toImportCon.forEach(r=>{
+    state.contributions.push({ id:"impcon"+Date.now()+Math.random().toString(16).slice(2), date:r.date, personne:r.personne, libelle:r.libelle, montant: Math.round(r.montant*100)/100 });
+  });
+  saveState();
+  showToast(`Importé : ${toImportDep.length} dépense(s), ${toImportEnt.length} entrée(s) d'argent, ${toImportCon.length} contribution(s)` + (skippedNoCat? ` · ${skippedNoCat} sans catégorie ignorée(s)`:''));
+  resetImportUI();
+  renderRecentList();
+  if(currentView==="dashboard") renderDashboard();
+  if(currentView==="entrees") renderEntrees();
+  if(currentView==="commun") renderCommun();
+});
+
+function resetImportUI(){
+  importRows = null; importHeaders = []; importPreviewData = [];
+  document.getElementById("file-releve").value = "";
+  document.getElementById("import-status").style.display = "none";
+  document.getElementById("import-mapping").style.display = "none";
+  document.getElementById("import-preview").style.display = "none";
+  document.getElementById("btn-cancel-import").style.display = "none";
+}
+document.getElementById("btn-cancel-import").addEventListener("click", resetImportUI);
+document.getElementById("btn-cancel-import2").addEventListener("click", resetImportUI);
+
+/* ---------- HISTORIQUE ---------- */
+function renderHistorique(){
+  const moisSel = document.getElementById("hist-mois");
+  const years = Array.from(new Set(state.transactions.map(t=>t.date.slice(0,7)))).sort();
+  if(!moisSel.dataset.built){
+    moisSel.innerHTML = '<option value="">Tous les mois</option>' + years.map(k=>{
+      const [y,m] = k.split("-");
+      return `<option value="${k}">${MOIS_FR[Number(m)-1]} ${y}</option>`;
+    }).join("");
+    moisSel.dataset.built = "1";
+  }
+  const catSel = document.getElementById("hist-categorie");
+  if(!catSel.dataset.built){
+    catSel.innerHTML = '<option value="">Toutes les catégories</option>' + state.categories.map(c=>`<option value="${c.nom}">${c.nom}</option>`).join("");
+    catSel.dataset.built = "1";
+  }
+  drawHistTable();
+}
+["hist-mois","hist-categorie","hist-search"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", drawHistTable);
+  document.getElementById(id).addEventListener("change", drawHistTable);
+});
+
+function drawHistTable(){
+  const mois = document.getElementById("hist-mois").value;
+  const cat = document.getElementById("hist-categorie").value;
+  const q = normalize(document.getElementById("hist-search").value);
+  let list = state.transactions.filter(t=>{
+    if(mois && t.date.slice(0,7)!==mois) return false;
+    if(cat && t.categorie!==cat) return false;
+    if(q && !normalize(t.libelle).includes(q)) return false;
+    return true;
+  }).sort((a,b)=> b.date.localeCompare(a.date));
+
+  const tbody = document.getElementById("hist-tbody");
+  tbody.innerHTML = list.map(t=>`
+    <tr data-id="${t.id}">
+      <td><input class="inline" type="date" value="${t.date}" data-field="date"></td>
+      <td><select class="inline" data-field="categorie">${state.categories.map(c=>`<option value="${c.nom}" ${c.nom===t.categorie?'selected':''}>${c.nom}</option>`).join("")}</select></td>
+      <td><input class="inline" type="text" value="${(t.libelle||"").replace(/"/g,'&quot;')}" data-field="libelle"></td>
+      <td class="num"><input class="inline" style="text-align:right" type="number" step="0.01" value="${t.montant}" data-field="montant"></td>
+      <td><button class="tag-del" title="Supprimer">✕</button></td>
+    </tr>`).join("");
+
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const id = tr.dataset.id;
+    tr.querySelectorAll("[data-field]").forEach(input=>{
+      input.addEventListener("change", ()=>{
+        const t = state.transactions.find(x=>x.id===id);
+        const field = input.dataset.field;
+        t[field] = field==="montant" ? parseFloat(input.value)||0 : input.value;
+        saveState();
+        drawHistTable();
+      });
+    });
+    tr.querySelector(".tag-del").onclick = ()=>{
+      if(!confirm("Supprimer cette dépense ?")) return;
+      state.transactions = state.transactions.filter(x=>x.id!==id);
+      saveState(); drawHistTable();
+    };
+  });
+
+  document.getElementById("hist-total").textContent = fmtEUR(list.reduce((s,t)=>s+t.montant,0));
+}
+
+/* ---------- ENVELOPPES ---------- */
+function renderEnveloppes(){
+  const tbody = document.getElementById("env-tbody");
+  tbody.innerHTML = state.categories.map(c=>`
+    <tr data-nom="${c.nom}">
+      <td>${c.nom}</td>
+      <td class="num"><input class="inline" style="text-align:right" type="number" step="0.01" value="${c.budget}" data-field="budget"></td>
+      <td class="num">${fmtEUR(c.budget*12)}</td>
+      <td><button class="tag-del" title="Supprimer la catégorie">✕</button></td>
+    </tr>`).join("");
+
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const nom = tr.dataset.nom;
+    tr.querySelector("[data-field='budget']").addEventListener("change", e=>{
+      const c = state.categories.find(x=>x.nom===nom);
+      c.budget = parseFloat(e.target.value)||0;
+      saveState(); renderEnveloppes();
+    });
+    tr.querySelector(".tag-del").onclick = ()=>{
+      const used = state.transactions.some(t=>t.categorie===nom);
+      if(used && !confirm(`« ${nom} » contient des dépenses. La supprimer quand même ? (les dépenses resteront classées dans cette catégorie)`)) return;
+      state.categories = state.categories.filter(c=>c.nom!==nom);
+      saveState(); renderEnveloppes();
+    };
+  });
+
+  document.getElementById("env-total-mois").textContent = fmtEUR(state.categories.reduce((s,c)=>s+c.budget,0));
+  document.getElementById("env-total-an").textContent = fmtEUR(state.categories.reduce((s,c)=>s+c.budget,0)*12);
+}
+
+document.getElementById("form-cat").addEventListener("submit", e=>{
+  e.preventDefault();
+  const nom = document.getElementById("new-cat-nom").value.trim().toUpperCase();
+  const budget = parseFloat(document.getElementById("new-cat-budget").value)||0;
+  if(!nom) return;
+  if(state.categories.some(c=>c.nom===nom)){ showToast("Cette catégorie existe déjà"); return; }
+  state.categories.push({ nom, budget });
+  saveState();
+  document.getElementById("new-cat-nom").value="";
+  document.getElementById("new-cat-budget").value="";
+  showToast("Catégorie ajoutée");
+  renderEnveloppes();
+});
+
+/* ---------- RECAP ---------- */
+function renderRecap(){
+  const yearSel = document.getElementById("recap-year");
+  const years = new Set(state.transactions.map(t=>Number(t.date.slice(0,4))));
+  years.add(recapYear);
+  const yearsArr = Array.from(years).sort();
+  yearSel.innerHTML = yearsArr.map(y=>`<option value="${y}">${y}</option>`).join("");
+  yearSel.value = recapYear;
+
+  const head = document.getElementById("recap-head");
+  head.innerHTML = `<th>Catégorie</th>` + MOIS_FR.map(m=>`<th style="text-align:right;">${m.slice(0,3)}</th>`).join("") +
+    `<th style="text-align:right;">Total</th><th style="text-align:right;">%</th><th style="text-align:right;">Moy/mois</th><th style="text-align:right;">Budget an</th><th style="text-align:right;">Restant</th>`;
+
+  const txYear = state.transactions.filter(t=>t.date.slice(0,4)===String(recapYear));
+  const totalAnnee = txYear.reduce((s,t)=>s+t.montant,0);
+
+  const tbody = document.getElementById("recap-tbody");
+  tbody.innerHTML = state.categories.map(c=>{
+    const monthTotals = MOIS_FR.map((_,i)=>{
+      const key = monthKey(recapYear,i);
+      return txYear.filter(t=>t.date.slice(0,7)===key && t.categorie===c.nom).reduce((s,t)=>s+t.montant,0);
+    });
+    const total = monthTotals.reduce((a,b)=>a+b,0);
+    const pct = totalAnnee>0 ? total/totalAnnee*100 : 0;
+    const nbMoisAvecDonnees = MOIS_FR.filter((_,i)=> txYear.some(t=>t.date.slice(0,7)===monthKey(recapYear,i))).length || 1;
+    const moyenne = total / nbMoisAvecDonnees;
+    const budgetAn = c.budget*12;
+    const restant = budgetAn - total;
+    return `<tr>
+      <td>${c.nom}</td>
+      ${monthTotals.map(v=>`<td class="num">${v>0?fmtEUR(v):'—'}</td>`).join("")}
+      <td class="num"><b>${fmtEUR(total)}</b></td>
+      <td class="num">${pct.toFixed(1)}%</td>
+      <td class="num">${fmtEUR(moyenne)}</td>
+      <td class="num">${fmtEUR(budgetAn)}</td>
+      <td class="num" style="color:${restant<0?'var(--bad)':'var(--good)'}">${fmtEUR(restant)}</td>
+    </tr>`;
+  }).join("");
+}
+document.getElementById("recap-prev").onclick = ()=>{ recapYear--; renderRecap(); };
+document.getElementById("recap-next").onclick = ()=>{ recapYear++; renderRecap(); };
+document.getElementById("recap-year").onchange = e=>{ recapYear = Number(e.target.value); renderRecap(); };
+
+/* ---------- ENTREES D'ARGENT ---------- */
+let incYear = dashYear, incMonth = dashMonth;
+
+function fillGenericPeriodSelectors(monthSelId, yearSelId, y, m, dateList){
+  const monthSel = document.getElementById(monthSelId);
+  monthSel.innerHTML = MOIS_FR.map((mo,i)=>`<option value="${i}">${mo}</option>`).join("");
+  monthSel.value = m;
+  const yearSel = document.getElementById(yearSelId);
+  const years = new Set(dateList.map(d=>Number(d.slice(0,4))));
+  years.add(y);
+  yearSel.innerHTML = Array.from(years).sort().map(yy=>`<option value="${yy}">${yy}</option>`).join("");
+  yearSel.value = y;
+}
+
+function matchIncomeRule(libelle){
+  const norm_ = normalize(libelle);
+  if(!norm_) return null;
+  for(const r of state.incomeRules){ if(norm_.includes(normalize(r.motcle))) return r; }
+  return null;
+}
+
+function fillSimpleCategorySelect(sel, list, includeEmpty){
+  sel.innerHTML = (includeEmpty?'<option value="">Toutes</option>':'') + list.map(c=>`<option value="${c}">${c}</option>`).join("");
+}
+
+function renderEntrees(){
+  fillGenericPeriodSelectors('inc-month','inc-year', incYear, incMonth, state.incomes.map(i=>i.date));
+  fillSimpleCategorySelect(document.getElementById('inc-categorie'), state.incomeCategories, false);
+  if(!document.getElementById('inc-filter-cat').dataset.built){
+    fillSimpleCategorySelect(document.getElementById('inc-filter-cat'), state.incomeCategories, true);
+    document.getElementById('inc-filter-cat').dataset.built = "1";
+  }
+  if(!document.getElementById('inc-date').value){
+    document.getElementById('inc-date').value = new Date().toISOString().slice(0,10);
+  }
+
+  const key = monthKey(incYear, incMonth);
+  const monthList = state.incomes.filter(i=>i.date.slice(0,7)===key);
+  const totalMois = monthList.reduce((s,i)=>s+i.montant,0);
+  const yearList = state.incomes.filter(i=>i.date.slice(0,4)===String(incYear) && i.date.slice(0,7)<=key);
+  const totalAnnee = yearList.reduce((s,i)=>s+i.montant,0);
+  const byCat = {};
+  monthList.forEach(i=>{ byCat[i.categorie]=(byCat[i.categorie]||0)+i.montant; });
+  const breakdown = Object.entries(byCat).map(([c,v])=>`${c} : ${fmtEUR(v)}`).join(" · ") || "—";
+
+  document.getElementById('inc-kpis').innerHTML = `
+    <div class="kpi"><div class="label">Entrées ce mois</div><div class="value good">${fmtEUR(totalMois)}</div><div class="hint">${breakdown}</div></div>
+    <div class="kpi"><div class="label">Cumulé depuis janvier</div><div class="value good">${fmtEUR(totalAnnee)}</div></div>
+    <div class="kpi"><div class="label">Entrées saisies</div><div class="value">${monthList.length}</div><div class="hint">ce mois-ci</div></div>
+  `;
+
+  drawIncomeTable();
+}
+
+document.getElementById('inc-prev').onclick = ()=>{ incMonth--; if(incMonth<0){incMonth=11;incYear--;} renderEntrees(); };
+document.getElementById('inc-next').onclick = ()=>{ incMonth++; if(incMonth>11){incMonth=0;incYear++;} renderEntrees(); };
+document.getElementById('inc-month').onchange = e=>{ incMonth=Number(e.target.value); renderEntrees(); };
+document.getElementById('inc-year').onchange = e=>{ incYear=Number(e.target.value); renderEntrees(); };
+['inc-filter-cat','inc-search'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', drawIncomeTable);
+  document.getElementById(id).addEventListener('change', drawIncomeTable);
+});
+
+document.getElementById('inc-libelle').addEventListener('input', e=>{
+  const rule = matchIncomeRule(e.target.value);
+  const sel = document.getElementById('inc-categorie');
+  if(rule){ sel.value = rule.categorie; sel.dataset.auto="1"; }
+});
+
+document.getElementById('form-income').addEventListener('submit', e=>{
+  e.preventDefault();
+  const date = document.getElementById('inc-date').value;
+  const libelle = document.getElementById('inc-libelle').value.trim();
+  const montant = parseFloat(document.getElementById('inc-montant').value);
+  const categorie = document.getElementById('inc-categorie').value;
+  if(!date || !categorie || isNaN(montant)) return;
+  state.incomes.push({ id:"inc"+Date.now()+Math.random().toString(16).slice(2), date, categorie, libelle, montant: Math.round(montant*100)/100 });
+  saveState();
+  document.getElementById('inc-libelle').value=""; document.getElementById('inc-montant').value="";
+  showToast("Entrée ajoutée");
+  renderEntrees();
+});
+
+function drawIncomeTable(){
+  const key = monthKey(incYear, incMonth);
+  const catFilter = document.getElementById('inc-filter-cat').value;
+  const q = normalize(document.getElementById('inc-search').value);
+  let list = state.incomes.filter(i=>{
+    if(i.date.slice(0,7)!==key) return false;
+    if(catFilter && i.categorie!==catFilter) return false;
+    if(q && !normalize(i.libelle).includes(q)) return false;
+    return true;
+  }).sort((a,b)=> b.date.localeCompare(a.date));
+
+  document.getElementById('inc-tbody').innerHTML = list.map(i=>`
+    <tr data-id="${i.id}">
+      <td>${i.date}</td>
+      <td>${i.categorie}</td>
+      <td>${i.libelle||"—"}</td>
+      <td class="num">${fmtEUR(i.montant)}</td>
+      <td><button class="tag-del">✕</button></td>
+    </tr>`).join("") || `<tr><td colspan="5" class="empty">Aucune entrée ce mois-ci.</td></tr>`;
+
+  document.querySelectorAll('#inc-tbody tr[data-id]').forEach(tr=>{
+    tr.querySelector('.tag-del').onclick = ()=>{
+      if(!confirm("Supprimer cette entrée d'argent ?")) return;
+      state.incomes = state.incomes.filter(i=>i.id!==tr.dataset.id);
+      saveState(); drawIncomeTable(); renderEntrees();
+    };
+  });
+
+  document.getElementById('inc-total').textContent = fmtEUR(list.reduce((s,i)=>s+i.montant,0));
+}
+
+/* ---------- COMPTE COMMUN ---------- */
+let comYear = dashYear, comMonth = dashMonth;
+
+function matchContribRule(libelle){
+  const norm_ = normalize(libelle);
+  if(!norm_) return null;
+  for(const r of state.contributionRules){ if(norm_.includes(normalize(r.motcle))) return r; }
+  return null;
+}
+
+function renderCommun(){
+  fillGenericPeriodSelectors('com-month','com-year', comYear, comMonth, state.contributions.map(c=>c.date));
+  if(!document.getElementById('com-date').value){
+    document.getElementById('com-date').value = new Date().toISOString().slice(0,10);
+  }
+  if(!state.startingBalances) state.startingBalances = { "Olivier": 0, "Ana Paula": 0 };
+  document.getElementById('com-solde-olivier').value = state.startingBalances["Olivier"];
+  document.getElementById('com-solde-ana').value = state.startingBalances["Ana Paula"];
+
+  const key = monthKey(comYear, comMonth);
+  const depensesMois = txForMonth(comYear, comMonth).reduce((s,t)=>s+t.montant,0);
+  const entreesMois = state.incomes.filter(i=>i.date.slice(0,7)===key).reduce((s,i)=>s+i.montant,0);
+  const chargeNette = depensesMois - entreesMois;
+  const partAttendue = chargeNette/2;
+
+  const contribMois = state.contributions.filter(c=>c.date.slice(0,7)===key);
+  const contribOlivier = contribMois.filter(c=>c.personne==='Olivier').reduce((s,c)=>s+c.montant,0);
+  const contribAna = contribMois.filter(c=>c.personne==='Ana Paula').reduce((s,c)=>s+c.montant,0);
+  const ecartOlivier = contribOlivier - partAttendue;
+  const ecartAna = contribAna - partAttendue;
+
+  // cumul annuel jusqu'au mois sélectionné inclus
+  const yearStr = String(comYear);
+  const depensesAn = state.transactions.filter(t=>t.date.slice(0,4)===yearStr && t.date.slice(0,7)<=key).reduce((s,t)=>s+t.montant,0);
+  const entreesAn = state.incomes.filter(i=>i.date.slice(0,4)===yearStr && i.date.slice(0,7)<=key).reduce((s,i)=>s+i.montant,0);
+  const partAttendueAn = (depensesAn - entreesAn)/2;
+  const contribOlivierAn = state.contributions.filter(c=>c.personne==='Olivier' && c.date.slice(0,4)===yearStr && c.date.slice(0,7)<=key).reduce((s,c)=>s+c.montant,0);
+  const contribAnaAn = state.contributions.filter(c=>c.personne==='Ana Paula' && c.date.slice(0,4)===yearStr && c.date.slice(0,7)<=key).reduce((s,c)=>s+c.montant,0);
+  const soldeOlivier = state.startingBalances["Olivier"] || 0;
+  const soldeAna = state.startingBalances["Ana Paula"] || 0;
+  const ecartOlivierAn = contribOlivierAn - partAttendueAn + soldeOlivier;
+  const ecartAnaAn = contribAnaAn - partAttendueAn + soldeAna;
+
+  document.getElementById('com-formula').textContent =
+    `Part attendue de chacun = (${fmtEUR(depensesMois)} dépensé − ${fmtEUR(entreesMois)} d'entrées) ÷ 2 = ${fmtEUR(partAttendue)}.`;
+
+  document.getElementById('com-kpis').innerHTML = `
+    <div class="kpi"><div class="label">Dépenses du mois</div><div class="value">${fmtEUR(depensesMois)}</div></div>
+    <div class="kpi"><div class="label">Entrées du mois</div><div class="value good">${fmtEUR(entreesMois)}</div></div>
+    <div class="kpi"><div class="label">Charge nette à partager</div><div class="value">${fmtEUR(chargeNette)}</div></div>
+    <div class="kpi"><div class="label">Part de chacun</div><div class="value">${fmtEUR(partAttendue)}</div></div>
+  `;
+
+  const personCard = (nom, contrib, ecart, contribAn, ecartAn) => `
+    <h3>${nom}</h3>
+    <p class="sub">Versé ce mois : <b>${fmtEUR(contrib)}</b> — part attendue : ${fmtEUR(partAttendue)}</p>
+    <div class="restant ${ecart<0?'bad':'good'}" style="font-size:16px;margin:10px 0;">
+      ${ecart<0 ? `Doit encore ${fmtEUR(-ecart)} au compte commun` : (ecart>0 ? `A versé ${fmtEUR(ecart)} de plus que sa part` : `À jour`)}
+    </div>
+    <p class="sub" style="margin-top:12px;">Cumul depuis janvier : versé ${fmtEUR(contribAn)}, part attendue ${fmtEUR(partAttendueAn)} —
+      <span style="color:${ecartAn<0?'var(--bad)':'var(--good)'};font-weight:600;">${ecartAn<0? 'doit '+fmtEUR(-ecartAn) : 'crédit de '+fmtEUR(ecartAn)}</span>
+    </p>`;
+  document.getElementById('com-card-olivier').innerHTML = personCard('Olivier', contribOlivier, ecartOlivier, contribOlivierAn, ecartOlivierAn);
+  document.getElementById('com-card-ana').innerHTML = personCard('Ana Paula', contribAna, ecartAna, contribAnaAn, ecartAnaAn);
+
+  document.getElementById('com-tbody').innerHTML = contribMois.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(c=>`
+    <tr data-id="${c.id}">
+      <td>${c.date}</td>
+      <td>${c.personne}</td>
+      <td>${c.libelle||"—"}</td>
+      <td class="num">${fmtEUR(c.montant)}</td>
+      <td><button class="tag-del">✕</button></td>
+    </tr>`).join("") || `<tr><td colspan="5" class="empty">Aucun virement ce mois-ci.</td></tr>`;
+
+  document.querySelectorAll('#com-tbody tr[data-id]').forEach(tr=>{
+    tr.querySelector('.tag-del').onclick = ()=>{
+      if(!confirm("Supprimer ce virement ?")) return;
+      state.contributions = state.contributions.filter(c=>c.id!==tr.dataset.id);
+      saveState(); renderCommun();
+    };
+  });
+}
+
+document.getElementById('com-solde-olivier').addEventListener('change', e=>{
+  state.startingBalances["Olivier"] = parseFloat(e.target.value)||0;
+  saveState(); renderCommun();
+});
+document.getElementById('com-solde-ana').addEventListener('change', e=>{
+  state.startingBalances["Ana Paula"] = parseFloat(e.target.value)||0;
+  saveState(); renderCommun();
+});
+document.getElementById('com-prev').onclick = ()=>{ comMonth--; if(comMonth<0){comMonth=11;comYear--;} renderCommun(); };
+document.getElementById('com-next').onclick = ()=>{ comMonth++; if(comMonth>11){comMonth=0;comYear++;} renderCommun(); };
+document.getElementById('com-month').onchange = e=>{ comMonth=Number(e.target.value); renderCommun(); };
+document.getElementById('com-year').onchange = e=>{ comYear=Number(e.target.value); renderCommun(); };
+
+document.getElementById('form-contrib').addEventListener('submit', e=>{
+  e.preventDefault();
+  const date = document.getElementById('com-date').value;
+  const libelle = document.getElementById('com-libelle').value.trim();
+  const montant = parseFloat(document.getElementById('com-montant').value);
+  const personne = document.getElementById('com-personne').value;
+  if(!date || isNaN(montant)) return;
+  state.contributions.push({ id:"cont"+Date.now()+Math.random().toString(16).slice(2), date, personne, libelle, montant: Math.round(montant*100)/100 });
+  saveState();
+  document.getElementById('com-libelle').value=""; document.getElementById('com-montant').value="";
+  showToast("Virement ajouté");
+  renderCommun();
+});
+
+/* ---------- REGLES ---------- */
+function renderRegles(){
+  fillCategorySelect(document.getElementById("new-regle-cat"), false);
+  drawReglesTable();
+}
+document.getElementById("regle-search").addEventListener("input", drawReglesTable);
+
+function drawReglesTable(){
+  const q = normalize(document.getElementById("regle-search").value);
+  const list = state.rules.filter(r=> !q || normalize(r.motcle).includes(q) || normalize(r.categorie).includes(q))
+    .sort((a,b)=>a.motcle.localeCompare(b.motcle));
+  const tbody = document.getElementById("regle-tbody");
+  tbody.innerHTML = list.map((r)=>{
+    const idx = state.rules.indexOf(r);
+    return `<tr data-idx="${idx}">
+      <td>${r.motcle}</td>
+      <td>${r.categorie}</td>
+      <td><button class="tag-del">✕</button></td>
+    </tr>`;
+  }).join("") || `<div class="empty">Aucune règle.</div>`;
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    tr.querySelector(".tag-del").onclick = ()=>{
+      state.rules.splice(Number(tr.dataset.idx),1);
+      saveState(); drawReglesTable();
+    };
+  });
+}
+document.getElementById("form-regle").addEventListener("submit", e=>{
+  e.preventDefault();
+  const motcle = document.getElementById("new-regle-mot").value.trim().toUpperCase();
+  const categorie = document.getElementById("new-regle-cat").value;
+  if(!motcle || !categorie) return;
+  state.rules.unshift({ motcle, categorie });
+  saveState();
+  document.getElementById("new-regle-mot").value="";
+  showToast("Règle ajoutée");
+  drawReglesTable();
+});
+
+/* ---------- EXPORT / IMPORT / RESET ---------- */
+document.getElementById("btn-export").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state,null,1)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "mon-budget-enveloppes-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+document.getElementById("btn-import").onclick = ()=> document.getElementById("file-import").click();
+document.getElementById("file-import").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data.categories || !data.transactions || !data.rules) throw new Error("format invalide");
+      state = data;
+      saveState();
+      showToast("Import réussi");
+      renderCurrentView();
+    }catch(err){
+      alert("Fichier invalide : " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+document.getElementById("btn-reset").onclick = ()=>{
+  if(!confirm("Réinitialiser avec les données d'origine 2026 ? Tes ajouts/modifs seront perdus (pense à exporter avant si besoin).")) return;
+  state = JSON.parse(JSON.stringify(SEED_DATA));
+  saveState();
+  showToast("Données réinitialisées");
+  renderCurrentView();
+};
+
+/* ---------- INIT ---------- */
+renderDashboard();
+</script>
+</body>
+</html>
