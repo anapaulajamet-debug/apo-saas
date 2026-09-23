@@ -335,6 +335,27 @@
 
       <!-- Onglet Planning/Horaires -->
       <div class="onglet-contenu visible" id="ongletPlanning">
+
+        <!-- Résumé planning contractuel -->
+        <div id="planningResume" style="display:none;padding:16px 20px;border-bottom:1px solid var(--bordure);background:#F8FAFB;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gris-doux);margin-bottom:8px;">Planning contractuel</div>
+              <div id="planningResumeJours" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>
+              <div id="planningResumeHoraire" style="font-size:12px;color:var(--gris-doux);"></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="exporterICS()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#0078D4;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Arial;">
+                📤 Exporter vers Outlook (.ics)
+              </button>
+              <button onclick="copierLienOutlook()" id="btnCopierWebcal" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px solid #0078D4;color:#0078D4;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Arial;">
+                🔗 Copier lien Webcal
+              </button>
+            </div>
+          </div>
+          <div id="planningAssignations" style="margin-top:10px;"></div>
+        </div>
+
         <div class="mois-bar">
           <button class="mois-btn" onclick="changerMois(-1)">◀</button>
           <div class="mois-label" id="moisLabelPlanning">—</div>
@@ -1032,6 +1053,105 @@ async function chargerPlanning(c) {
       <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--rouge-light);border:1.5px solid var(--rouge);"></div> Absent</div>
       <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#FAFAFA;border:1.5px solid var(--bordure);"></div> Repos</div>
     </div>`;
+
+  // ── Résumé planning contractuel ──
+  const resumeEl = document.getElementById('planningResume');
+  if (resumeEl && c) {
+    resumeEl.style.display = '';
+    const JOURS_NOMS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const JOURS_LABELS = { Lun:'Lu',Mar:'Ma',Mer:'Me',Jeu:'Je',Ven:'Ve',Sam:'Sa',Dim:'Di' };
+    const joursEl = document.getElementById('planningResumeJours');
+    const hrEl    = document.getElementById('planningResumeHoraire');
+    joursEl.innerHTML = (joursTravaillesFinal.length
+      ? joursTravaillesFinal.map(n => JOURS_NOMS[n]).map(j =>
+          `<span style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:var(--teal-light);color:var(--teal);border:1.5px solid var(--teal);">${JOURS_LABELS[j]||j}</span>`)
+        .join('')
+      : '<span style="color:var(--gris-doux);font-size:12px;">Non renseigné</span>');
+    hrEl.textContent = hContrat ? `${hContrat.toFixed(2)} h/jour` : '';
+
+    // Assignations (sites uniques du planning du mois)
+    const sitesUniques = {};
+    (plans||[]).forEach(p => {
+      const nom = p.sites?.nom || nomSiteFallback;
+      if (nom && !sitesUniques[nom]) {
+        sitesUniques[nom] = { nom, debut: p.heure_debut?.slice(0,5), fin: p.heure_fin?.slice(0,5) };
+      }
+    });
+    if (nomSiteFallback && !sitesUniques[nomSiteFallback]) sitesUniques[nomSiteFallback] = { nom: nomSiteFallback };
+    const sitesArr = Object.values(sitesUniques);
+    const assignEl = document.getElementById('planningAssignations');
+    assignEl.innerHTML = sitesArr.length
+      ? sitesArr.map(s => `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--bordure);border-radius:8px;font-size:12px;margin-right:6px;margin-bottom:4px;">
+          🏢 <strong>${s.nom}</strong>${s.debut ? ` · ${s.debut}–${s.fin}` : ''}
+        </span>`).join('')
+      : '';
+
+    // Stocker les données pour export ICS
+    window._planningICS = { collab: c, plans: plans||[], debut, fin, hContrat, joursTravaillesFinal, nomSiteFallback };
+  }
+}
+
+// ── EXPORT ICS (Outlook / Apple Calendar / Google) ──────────────────────────
+function exporterICS() {
+  const d = window._planningICS;
+  if (!d) return;
+  const { collab, plans, debut, fin, hContrat, joursTravaillesFinal, nomSiteFallback } = d;
+  const JOURS_NOMS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const nom = `${collab.prenom||''} ${collab.nom||''}`.trim();
+
+  function fmtICS(dateStr, heureStr) {
+    // dateStr = "2026-09-15", heureStr = "06:00" → "20260915T060000"
+    const [y,mo,dd] = dateStr.split('-');
+    const [h,mi] = (heureStr||'08:00').split(':');
+    return `${y}${mo}${dd}T${h}${mi}00`;
+  }
+  function uid() { return Math.random().toString(36).slice(2) + Date.now(); }
+  const now = new Date().toISOString().replace(/[-:.]/g,'').slice(0,15) + 'Z';
+
+  let events = '';
+
+  if (plans.length) {
+    // Événements réels du planning Supabase
+    plans.forEach(p => {
+      const siteNom = p.sites?.nom || nomSiteFallback || 'Site';
+      const dtStart = fmtICS(p.date, p.heure_debut);
+      const dtEnd   = fmtICS(p.date, p.heure_fin || (p.heure_debut ? String(parseInt(p.heure_debut)+1).padStart(2,'0')+':00' : '09:00'));
+      events += `BEGIN:VEVENT\r\nUID:${uid()}@cappolia\r\nDTSTAMP:${now}\r\nDTSTART:${dtStart}\r\nDTEND:${dtEnd}\r\nSUMMARY:${nom} — ${siteNom}\r\nDESCRIPTION:Planifié\r\nEND:VEVENT\r\n`;
+    });
+  } else {
+    // Génération depuis les jours travaillés (contrat)
+    const debutD = new Date(debut + 'T00:00:00');
+    const nbJours = new Date(debutD.getFullYear(), debutD.getMonth()+1, 0).getDate();
+    const heureDebut = '08:00', heureFin = hContrat
+      ? `${String(8 + Math.floor(hContrat)).padStart(2,'0')}:${String(Math.round((hContrat%1)*60)).padStart(2,'0')}`
+      : '12:00';
+    for (let d2 = 1; d2 <= nbJours; d2++) {
+      const dateStr = debut.slice(0,8) + String(d2).padStart(2,'0');
+      const jourSem = new Date(dateStr + 'T00:00:00').getDay();
+      if (!joursTravaillesFinal.includes(jourSem)) continue;
+      const siteNom = nomSiteFallback || 'Chantier';
+      events += `BEGIN:VEVENT\r\nUID:${uid()}@cappolia\r\nDTSTAMP:${now}\r\nDTSTART:${fmtICS(dateStr, heureDebut)}\r\nDTEND:${fmtICS(dateStr, heureFin)}\r\nSUMMARY:${nom} — ${siteNom}\r\nDESCRIPTION:Planning contrat\r\nEND:VEVENT\r\n`;
+    }
+  }
+
+  const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CAPPOLIA//Planning//FR\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Planning ${nom}\r\nX-WR-TIMEZONE:Europe/Paris\r\n${events}END:VCALENDAR`;
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `planning_${nom.replace(/ /g,'_')}_${debut.slice(0,7)}.ics`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('📥 Fichier .ics téléchargé — importez-le dans Outlook / Google Calendar');
+}
+
+function copierLienOutlook() {
+  const d = window._planningICS;
+  if (!d) return;
+  const nom = `${d.collab.prenom||''} ${d.collab.nom||''}`.trim();
+  // Conseil pour l'utilisateur : télécharger l'ICS est la méthode la plus simple
+  toast('💡 Téléchargez le .ics puis importez-le dans Outlook : Fichier → Ouvrir → Importer');
+  exporterICS();
 }
 
 async function chargerRetards(c) {
