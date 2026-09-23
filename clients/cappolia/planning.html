@@ -253,6 +253,7 @@ let _offset = 0; // semaines ou mois
 let _agents = [];
 let _sites  = {};
 let _plans  = [];
+let _agentSites = {};
 
 const COULEURS = ['c0','c1','c2','c3','c4','c5','c6','c7'];
 const COULEURS_AVATAR = [
@@ -322,15 +323,31 @@ async function deconnexion() { await sb.auth.signOut(); window.location.href = '
 // ── CHARGEMENT ────────────────────────────────────────────────────────────────
 async function charger() {
   const { debut, fin } = periodeActive();
-  const [{ data: agents }, { data: plans }, { data: sites }] = await Promise.all([
+  const [{ data: agents }, { data: plans }, { data: sites }, { data: allPlans }] = await Promise.all([
     sb.from('agents').select('id,nom,prenom,photo_url,jours_travailles,heures_par_jour,volume_horaire,site_principal_id').eq('tenant_id', TENANT).order('nom'),
     sb.from('planning').select('id,agent_id,date,heure_debut,heure_fin,site_id').eq('tenant_id', TENANT).gte('date', debut).lte('date', fin).order('date'),
     sb.from('sites').select('id,nom,adresse').eq('tenant_id', TENANT),
+    sb.from('planning').select('agent_id,site_id').eq('tenant_id', TENANT).not('site_id', 'is', null),
   ]);
   _agents = agents || [];
   _plans  = plans  || [];
   _sites  = {};
   (sites||[]).forEach(s => _sites[s.id] = s);
+
+  // Sites par agent (depuis tout l'historique planning)
+  _agentSites = {};
+  (allPlans||[]).forEach(p => {
+    if (!p.site_id) return;
+    if (!_agentSites[p.agent_id]) _agentSites[p.agent_id] = new Set();
+    _agentSites[p.agent_id].add(p.site_id);
+  });
+  // Ajouter site_principal_id si pas déjà présent
+  (_agents||[]).forEach(a => {
+    if (a.site_principal_id) {
+      if (!_agentSites[a.id]) _agentSites[a.id] = new Set();
+      _agentSites[a.id].add(a.site_principal_id);
+    }
+  });
 
   // Filtres agents
   const fa = document.getElementById('filtreAgent');
@@ -459,10 +476,11 @@ function afficherSemaine(agents, plans, lundi) {
           const isTravaille = joursTravailles.includes(jourSem);
           const hContrat = a.heures_par_jour ? parseFloat(a.heures_par_jour) : (parseFloat(a.volume_horaire) && joursTravailles.length ? parseFloat(a.volume_horaire)/joursTravailles.length : 0);
           if (isTravaille) {
-            const siteContrat = a.site_principal_id && _sites[a.site_principal_id] ? _sites[a.site_principal_id].nom : '';
-            html += `<div class="creneau ${couleur}" style="opacity:.75;">
+            const siteIds = _agentSites[a.id] ? [..._agentSites[a.id]] : [];
+            const sitesNoms = siteIds.map(sid => _sites[sid]?.nom).filter(Boolean);
+            html += `<div class="creneau ${couleur}" style="opacity:.8;">
               <span class="cr-heure">📋 Contrat${hContrat ? ' · '+hContrat.toFixed(1)+'h' : ''}</span>
-              ${siteContrat ? `<span class="cr-site">🏢 ${siteContrat}</span>` : ''}
+              ${sitesNoms.map(n => `<span class="cr-site">🏢 ${n}</span>`).join('')}
             </div>`;
           }
         }
