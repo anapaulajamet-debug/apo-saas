@@ -346,10 +346,10 @@
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button onclick="exporterICS()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#0078D4;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Arial;">
-                📤 Exporter vers Outlook (.ics)
+                📥 Télécharger .ics
               </button>
-              <button onclick="copierLienOutlook()" id="btnCopierWebcal" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px solid #0078D4;color:#0078D4;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Arial;">
-                🔗 Copier lien Webcal
+              <button onclick="abonnerOutlook()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px solid #0078D4;color:#0078D4;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Arial;">
+                🔗 S'abonner (Webcal / Outlook)
               </button>
             </div>
           </div>
@@ -1145,13 +1145,53 @@ function exporterICS() {
   toast('📥 Fichier .ics téléchargé — importez-le dans Outlook / Google Calendar');
 }
 
-function copierLienOutlook() {
+function abonnerOutlook() {
   const d = window._planningICS;
-  if (!d) return;
-  const nom = `${d.collab.prenom||''} ${d.collab.nom||''}`.trim();
-  // Conseil pour l'utilisateur : télécharger l'ICS est la méthode la plus simple
-  toast('💡 Téléchargez le .ics puis importez-le dans Outlook : Fichier → Ouvrir → Importer');
-  exporterICS();
+  if (!d || !d.collab?.id) return;
+  const agentId = d.collab.id;
+  const baseUrl = window.location.origin; // https://app.cappolia-proprete.fr
+  const httpsUrl = `${baseUrl}/api/planning-ics?agent_id=${agentId}`;
+  const webcalUrl = httpsUrl.replace(/^https?:\/\//, 'webcal://');
+
+  // Modal inline
+  const existing = document.getElementById('modalWebcal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modalWebcal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px;width:min(520px,95vw);box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:Arial;">
+      <div style="font-size:17px;font-weight:800;color:#1B3A2D;margin-bottom:6px;">📅 Abonnement calendrier</div>
+      <div style="font-size:12px;color:#6B7280;margin-bottom:18px;">Le planning se synchronise automatiquement toutes les heures.</div>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1B3A2D;margin-bottom:6px;">🖥️ Outlook Desktop / Mac</div>
+        <div style="font-size:12px;color:#374151;margin-bottom:8px;">Fichier → Ouvrir → Abonnement à un calendrier Internet → coller l'URL :</div>
+        <div style="display:flex;gap:6px;">
+          <input readonly value="${httpsUrl}" style="flex:1;padding:8px 10px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:11px;background:#F9FAFB;font-family:monospace;" onclick="this.select()"/>
+          <button onclick="navigator.clipboard.writeText('${httpsUrl}');this.textContent='✅';setTimeout(()=>this.textContent='📋',1500)" style="padding:8px 12px;background:#0078D4;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:14px;">📋</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1B3A2D;margin-bottom:6px;">📱 Outlook Mobile / Apple Calendar / Google</div>
+        <div style="font-size:12px;color:#374151;margin-bottom:8px;">Clic sur le lien ci-dessous — le calendrier s'ouvre directement :</div>
+        <a href="${webcalUrl}" style="display:inline-block;padding:8px 16px;background:#E8F5EE;border:1.5px solid #1B6B4A;color:#1B3A2D;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+          🔗 Ouvrir webcal://...
+        </a>
+      </div>
+
+      <div style="background:#FFF7E6;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400E;margin-bottom:16px;">
+        💡 Une fois abonné, Outlook récupère automatiquement les nouvelles missions et modifications sans action supplémentaire.
+      </div>
+
+      <div style="display:flex;justify-content:space-between;gap:8px;">
+        <button onclick="exporterICS()" style="padding:9px 16px;background:#F3F4F6;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;cursor:pointer;font-family:Arial;">📥 Télécharger .ics (import ponctuel)</button>
+        <button onclick="document.getElementById('modalWebcal').remove()" style="padding:9px 18px;background:#1B3A2D;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial;">Fermer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
 async function chargerRetards(c) {

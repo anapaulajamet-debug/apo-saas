@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/planning-ics.js": { "memory": 128, "maxDuration": 10 }
+  },
   "rewrites": [
     { "source": "/", "destination": "/clients/cappolia/login.html" },
     { "source": "/dashboard", "destination": "/clients/cappolia/dashboard.html" },
