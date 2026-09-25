@@ -2675,15 +2675,18 @@ function genererDevis() {
   const tpsMois = document.getElementById('totalTpsMensuel')?.textContent || '0';
   const tpsREE = document.getElementById('totalREE')?.textContent || '0';
 
+  const hECAperccu  = parseFloat(document.getElementById('pvHeuresEC')?.value || 0);
+  const hREEApercu  = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
+
   let lignes = '';
-  if (parseFloat(tpsMois) > 0) {
+  if (parseFloat(tpsMois) > 0 || hECAperccu > 0 || (hECAperccu === 0 && hREEApercu === 0 && (prix.prixHT || 0) > 0)) {
     lignes += `<tr>
       <td>Entretien courant — nettoyage régulier des locaux</td>
       <td style="text-align:center;">${freqLabel}</td>
       <td style="text-align:right;">${fmt(prix.prixHT)}</td>
     </tr>`;
   }
-  if (parseFloat(tpsREE) > 0) {
+  if (parseFloat(tpsREE) > 0 || hREEApercu > 0) {
     lignes += `<tr>
       <td>Prestations ponctuelles</td>
       <td style="text-align:center;">Selon planification</td>
@@ -2719,8 +2722,11 @@ function genererDevisPDF() {
   const hREE = parseFloat(document.getElementById('pvHeuresREE')?.value || 0);
   const freq = document.getElementById('fcFrequence')?.value || '5';
 
+  // Fallback : si heures non renseignées mais prix HT > 0, on affiche quand même la prestation EC
+  const prixHTVal = prix.prixHT || 0;
+
   let lignesHTML = '';
-  if (hEC > 0) {
+  if (hEC > 0 || (hEC === 0 && hREE === 0 && prixHTVal > 0)) {
     lignesHTML += `<tr><td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;">Entretien courant — nettoyage régulier des locaux</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:center;">${getFreqLabel()}</td>
       <td style="padding:9px 12px;border-bottom:1px solid #E5E7EB;text-align:right;">${fmt(prix.prixHT)}</td></tr>`;
