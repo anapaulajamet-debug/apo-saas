@@ -927,26 +927,65 @@
               <div class="field">
                 <label>Niveau agent — Entretien courant</label>
                 <select id="pvNiveauEC" onchange="calculerPrix()">
-                  <option value="12.57">ASC — 12,57 €/h</option>
-                  <option value="12.64">ASCS — 12,64 €/h</option>
-                  <option value="12.70">AQS1 — 12,70 €/h</option>
-                  <option value="12.81">AQS2 — 12,81 €/h</option>
-                  <option value="12.92">AQS3 — 12,92 €/h</option>
-                  <option value="13.17">ATQS1 — 13,17 €/h</option>
-                  <option value="13.91">ATQS2 — 13,91 €/h</option>
-                  <option value="14.95">ATQS3 — 14,95 €/h</option>
-                  <option value="14.43">CE1 — 14,43 €/h</option>
+                  <optgroup label="AS — Agent de service">
+                    <option value="12.52">ASP — 12,52 €/h</option>
+                    <option value="12.57" selected>ASC — 12,57 €/h</option>
+                    <option value="12.64">ASCS — 12,64 €/h</option>
+                  </optgroup>
+                  <optgroup label="AQS — Agent qualifié">
+                    <option value="12.70">AQS1 — 12,70 €/h</option>
+                    <option value="12.81">AQS2 — 12,81 €/h</option>
+                    <option value="12.92">AQS3 — 12,92 €/h</option>
+                  </optgroup>
+                  <optgroup label="ATQS — Agent très qualifié">
+                    <option value="13.17">ATQS1 — 13,17 €/h</option>
+                    <option value="13.91">ATQS2 — 13,91 €/h</option>
+                    <option value="14.95">ATQS3 — 14,95 €/h</option>
+                  </optgroup>
+                  <optgroup label="CE — Chef d'équipe">
+                    <option value="14.43">CE1 — 14,43 €/h</option>
+                    <option value="15.27">CE2 — 15,27 €/h</option>
+                    <option value="15.44">CE3 — 15,44 €/h</option>
+                  </optgroup>
+                  <optgroup label="MP — Maîtrise exploitation">
+                    <option value="15.52">MP1 — 15,52 €/h</option>
+                    <option value="16.39">MP2 — 16,39 €/h</option>
+                    <option value="18.18">MP3 — 18,18 €/h</option>
+                    <option value="20.25">MP4 — 20,25 €/h</option>
+                    <option value="21.90">MP5 — 21,90 €/h</option>
+                  </optgroup>
                 </select>
               </div>
               <div class="field">
                 <label>Niveau agent — Prestations ponctuelles</label>
                 <select id="pvNiveauREE" onchange="calculerPrix()">
-                  <option value="13.17" selected>ATQS1 — 13,17 €/h</option>
-                  <option value="13.91">ATQS2 — 13,91 €/h</option>
-                  <option value="14.95">ATQS3 — 14,95 €/h</option>
-                  <option value="14.43">CE1 — 14,43 €/h</option>
-                  <option value="15.27">CE2 — 15,27 €/h</option>
-                  <option value="15.44">CE3 — 15,44 €/h</option>
+                  <optgroup label="AS — Agent de service">
+                    <option value="12.52">ASP — 12,52 €/h</option>
+                    <option value="12.57">ASC — 12,57 €/h</option>
+                    <option value="12.64">ASCS — 12,64 €/h</option>
+                  </optgroup>
+                  <optgroup label="AQS — Agent qualifié">
+                    <option value="12.70">AQS1 — 12,70 €/h</option>
+                    <option value="12.81">AQS2 — 12,81 €/h</option>
+                    <option value="12.92">AQS3 — 12,92 €/h</option>
+                  </optgroup>
+                  <optgroup label="ATQS — Agent très qualifié">
+                    <option value="13.17" selected>ATQS1 — 13,17 €/h</option>
+                    <option value="13.91">ATQS2 — 13,91 €/h</option>
+                    <option value="14.95">ATQS3 — 14,95 €/h</option>
+                  </optgroup>
+                  <optgroup label="CE — Chef d'équipe">
+                    <option value="14.43">CE1 — 14,43 €/h</option>
+                    <option value="15.27">CE2 — 15,27 €/h</option>
+                    <option value="15.44">CE3 — 15,44 €/h</option>
+                  </optgroup>
+                  <optgroup label="MP — Maîtrise exploitation">
+                    <option value="15.52">MP1 — 15,52 €/h</option>
+                    <option value="16.39">MP2 — 16,39 €/h</option>
+                    <option value="18.18">MP3 — 18,18 €/h</option>
+                    <option value="20.25">MP4 — 20,25 €/h</option>
+                    <option value="21.90">MP5 — 21,90 €/h</option>
+                  </optgroup>
                 </select>
               </div>
               <div class="field">
@@ -1595,16 +1634,39 @@ function allerEtape(n, sauver = true) {
 
 // ── ÉQUIPE & TEMPS PASSÉ ─────────────────────────────────────────────────────
 
+// Grille CCN Propreté 2026 — colonne A — en vigueur au 1er avril 2026
 const CCN_NIVEAUX = [
-  { label: 'AS1A – Agent de service', taux: 12.17 },
-  { label: 'AS1B – Agent de service', taux: 12.36 },
-  { label: 'AQS2A – Agent qualifié', taux: 12.55 },
-  { label: 'AQS2B – Agent qualifié', taux: 12.76 },
-  { label: 'ATQS3A – Agent très qualifié', taux: 13.00 },
-  { label: 'ATQS3B – Agent très qualifié', taux: 13.28 },
-  { label: 'MA4A – Maîtrise / Chef d\'équipe', taux: 14.50 },
-  { label: 'MA4B – Maîtrise / Chef d\'équipe', taux: 15.20 },
-  { label: 'Cadre', taux: 20.00 },
+  // AS — Agent de service
+  { label: 'ASP — Agent de service polyvalent',         taux: 12.52 },
+  { label: 'ASC — Agent de service confirmé',           taux: 12.57 },
+  { label: 'ASCS — Agent de service confirmé spécialisé', taux: 12.64 },
+  // AQS — Agent qualifié de service
+  { label: 'AQS1 — Agent qualifié de service ech.1',   taux: 12.70 },
+  { label: 'AQS2 — Agent qualifié de service ech.2',   taux: 12.81 },
+  { label: 'AQS3 — Agent qualifié de service ech.3',   taux: 12.92 },
+  // ATQS — Agent très qualifié de service
+  { label: 'ATQS1 — Agent très qualifié ech.1',        taux: 13.17 },
+  { label: 'ATQS2 — Agent très qualifié ech.2',        taux: 13.91 },
+  { label: 'ATQS3 — Agent très qualifié ech.3',        taux: 14.95 },
+  // CE — Chef d'équipe
+  { label: 'CE1 — Chef d\'équipe ech.1',               taux: 14.43 },
+  { label: 'CE2 — Chef d\'équipe ech.2',               taux: 15.27 },
+  { label: 'CE3 — Chef d\'équipe ech.3',               taux: 15.44 },
+  // MP — Maîtrise exploitation
+  { label: 'MP1 — Maîtrise exploitation ech.1',        taux: 15.52 },
+  { label: 'MP2 — Maîtrise exploitation ech.2',        taux: 16.39 },
+  { label: 'MP3 — Maîtrise exploitation ech.3',        taux: 18.18 },
+  { label: 'MP4 — Maîtrise exploitation ech.4 (AC)',   taux: 20.25 },
+  { label: 'MP5 — Maîtrise exploitation ech.5 (AC)',   taux: 21.90 },
+  // EA — Employés administratifs
+  { label: 'EA1 — Employé administratif ech.1',        taux: 12.63 },
+  { label: 'EA2 — Employé administratif ech.2',        taux: 13.54 },
+  { label: 'EA3 — Employé administratif ech.3',        taux: 14.89 },
+  { label: 'EA4 — Employé administratif ech.4',        taux: 16.29 },
+  // MA — Maîtrise administrative
+  { label: 'MA1 — Maîtrise administrative ech.1',      taux: 18.11 },
+  { label: 'MA2 — Maîtrise administrative ech.2',      taux: 20.56 },
+  { label: 'MA3 — Maîtrise administrative ech.3 (AC)', taux: 21.68 },
 ];
 
 function optionsNiveaux(selectedTaux) {
