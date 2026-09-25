@@ -143,8 +143,11 @@
       display: flex;
       gap: 14px;
       overflow-x: auto;
-      padding-bottom: 16px;
+      padding-bottom: 4px;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE */
     }
+    .kanban::-webkit-scrollbar { display: none; } /* Chrome/Safari */
     .kanban-col {
       min-width: 210px;
       flex-shrink: 0;
@@ -453,7 +456,7 @@
       .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
       .toolbar-left { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
       .filter-btn { white-space: nowrap; font-size: 11px; padding: 6px 10px; }
-      .kanban { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 16px; }
+      .kanban { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none; }
       .kanban-col { min-width: 280px; }
       .map-container { height: 250px !important; }
       .modal { margin: 10px; padding: 18px; max-width: calc(100vw - 20px) !important; }
