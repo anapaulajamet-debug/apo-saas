@@ -54,6 +54,19 @@
     .btn-nav:hover { background:var(--teal-light); border-color:var(--teal); }
     .periode-label { font-size:13px; font-weight:700; color:#1F2937; min-width:140px; text-align:center; }
     .filtre-select { padding:7px 10px; border:1.5px solid var(--bordure); border-radius:7px; font-size:12px; background:var(--blanc); color:#1F2937; cursor:pointer; }
+    /* ── MULTI-SELECT AGENTS ── */
+    .ms-wrap { position:relative; }
+    .ms-btn { padding:7px 10px; border:1.5px solid var(--bordure); border-radius:7px; font-size:12px; background:var(--blanc); color:#1F2937; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; user-select:none; }
+    .ms-btn:hover { border-color:var(--teal); }
+    .ms-badge { background:var(--teal); color:#fff; border-radius:10px; padding:1px 6px; font-size:11px; font-weight:700; }
+    .ms-dropdown { position:absolute; top:calc(100% + 4px); left:0; z-index:200; background:#fff; border:1.5px solid var(--bordure); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); min-width:200px; max-height:280px; overflow-y:auto; padding:6px; }
+    .ms-dropdown.hidden { display:none; }
+    .ms-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; }
+    .ms-item:hover { background:var(--teal-light); }
+    .ms-item input[type=checkbox] { accent-color:var(--teal); width:14px; height:14px; cursor:pointer; }
+    .ms-sep { border:none; border-top:1px solid var(--bordure); margin:4px 0; }
+    .ms-action { font-size:11px; color:var(--teal); font-weight:700; padding:4px 8px; cursor:pointer; border-radius:5px; }
+    .ms-action:hover { background:var(--teal-light); }
     .btn-ical { display:flex; align-items:center; gap:6px; padding:7px 14px; background:#0078D4; color:#fff; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; margin-left:auto; }
     .btn-ical:hover { opacity:.88; }
     .btn-today { padding:7px 12px; border:1.5px solid var(--teal); border-radius:7px; font-size:12px; font-weight:700; background:var(--teal-light); color:var(--teal); cursor:pointer; }
@@ -201,9 +214,19 @@
       <button class="btn-view" id="btnMois" onclick="changerVue('mois')">Mois</button>
       <button class="btn-view" id="btnListe" onclick="changerVue('liste')">Liste</button>
 
-      <select class="filtre-select" id="filtreAgent" onchange="afficher()">
-        <option value="">Tous les agents</option>
-      </select>
+      <div class="ms-wrap" id="msWrap">
+        <div class="ms-btn" id="msBtn" onclick="toggleMsDropdown(event)">
+          👤 <span id="msBtnLabel">Tous les agents</span>
+          <span id="msBadge" class="ms-badge" style="display:none;"></span>
+          ▾
+        </div>
+        <div class="ms-dropdown hidden" id="msDropdown">
+          <div class="ms-item ms-action" onclick="msSelectAll()">✅ Sélectionner tout</div>
+          <div class="ms-item ms-action" onclick="msSelectNone()">☐ Désélectionner tout</div>
+          <hr class="ms-sep">
+          <div id="msAgentList"></div>
+        </div>
+      </div>
 
       <select class="filtre-select" id="filtreSite" onchange="afficher()">
         <option value="">Tous les sites</option>
@@ -349,17 +372,20 @@ async function charger() {
     }
   });
 
-  // Filtres agents
-  const fa = document.getElementById('filtreAgent');
-  const curA = fa.value;
-  fa.innerHTML = '<option value="">Tous les agents</option>';
+  // Filtres agents — multi-select
+  const list = document.getElementById('msAgentList');
+  const prevChecked = new Set([...document.querySelectorAll('.ms-cb:checked')].map(cb => cb.value));
+  list.innerHTML = '';
   _agents.forEach(a => {
-    const o = document.createElement('option');
-    o.value = a.id;
-    o.textContent = `${a.prenom||''} ${a.nom||''}`.trim();
-    fa.appendChild(o);
+    const nom = `${a.prenom||''} ${a.nom||''}`.trim();
+    const checked = prevChecked.size === 0 || prevChecked.has(a.id) ? '' : '';
+    const item = document.createElement('label');
+    item.className = 'ms-item';
+    item.innerHTML = `<input type="checkbox" class="ms-cb" value="${a.id}" ${prevChecked.size === 0 || prevChecked.has(a.id) ? 'checked' : ''}><span>${nom}</span>`;
+    item.querySelector('input').addEventListener('change', () => { msMajLabel(); afficher(); });
+    list.appendChild(item);
   });
-  fa.value = curA;
+  msMajLabel();
 
   // Filtres sites
   const fs = document.getElementById('filtreSite');
@@ -393,18 +419,59 @@ function changerVue(vue) {
   charger();
 }
 
+// ── MULTI-SELECT HELPERS ──────────────────────────────────────────────────────
+function msAgentsSelectionnes() {
+  const cbs = [...document.querySelectorAll('.ms-cb')];
+  const checked = cbs.filter(cb => cb.checked).map(cb => cb.value);
+  return checked.length === cbs.length ? null : new Set(checked); // null = tous
+}
+function msMajLabel() {
+  const cbs = [...document.querySelectorAll('.ms-cb')];
+  const checked = cbs.filter(cb => cb.checked);
+  const badge = document.getElementById('msBadge');
+  const label = document.getElementById('msBtnLabel');
+  if (checked.length === 0 || checked.length === cbs.length) {
+    label.textContent = 'Tous les agents';
+    badge.style.display = 'none';
+  } else if (checked.length === 1) {
+    const nom = checked[0].closest('label').querySelector('span').textContent;
+    label.textContent = nom;
+    badge.style.display = 'none';
+  } else {
+    label.textContent = 'Agents';
+    badge.textContent = checked.length;
+    badge.style.display = '';
+  }
+}
+function toggleMsDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('msDropdown').classList.toggle('hidden');
+}
+function msSelectAll() {
+  document.querySelectorAll('.ms-cb').forEach(cb => cb.checked = true);
+  msMajLabel(); afficher();
+}
+function msSelectNone() {
+  document.querySelectorAll('.ms-cb').forEach(cb => cb.checked = false);
+  msMajLabel(); afficher();
+}
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('msWrap');
+  if (wrap && !wrap.contains(e.target)) document.getElementById('msDropdown')?.classList.add('hidden');
+});
+
 // ── AFFICHAGE ─────────────────────────────────────────────────────────────────
 function afficher() {
   const { debut, fin, label, lundi } = periodeActive();
   document.getElementById('periodeLabel').textContent = label;
 
-  const filtreAgent = document.getElementById('filtreAgent').value;
-  const filtreSite  = document.getElementById('filtreSite').value;
+  const selectionAgents = msAgentsSelectionnes(); // null=tous, sinon Set d'ids
+  const filtreSite = document.getElementById('filtreSite').value;
 
-  const agents = filtreAgent ? _agents.filter(a => a.id === filtreAgent) : _agents;
+  const agents = selectionAgents ? _agents.filter(a => selectionAgents.has(a.id)) : _agents;
   const plans  = _plans.filter(p =>
-    (!filtreAgent || p.agent_id === filtreAgent) &&
-    (!filtreSite  || p.site_id === filtreSite)
+    (!selectionAgents || selectionAgents.has(p.agent_id)) &&
+    (!filtreSite || p.site_id === filtreSite)
   );
 
   if (_vue === 'semaine') afficherSemaine(agents, plans, lundi);
