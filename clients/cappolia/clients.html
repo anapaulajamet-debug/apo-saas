@@ -688,13 +688,9 @@
       const { data: newSite, error } = await sb.from('sites').insert({
         tenant_id: TENANT,
         nom: p.nom,
-        contact_nom: p.contact,
-        telephone: p.tel,
+        telephone: p.tel || null,
         email: p.email || null,
         adresse: p.adresse || null,
-        statut_contrat: 'essai',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       }).select().single();
 
       if (error) {
