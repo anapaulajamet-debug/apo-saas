@@ -684,6 +684,9 @@
       const { data: newSiteId, error } = await sb.rpc('creer_site_from_prospect', {
         p_nom: p.nom,
         p_adresse: p.adresse || null,
+        p_telephone: p.tel || null,
+        p_email: p.email || null,
+        p_contact_nom: p.contact || null,
       });
 
       if (error) {
