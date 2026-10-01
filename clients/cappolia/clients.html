@@ -694,7 +694,6 @@
         adresse: p.adresse || null,
         statut_contrat: 'essai',
         prospect_id: p.id,
-        notes: notePrestataire,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).select().single();
