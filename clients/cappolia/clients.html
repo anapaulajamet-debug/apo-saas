@@ -262,6 +262,34 @@
     .tag-resilie { background: #FEE2E2; color: #991B1B; }
     .tag-essai   { background: #FEF3C7; color: #92400E; }
 
+    /* ── ALERTES DEVIS SIGNÉS ── */
+    #alertesGagnes { margin-bottom: 20px; }
+    .alerte-gagne-titre { font-size: 13px; font-weight: 800; color: #92400E; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .alerte-gagne-card { background: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+    .alerte-gagne-icon { font-size: 22px; flex-shrink: 0; }
+    .alerte-gagne-info { flex: 1; }
+    .alerte-gagne-nom { font-size: 14px; font-weight: 700; color: #1F2937; }
+    .alerte-gagne-sub { font-size: 12px; color: #6B7280; margin-top: 2px; }
+    .alerte-gagne-actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn-alerte-recruter { padding: 7px 14px; background: #2563EB; color: #fff; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .btn-alerte-recruter:hover { opacity: .88; }
+    .btn-alerte-dirigeant { padding: 7px 14px; background: #059669; color: #fff; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .btn-alerte-dirigeant:hover { opacity: .88; }
+    /* Modal choix prestataire */
+    .modal-overlay-ag { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center; }
+    .modal-box-ag { background:#fff;border-radius:14px;padding:30px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2); }
+    .modal-box-ag h3 { margin:0 0 6px;font-size:18px;color:#1F2937; }
+    .modal-box-ag p { margin:0 0 22px;font-size:13px;color:#6B7280; }
+    .modal-ag-btns { display:flex;gap:10px;flex-direction:column; }
+    .modal-ag-btn { padding:14px 20px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px; }
+    .modal-ag-btn.recruter { background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE; }
+    .modal-ag-btn.recruter:hover { background:#DBEAFE; }
+    .modal-ag-btn.dirigeant { background:#F0FDF4;color:#065F46;border:1.5px solid #86EFAC; }
+    .modal-ag-btn.dirigeant:hover { background:#DCFCE7; }
+    .modal-ag-btn .btn-icon { font-size:20px; }
+    .modal-ag-annuler { margin-top:12px;width:100%;padding:9px;background:none;border:none;color:#9CA3AF;font-size:13px;cursor:pointer; }
+    .modal-ag-annuler:hover { color:#6B7280; }
+
     .btn-fiche {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 6px 14px; border-radius: 6px;
@@ -491,6 +519,9 @@
         </div>
       </div>
 
+      <!-- Alertes devis signés sans agent -->
+      <div id="alertesGagnes" style="display:none;"></div>
+
       <!-- Barre de recherche -->
       <div class="toolbar">
         <div class="search-wrap">
@@ -543,6 +574,9 @@
     const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+    const esc = str => String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     let tousLesClients = [];
 
@@ -574,6 +608,113 @@
     // ── Sidebar ──
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // ── Alertes prospects gagnés sans fiche client ──
+    async function chargerAlertesGagnes() {
+      const { data: gagnes } = await sb.from('prospects')
+        .select('id,raison_sociale,contact,telephone,email,adresse,updated_at')
+        .eq('tenant_id', TENANT)
+        .eq('statut', 'gagne')
+        .order('updated_at', { ascending: false });
+
+      if (!gagnes || gagnes.length === 0) return;
+
+      // Récupérer les sites existants pour détecter ceux déjà convertis
+      const { data: sites } = await sb.from('sites').select('prospect_id').eq('tenant_id', TENANT).not('prospect_id', 'is', null);
+      const prospectsDejaSites = new Set((sites||[]).map(s => s.prospect_id));
+
+      const aTraiter = gagnes.filter(p => !prospectsDejaSites.has(p.id));
+      if (!aTraiter.length) return;
+
+      const zone = document.getElementById('alertesGagnes');
+      zone.style.display = 'block';
+      zone.innerHTML = `<div class="alerte-gagne-titre">🏆 ${aTraiter.length} devis signé${aTraiter.length > 1 ? 's' : ''} — qui fait la prestation ?</div>` +
+        aTraiter.map(p => {
+          const dateGagne = p.updated_at ? new Date(p.updated_at).toLocaleDateString('fr-FR') : '';
+          return `<div class="alerte-gagne-card">
+            <div class="alerte-gagne-icon">🎉</div>
+            <div class="alerte-gagne-info">
+              <div class="alerte-gagne-nom">${esc(p.raison_sociale || '—')}</div>
+              <div class="alerte-gagne-sub">${esc(p.contact || '')}${p.telephone ? ' · ' + esc(p.telephone) : ''}${dateGagne ? ' · Signé le ' + dateGagne : ''}</div>
+            </div>
+            <div class="alerte-gagne-actions">
+              <button class="btn-alerte-recruter" onclick="ouvrirModalPrestataire('${p.id}','${esc(p.raison_sociale||'')}','${esc(p.contact||'')}','${esc(p.telephone||'')}','${esc(p.email||'')}','${esc(p.adresse||'')}')">👤 Recruter un salarié</button>
+              <button class="btn-alerte-dirigeant" onclick="ouvrirModalPrestataire('${p.id}','${esc(p.raison_sociale||'')}','${esc(p.contact||'')}','${esc(p.telephone||'')}','${esc(p.email||'')}','${esc(p.adresse||'')}')">🙋 Le dirigeant démarre</button>
+            </div>
+          </div>`;
+        }).join('');
+    }
+
+    let _modalProspect = null;
+    function ouvrirModalPrestataire(id, nom, contact, tel, email, adresse) {
+      _modalProspect = { id, nom, contact, tel, email, adresse };
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay-ag';
+      overlay.id = 'modalAg';
+      overlay.innerHTML = `<div class="modal-box-ag">
+        <h3>Qui fait la prestation ?</h3>
+        <p>Le devis <strong>${esc(nom)}</strong> est signé. Choisissez comment démarrer l'activité.</p>
+        <div class="modal-ag-btns">
+          <button class="modal-ag-btn recruter" onclick="convertirProspect('recruter')">
+            <span class="btn-icon">👤</span>
+            <div><div style="font-size:15px;">Recruter un salarié</div><div style="font-size:11px;font-weight:400;margin-top:2px;">Je vais embaucher quelqu'un pour ce site</div></div>
+          </button>
+          <button class="modal-ag-btn dirigeant" onclick="convertirProspect('dirigeant')">
+            <span class="btn-icon">🙋</span>
+            <div><div style="font-size:15px;">Le dirigeant démarre</div><div style="font-size:11px;font-weight:400;margin-top:2px;">Je fais la prestation moi-même pour commencer</div></div>
+          </button>
+        </div>
+        <button class="modal-ag-annuler" onclick="fermerModalAg()">Annuler</button>
+      </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    function fermerModalAg() {
+      document.getElementById('modalAg')?.remove();
+      _modalProspect = null;
+    }
+
+    async function convertirProspect(type) {
+      if (!_modalProspect) return;
+      const p = _modalProspect;
+      fermerModalAg();
+
+      // Créer la fiche site/client depuis le prospect gagné
+      const notePrestataire = type === 'recruter'
+        ? '🔵 Recrutement en cours — salarié à embaucher pour ce site'
+        : '🟢 Dirigeant assure la prestation au démarrage';
+
+      const { data: newSite, error } = await sb.from('sites').insert({
+        tenant_id: TENANT,
+        nom: p.nom,
+        contact_nom: p.contact,
+        telephone: p.tel,
+        email: p.email || null,
+        adresse: p.adresse || null,
+        statut_contrat: 'essai',
+        prospect_id: p.id,
+        notes: notePrestataire,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).select().single();
+
+      if (error) {
+        alert('Erreur lors de la création de la fiche client : ' + error.message);
+        return;
+      }
+
+      // Marquer le prospect comme converti
+      await sb.from('prospects').update({ statut: 'client', updated_at: new Date().toISOString() }).eq('id', p.id);
+
+      // Rafraîchir la page
+      await chargerAlertesGagnes();
+      await chargerClients();
+
+      const msg = type === 'recruter'
+        ? `✅ Fiche client créée pour "${p.nom}" — recrutement à lancer`
+        : `✅ Fiche client créée pour "${p.nom}" — le dirigeant démarre la prestation`;
+      alert(msg);
     }
 
     // ── Chargement clients ──
@@ -708,7 +849,7 @@
     }
 
     // ── Init ──
-    checkAuth().then(() => chargerClients());
+    checkAuth().then(() => { chargerAlertesGagnes(); chargerClients(); });
   </script>
 
 </body>
