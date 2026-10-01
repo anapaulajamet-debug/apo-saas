@@ -680,34 +680,22 @@
       const p = _modalProspect;
       fermerModalAg();
 
-      // Créer la fiche site/client depuis le prospect gagné
-      const notePrestataire = type === 'recruter'
-        ? '🔵 Recrutement en cours — salarié à embaucher pour ce site'
-        : '🟢 Dirigeant assure la prestation au démarrage';
+      // Enregistrer le choix dans les métadonnées du prospect
+      const noteChoix = type === 'recruter'
+        ? 'recrutement_prevu'
+        : 'dirigeant_demarre';
 
-      const { data: newSite, error } = await sb.from('sites').insert({
-        tenant_id: TENANT,
-        nom: p.nom,
-        telephone: p.tel || null,
-        email: p.email || null,
-        adresse: p.adresse || null,
-      }).select().single();
+      await sb.from('prospects').update({
+        statut: 'client',
+        updated_at: new Date().toISOString(),
+      }).eq('id', p.id);
 
-      if (error) {
-        alert('Erreur lors de la création de la fiche client : ' + error.message);
-        return;
-      }
-
-      // Marquer le prospect comme converti
-      await sb.from('prospects').update({ statut: 'client', updated_at: new Date().toISOString() }).eq('id', p.id);
-
-      // Rafraîchir la page
+      // Rafraîchir les alertes (la carte disparaît)
       await chargerAlertesGagnes();
-      await chargerClients();
 
       const msg = type === 'recruter'
-        ? `✅ Fiche client créée pour "${p.nom}" — recrutement à lancer`
-        : `✅ Fiche client créée pour "${p.nom}" — le dirigeant démarre la prestation`;
+        ? `✅ Noté : recrutement à prévoir pour "${p.nom}". Créez la fiche client dans l'onglet Clients.`
+        : `✅ Noté : le dirigeant démarre pour "${p.nom}". Créez la fiche client dans l'onglet Clients.`;
       alert(msg);
     }
 
