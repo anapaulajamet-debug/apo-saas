@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signature du devis — Cappolia Propreté</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #F9FAFB; color: #1F2937; min-height: 100vh; }
+
+    .header { background: #1A3D28; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 14px; }
+    .header-logo { width: 36px; height: 36px; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .header-logo img { width: 28px; }
+    .header-brand { font-size: 16px; font-weight: 800; letter-spacing: .5px; }
+    .header-sub { font-size: 12px; color: rgba(255,255,255,.65); }
+
+    .container { max-width: 720px; margin: 32px auto; padding: 0 16px 60px; }
+
+    /* Statut */
+    .statut-banner { padding: 14px 20px; border-radius: 10px; margin-bottom: 24px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .statut-attente { background: #FEF3C7; color: #92400E; border: 1.5px solid #FCD34D; }
+    .statut-signe   { background: #D1FAE5; color: #065F46; border: 1.5px solid #6EE7B7; }
+
+    /* Devis card */
+    .devis-card { background: #fff; border-radius: 14px; border: 1.5px solid #E5E7EB; overflow: hidden; margin-bottom: 28px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+    .devis-header { background: #1A3D28; color: #fff; padding: 28px 32px; }
+    .devis-titre { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .devis-num   { font-size: 13px; color: rgba(255,255,255,.7); }
+    .devis-body  { padding: 28px 32px; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .info-bloc { background: #F9FAFB; border-radius: 8px; padding: 14px 16px; }
+    .info-bloc-title { font-size: 11px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .info-bloc-val { font-size: 13px; font-weight: 600; color: #1F2937; line-height: 1.6; }
+
+    .section-titre { font-size: 13px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: .5px; margin: 20px 0 10px; border-bottom: 1.5px solid #D1FAE5; padding-bottom: 6px; }
+
+    table.devis-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.devis-table th { background: #F3F4F6; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; }
+    table.devis-table td { padding: 12px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
+    table.devis-table tr:last-child td { border-bottom: none; }
+    .montant-ht { font-size: 15px; font-weight: 700; color: #1F2937; }
+    .total-row td { background: #F0FDF4; font-weight: 700; }
+    .total-ttc { font-size: 17px; font-weight: 800; color: #059669; }
+
+    .conditions { background: #F9FAFB; border-radius: 8px; padding: 14px 16px; font-size: 12px; color: #6B7280; margin-top: 20px; line-height: 1.6; }
+
+    /* Zone signature */
+    .signature-zone { background: #fff; border-radius: 14px; border: 2px solid #7C3AED; padding: 28px 32px; box-shadow: 0 4px 20px rgba(124,58,237,.1); }
+    .sig-titre { font-size: 17px; font-weight: 800; color: #1F2937; margin-bottom: 6px; }
+    .sig-sub { font-size: 13px; color: #6B7280; margin-bottom: 24px; }
+    .sig-field label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+    .sig-field input { width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 8px; font-size: 14px; outline: none; transition: border-color .15s; }
+    .sig-field input:focus { border-color: #7C3AED; }
+    .sig-check { display: flex; align-items: flex-start; gap: 10px; margin: 18px 0; cursor: pointer; }
+    .sig-check input[type=checkbox] { width: 18px; height: 18px; accent-color: #7C3AED; margin-top: 1px; flex-shrink: 0; }
+    .sig-check span { font-size: 13px; color: #374151; line-height: 1.5; }
+    .btn-signer { width: 100%; padding: 15px; background: #7C3AED; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 4px; transition: opacity .15s; letter-spacing: .3px; }
+    .btn-signer:hover { opacity: .9; }
+    .btn-signer:disabled { background: #D1D5DB; cursor: not-allowed; }
+    .sig-mention { font-size: 11px; color: #9CA3AF; text-align: center; margin-top: 12px; line-height: 1.5; }
+
+    /* Confirmation */
+    .confirmation { text-align: center; padding: 40px 20px; }
+    .confirmation .icon { font-size: 60px; margin-bottom: 16px; }
+    .confirmation h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .confirmation p { color: #6B7280; font-size: 14px; margin-bottom: 6px; }
+    .confirmation .sig-info { background: #F0FDF4; border-radius: 8px; padding: 14px 20px; margin-top: 20px; font-size: 13px; color: #065F46; font-weight: 600; }
+
+    /* Erreur / chargement */
+    .page-center { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 12px; color: #6B7280; font-size: 14px; }
+
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .devis-body, .devis-header, .signature-zone { padding: 20px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-brand">CAPPOLIA PROPRETÉ</div>
+    <div class="header-sub">Signature électronique de devis</div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="pageLoader" class="page-center">
+    <div style="font-size:32px;">⏳</div>
+    <div>Chargement du devis…</div>
+  </div>
+  <div id="pageErreur" class="page-center" style="display:none;">
+    <div style="font-size:48px;">❌</div>
+    <div style="font-size:18px;font-weight:700;color:#1F2937;">Lien invalide ou expiré</div>
+    <div>Ce lien de signature n'existe pas ou a déjà été utilisé.</div>
+  </div>
+  <div id="pageContenu" style="display:none;"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL      = 'https://zqehxwggzyepiftjrkxq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzUzNzksImV4cCI6MjA5NzgxMTM3OX0.Kr5bQlcw4_8Qk3eOyEJLYn3kivnlKhsUNNVcoavIpbc';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt = v => v ? new Date(v).toLocaleDateString('fr-FR') : '—';
+const fmtEur = v => Number(v||0).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
+
+let _chiffrage = null;
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  const token  = params.get('token');
+  if (!token) { afficherErreur(); return; }
+
+  const { data, error } = await sb.from('chiffrages')
+    .select('*')
+    .filter('surfaces->>signatureToken', 'eq', token)
+    .single();
+
+  if (error || !data) { afficherErreur(); return; }
+  _chiffrage = data;
+
+  document.getElementById('pageLoader').style.display = 'none';
+  document.getElementById('pageContenu').style.display = 'block';
+
+  const signe = data.surfaces?.signatureStatut === 'signe';
+  if (signe) {
+    afficherConfirmation(data);
+  } else {
+    afficherDevis(data);
+  }
+}
+
+function afficherErreur() {
+  document.getElementById('pageLoader').style.display = 'none';
+  document.getElementById('pageErreur').style.display = 'flex';
+}
+
+function afficherDevis(data) {
+  const d  = data.surfaces || {};
+  const fc = d.ficheClient || {};
+  const prix = d.prixCalcule || {};
+
+  const prixHT   = data.prix_ht   || prix.prixHT   || 0;
+  const tva      = data.tva       || prix.tva       || 0;
+  const prixTTC  = data.prix_ttc  || prix.prixTTC   || 0;
+  const hEC      = d.equipeTemps?.heuresEC   || 0;
+  const hREE     = d.equipeTemps?.heuresREE  || 0;
+
+  const lignesHTML = [];
+  if (prixHT > 0) {
+    lignesHTML.push(`<tr>
+      <td><strong>Entretien courant</strong><br><small style="color:#6B7280;">Nettoyage régulier selon planning</small></td>
+      <td>${hEC ? hEC.toFixed(1) + ' h/mois' : '—'}</td>
+      <td>${fmtEur(prixHT)}</td>
+    </tr>`);
+  }
+  if (hREE > 0) {
+    lignesHTML.push(`<tr>
+      <td><strong>Prestations ponctuelles / remise en état</strong></td>
+      <td>${hREE.toFixed(1)} h/mois</td>
+      <td>Sur devis</td>
+    </tr>`);
+  }
+
+  const frequenceLabel = {
+    '21.65': '5 fois/semaine (jours ouvrés)',
+    '13': '3 fois/semaine',
+    '8.67': '2 fois/semaine',
+    '4.33': '1 fois/semaine',
+  }[fc.frequence] || fc.frequence || '—';
+
+  const joursStr = (fc.jours||[]).join(', ') || '—';
+
+  document.getElementById('pageContenu').innerHTML = `
+    <div class="statut-banner statut-attente">⏳ Ce devis est en attente de votre signature</div>
+
+    <div class="devis-card">
+      <div class="devis-header">
+        <div class="devis-titre">Devis de prestation de nettoyage</div>
+        <div class="devis-num">${esc(data.numero_devis || '')} &nbsp;·&nbsp; Cappolia Propreté</div>
+      </div>
+      <div class="devis-body">
+
+        <div class="info-grid">
+          <div class="info-bloc">
+            <div class="info-bloc-title">Client</div>
+            <div class="info-bloc-val">
+              ${esc(fc.raisonSociale || data.raison_sociale || '—')}<br>
+              ${fc.contact ? esc(fc.contact) + '<br>' : ''}
+              ${fc.adresse ? esc(fc.adresse) : ''}
+            </div>
+          </div>
+          <div class="info-bloc">
+            <div class="info-bloc-title">Site à nettoyer</div>
+            <div class="info-bloc-val">
+              ${esc(fc.typeSite || '—')}<br>
+              Surface : ${esc(fc.surface || '—')} m²<br>
+              Fréquence : ${esc(frequenceLabel)}<br>
+              Jours : ${esc(joursStr)}
+            </div>
+          </div>
+        </div>
+
+        <div class="section-titre">Détail de la prestation</div>
+        <table class="devis-table">
+          <thead>
+            <tr><th>Prestation</th><th>Volume</th><th>Montant mensuel HT</th></tr>
+          </thead>
+          <tbody>
+            ${lignesHTML.join('') || '<tr><td colspan="3" style="color:#9CA3AF;text-align:center;padding:20px;">Prestation à définir avec le client</td></tr>'}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total HT / mois</strong></td>
+              <td class="montant-ht">${fmtEur(prixHT)}</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="2"><strong>TVA 20%</strong></td>
+              <td>${fmtEur(tva)}</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="2"><strong>Total TTC / mois</strong></td>
+              <td class="total-ttc">${fmtEur(prixTTC)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${d.devisCommentaires ? `<div class="conditions"><strong>Conditions particulières :</strong><br>${esc(d.devisCommentaires)}</div>` : ''}
+
+        <div class="conditions" style="margin-top:12px;">
+          <strong>Conditions générales :</strong><br>
+          Devis valable 30 jours. Paiement à 30 jours fin de mois. La prestation débute à la date convenue après signature du présent document.
+          Cappolia Propreté — SIRET en cours d'enregistrement.
+        </div>
+      </div>
+    </div>
+
+    <div class="signature-zone" id="zoneSignature">
+      <div class="sig-titre">✍️ Signer ce devis</div>
+      <div class="sig-sub">En signant, vous acceptez les conditions de la prestation décrite ci-dessus.</div>
+      <div class="sig-field">
+        <label>Votre nom complet *</label>
+        <input type="text" id="sigNom" placeholder="Prénom Nom" oninput="majBtnSigner()" />
+      </div>
+      <label class="sig-check">
+        <input type="checkbox" id="sigAccepte" onchange="majBtnSigner()" />
+        <span>J'ai lu et j'accepte les conditions du devis ci-dessus. Je signe électroniquement ce document au nom de <strong>${esc(fc.raisonSociale || data.raison_sociale || 'mon entreprise')}</strong>.</span>
+      </label>
+      <button class="btn-signer" id="btnSigner" onclick="signer()" disabled>✍️ Je signe ce devis</button>
+      <div class="sig-mention">
+        🔒 Signature horodatée et enregistrée de façon sécurisée.<br>
+        Un email de confirmation vous sera envoyé après signature.
+      </div>
+    </div>
+  `;
+}
+
+function majBtnSigner() {
+  const nom = document.getElementById('sigNom')?.value.trim();
+  const ok  = document.getElementById('sigAccepte')?.checked;
+  const btn = document.getElementById('btnSigner');
+  if (btn) btn.disabled = !(nom && ok);
+}
+
+async function signer() {
+  const nom = document.getElementById('sigNom')?.value.trim();
+  if (!nom) return;
+  const btn = document.getElementById('btnSigner');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enregistrement…';
+
+  const now = new Date().toISOString();
+  const surfaces = _chiffrage.surfaces || {};
+  surfaces.signatureStatut = 'signe';
+  surfaces.signatureNom    = nom;
+  surfaces.signatureDate   = now;
+
+  const { error } = await sb.from('chiffrages').update({
+    surfaces,
+    statut: 'signe',
+    updated_at: now,
+  }).eq('id', _chiffrage.id);
+
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = '✍️ Je signe ce devis';
+    alert('Une erreur est survenue. Veuillez réessayer.');
+    return;
+  }
+
+  // Mettre le prospect en "gagné"
+  if (_chiffrage.prospect_id) {
+    await sb.from('prospects').update({ statut: 'gagne', updated_at: now }).eq('id', _chiffrage.prospect_id);
+  }
+
+  _chiffrage.surfaces = surfaces;
+  afficherConfirmation(_chiffrage);
+}
+
+function afficherConfirmation(data) {
+  const s   = data.surfaces || {};
+  const fc  = s.ficheClient || {};
+  const nom = s.signatureNom || '—';
+  const dat = s.signatureDate ? new Date(s.signatureDate).toLocaleString('fr-FR') : '—';
+
+  document.getElementById('pageContenu').innerHTML = `
+    <div class="confirmation">
+      <div class="icon">✅</div>
+      <h2>Devis signé avec succès !</h2>
+      <p>Merci ${esc(nom)}. Votre signature a bien été enregistrée.</p>
+      <p>Cappolia Propreté va vous recontacter pour organiser le démarrage de la prestation.</p>
+      <div class="sig-info">
+        📋 Devis n° ${esc(data.numero_devis || '—')}<br>
+        🏢 ${esc(fc.raisonSociale || data.raison_sociale || '—')}<br>
+        ✍️ Signé par : ${esc(nom)}<br>
+        🕐 Le : ${esc(dat)}
+      </div>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>

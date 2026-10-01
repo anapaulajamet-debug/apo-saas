@@ -1171,6 +1171,7 @@
         <button class="btn-secondary" onclick="genererCDC()" style="background:#1E40AF;color:#fff;border:none;">📋 Cahier des charges PDF</button>
         <button class="btn-secondary" id="btnSaveDevis" onclick="sauvegarder()">💾 Enregistrer le devis</button>
         <button class="btn-secondary" onclick="ouvrirModalEnvoi()" style="background:#059669;color:#fff;border:none;">📧 Envoyer par email</button>
+        <button class="btn-secondary" id="btnSignature" onclick="envoyerPourSignature()" style="background:#7C3AED;color:#fff;border:none;">✍️ Envoyer pour signature</button>
         <div class="field" style="flex:1;min-width:200px;">
           <input type="text" id="devisCommentaires" placeholder="Commentaires libres (conditions particulières…)" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;width:100%;font-family:Arial;outline:none;"/>
         </div>
@@ -3238,6 +3239,55 @@ async function sauvegarder(silencieux = false) {
     const btn = document.getElementById('btnSave');
     if (btn) { const orig = btn.textContent; btn.textContent = '✓ Enregistré'; setTimeout(() => btn.textContent = orig, 1500); }
   }
+}
+
+// ── SIGNATURE ÉLECTRONIQUE ────────────────────────────────────────────────────
+async function envoyerPourSignature() {
+  if (!currentChiffrageId) {
+    toast('⚠️ Enregistrez le devis avant de l\'envoyer pour signature.');
+    return;
+  }
+  const btn = document.getElementById('btnSignature');
+  btn.textContent = '⏳ Génération…';
+  btn.disabled = true;
+
+  // Générer un token unique
+  const token = crypto.randomUUID();
+
+  // Récupérer les données actuelles du chiffrage
+  const { data: current } = await sb.from('chiffrages').select('surfaces,statut').eq('id', currentChiffrageId).single();
+  const surfaces = current?.surfaces || {};
+  surfaces.signatureToken = token;
+  surfaces.signatureStatut = 'en_attente';
+  surfaces.signatureEnvoyeLe = new Date().toISOString();
+
+  const { error } = await sb.from('chiffrages').update({
+    surfaces,
+    statut: 'envoye_signature',
+    updated_at: new Date().toISOString(),
+  }).eq('id', currentChiffrageId);
+
+  btn.textContent = '✍️ Envoyer pour signature';
+  btn.disabled = false;
+
+  if (error) { toast('❌ Erreur : ' + error.message); return; }
+
+  const lien = `${location.origin}/signature?token=${token}`;
+  // Afficher modale avec le lien
+  const overlay = document.createElement('div');
+  overlay.id = 'modalSignatureOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="font-size:22px;margin-bottom:6px;">✍️ Lien de signature prêt</div>
+    <p style="color:#6B7280;font-size:13px;margin:0 0 20px;">Envoyez ce lien à votre client par email ou WhatsApp. Il pourra lire et signer le devis directement depuis son téléphone ou ordinateur.</p>
+    <div style="background:#F3F4F6;border-radius:8px;padding:12px 14px;font-size:12px;word-break:break-all;color:#1F2937;margin-bottom:16px;">${lien}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="navigator.clipboard.writeText('${lien}').then(()=>{ this.textContent='✅ Copié !'; setTimeout(()=>this.textContent='📋 Copier le lien',2000); })" style="flex:1;padding:11px;background:#7C3AED;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📋 Copier le lien</button>
+      <button onclick="window.open('${lien}','_blank')" style="flex:1;padding:11px;background:#F0FDF4;color:#065F46;border:1.5px solid #86EFAC;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">👁️ Prévisualiser</button>
+    </div>
+    <button onclick="document.getElementById('modalSignatureOverlay').remove()" style="margin-top:12px;width:100%;padding:9px;background:none;border:none;color:#9CA3AF;font-size:13px;cursor:pointer;">Fermer</button>
+  </div>`;
+  document.body.appendChild(overlay);
 }
 
 async function chargerChiffrage(id) {
