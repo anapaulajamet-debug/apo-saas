@@ -620,11 +620,11 @@
 
       if (!gagnes || gagnes.length === 0) return;
 
-      // Récupérer les sites existants pour détecter ceux déjà convertis
-      const { data: sites } = await sb.from('sites').select('prospect_id').eq('tenant_id', TENANT).not('prospect_id', 'is', null);
-      const prospectsDejaSites = new Set((sites||[]).map(s => s.prospect_id));
+      // Détecter les prospects déjà convertis en client (même nom)
+      const { data: sites } = await sb.from('sites').select('nom').eq('tenant_id', TENANT);
+      const nomsExistants = new Set((sites||[]).map(s => (s.nom||'').toLowerCase().trim()));
 
-      const aTraiter = gagnes.filter(p => !prospectsDejaSites.has(p.id));
+      const aTraiter = gagnes.filter(p => !nomsExistants.has((p.raison_sociale||'').toLowerCase().trim()));
       if (!aTraiter.length) return;
 
       const zone = document.getElementById('alertesGagnes');
@@ -693,7 +693,6 @@
         email: p.email || null,
         adresse: p.adresse || null,
         statut_contrat: 'essai',
-        prospect_id: p.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).select().single();
