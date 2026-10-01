@@ -242,6 +242,8 @@
         <button class="tab-btn" onclick="showTab('controles',this)">✅ Contrôles</button>
         <button class="tab-btn" onclick="showTab('materiel',this)">🔧 Matériel</button>
         <button class="tab-btn" onclick="showTab('bons',this)">📄 Bons de commande</button>
+        <button class="tab-btn" onclick="showTab('contrat',this)">📑 Contrat</button>
+        <button class="tab-btn" onclick="showTab('documents',this)">📁 Documents</button>
       </div>
 
       <div class="content">
@@ -377,6 +379,35 @@
           </div>
         </div>
 
+        <!-- ══ CONTRAT ══ -->
+        <div class="tab-panel" id="tab-contrat">
+          <div class="card">
+            <div class="card-title">DÉTAIL PRESTATION</div>
+            <div class="info-grid">
+              <div class="info-item"><label>Fréquence de passage</label><p id="cFrequence">—</p></div>
+              <div class="info-item"><label>Durée par passage</label><p id="cDuree">—</p></div>
+              <div class="info-item"><label>Surface totale (m²)</label><p id="cSurface">—</p></div>
+              <div class="info-item"><label>Type de site</label><p id="cTypeSite">—</p></div>
+              <div class="info-item"><label>CA mensuel HT</label><p id="cCA">—</p></div>
+              <div class="info-item"><label>Coût main d'œuvre</label><p id="cMO">—</p></div>
+              <div class="info-item"><label>Marge</label><p id="cMarge">—</p></div>
+              <div class="info-item"><label>Date début</label><p id="cDateDebut">—</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">PRESTATIONS INCLUSES</div>
+            <div id="cPrestations"><div class="empty"><div class="empty-icon">📋</div><p>Aucune prestation renseignée</p></div></div>
+          </div>
+        </div>
+
+        <!-- ══ DOCUMENTS ══ -->
+        <div class="tab-panel" id="tab-documents">
+          <div class="card">
+            <div class="card-title">DEVIS &amp; DOCUMENTS SIGNÉS</div>
+            <div id="documentsContainer"><div class="empty"><div class="empty-icon">📁</div><p>Chargement…</p></div></div>
+          </div>
+        </div>
+
       </div><!-- /content -->
     </div><!-- /pageContent -->
   </div><!-- /main -->
@@ -411,11 +442,13 @@
       document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
       document.getElementById('tab-'+id).classList.add('active');
       btn.classList.add('active');
-      if(id==='equipe'   && !_loadedEquipe)    chargerEquipe();
-      if(id==='controles'&& !_loadedControles) chargerControles();
+      if(id==='equipe'    && !_loadedEquipe)     chargerEquipe();
+      if(id==='controles' && !_loadedControles)  chargerControles();
+      if(id==='contrat'   && !_loadedContrat)    chargerContrat();
+      if(id==='documents' && !_loadedDocuments)  chargerDocuments();
     }
 
-    let _loadedEquipe=false, _loadedControles=false;
+    let _loadedEquipe=false, _loadedControles=false, _loadedContrat=false, _loadedDocuments=false;
 
     // ── Chargement fiche ──
     async function init(){
@@ -642,6 +675,88 @@
           <span class="tag-pill pill-blue">${esc(c.type||'Contrôle')}</span>
           ${c.valide ? '<span class="tag-pill pill-blue">Validé</span>' : ''}
           ${s!=null ? `<div class="controle-score ${cls}">${s}/100</div>` : '<div class="controle-score score-gray">—</div>'}
+        </div>`;
+      }).join('');
+    }
+
+    // ── Contrat ──
+    async function chargerContrat(){
+      _loadedContrat = true;
+      const { data: site } = await sb.from('sites')
+        .select('frequence,frequence_passage,surface_totale,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,marge_pct,notes')
+        .eq('id', siteId).single();
+      if (!site) return;
+
+      const euro = v => v ? `${Number(v).toLocaleString('fr-FR',{minimumFractionDigits:2})} €` : '—';
+      document.getElementById('cFrequence').textContent = site.frequence || site.frequence_passage || '—';
+      document.getElementById('cSurface').textContent   = site.surface_totale ? `${site.surface_totale} m²` : '—';
+      document.getElementById('cTypeSite').textContent  = site.type_site || site.secteur || '—';
+      document.getElementById('cCA').textContent        = euro(site.ca_mensuel);
+      document.getElementById('cMO').textContent        = euro(site.cout_main_oeuvre);
+      document.getElementById('cMarge').textContent     = site.marge_pct != null ? `${site.marge_pct} %` : '—';
+      document.getElementById('cDateDebut').textContent = site.date_debut ? new Date(site.date_debut).toLocaleDateString('fr-FR') : '—';
+
+      // Prestation depuis le devis signé (chiffrages surfaces)
+      const { data: prospect } = await sb.from('prospects')
+        .select('id').ilike('raison_sociale', site.nom || '').single();
+      if (prospect) {
+        const { data: chiffrage } = await sb.from('chiffrages')
+          .select('surfaces').eq('prospect_id', prospect.id)
+          .in('statut', ['signe', 'valide']).order('created_at', {ascending: false}).limit(1).single();
+        if (chiffrage?.surfaces?.groupesEC?.length) {
+          document.getElementById('cDuree').textContent = chiffrage.surfaces.totalHeures
+            ? `${chiffrage.surfaces.totalHeures} h/semaine` : '—';
+          document.getElementById('cPrestations').innerHTML = chiffrage.surfaces.groupesEC.map(g =>
+            `<div style="padding:10px 0;border-bottom:1px solid var(--bordure);">
+              <strong>${esc(g.piece||g.local||'')}</strong> — ${esc(g.surface||'')} m²
+              ${g.taches ? `<br><span style="color:var(--gris-doux);font-size:12px;">${esc(g.taches.join(', '))}</span>` : ''}
+            </div>`).join('');
+          return;
+        }
+      }
+      document.getElementById('cPrestations').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Aucun devis signé trouvé</p></div>';
+    }
+
+    // ── Documents ──
+    async function chargerDocuments(){
+      _loadedDocuments = true;
+      const cont = document.getElementById('documentsContainer');
+
+      // Trouver le prospect lié par nom
+      const { data: site } = await sb.from('sites').select('nom').eq('id', siteId).single();
+      if (!site) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><p>Site introuvable</p></div>'; return; }
+
+      const { data: prospect } = await sb.from('prospects')
+        .select('id').ilike('raison_sociale', site.nom).single();
+
+      if (!prospect) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><p>Aucun devis trouvé pour ce client</p></div>'; return; }
+
+      const { data: chiffrages } = await sb.from('chiffrages')
+        .select('id,statut,created_at,surfaces,contact_nom,raison_sociale')
+        .eq('prospect_id', prospect.id)
+        .order('created_at', {ascending: false});
+
+      const list = chiffrages || [];
+      if (!list.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><p>Aucun document trouvé</p></div>'; return; }
+
+      cont.innerHTML = list.map(c => {
+        const s = c.surfaces || {};
+        const statutLabel = c.statut === 'signe' ? '<span style="color:var(--vert);font-weight:700;">✅ Signé</span>'
+          : c.statut === 'envoye_signature' ? '<span style="color:var(--or);font-weight:700;">⏳ En attente signature</span>'
+          : c.statut === 'valide' ? '<span style="color:var(--vert);font-weight:700;">✅ Validé</span>'
+          : `<span style="color:var(--gris-doux);">${esc(c.statut||'')}</span>`;
+        const montant = s.totalTTC ? `${Number(s.totalTTC).toLocaleString('fr-FR',{minimumFractionDigits:2})} € TTC` : '—';
+        const dateSign = s.signatureDate ? `Signé le ${new Date(s.signatureDate).toLocaleDateString('fr-FR')} par ${esc(s.signatureNom||'')}` : '';
+        const token = s.signatureToken;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--bordure);">
+          <div>
+            <div style="font-weight:700;font-size:14px;">Devis du ${new Date(c.created_at).toLocaleDateString('fr-FR')}</div>
+            <div style="font-size:12px;color:var(--gris-doux);margin-top:2px;">${montant} · ${statutLabel}</div>
+            ${dateSign ? `<div style="font-size:11px;color:var(--gris-doux);margin-top:2px;">${dateSign}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:8px;">
+            ${token ? `<a href="/signature?token=${esc(token)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">👁 Voir le devis</a>` : ''}
+          </div>
         </div>`;
       }).join('');
     }
