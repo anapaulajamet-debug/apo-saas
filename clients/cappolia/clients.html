@@ -680,15 +680,11 @@
       const p = _modalProspect;
       fermerModalAg();
 
-      // Créer la fiche site/client depuis le prospect gagné
-      const { data: newSite, error } = await sb.from('sites').insert({
-        tenant_id: TENANT,
-        nom: p.nom,
-        client_nom: p.nom,
-        adresse: p.adresse || null,
-        telephone: p.tel || null,
-        email: p.email || null,
-      }).select().single();
+      // Créer la fiche site/client via fonction SECURITY DEFINER (contourne RLS)
+      const { data: newSiteId, error } = await sb.rpc('creer_site_from_prospect', {
+        p_nom: p.nom,
+        p_adresse: p.adresse || null,
+      });
 
       if (error) {
         alert('Erreur création fiche client : ' + error.message);
