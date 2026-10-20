@@ -791,6 +791,8 @@
           ? '<span class="tag-statut tag-actif">● Actif</span>'
           : c._sc === 'essai'
           ? '<span class="tag-statut tag-essai">⏳ Essai</span>'
+          : c._sc === 'en_attente_signature'
+          ? '<span class="tag-statut tag-essai">⏳ En attente signature</span>'
           : '<span class="tag-statut tag-resilie">✕ Résilié</span>';
 
         const depuis = c.date_debut_contrat || c.date_signature || c.created_at
