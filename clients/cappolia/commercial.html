@@ -860,8 +860,15 @@
       <button class="btn-sm" onclick="ajouterActivite()">+ Ajouter</button>
     </div>
 
-    <div class="modal-footer" style="margin-top:16px;">
-      <button class="btn-primary" id="btnChiffrage" onclick="allerChiffrage()" style="background:var(--orange);">📊 Lancer le chiffrage</button>
+    <!-- Section devis -->
+    <div style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:#374151;">📊 Devis</div>
+        <button class="btn-sm" onclick="nouveauDevis()" style="background:#F97316;color:#fff;border:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">+ Nouveau devis</button>
+      </div>
+      <div id="ficheDevisList" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;color:#9CA3AF;text-align:center;padding:12px;">Chargement…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1661,13 +1668,7 @@ async function ouvrirFicheProspect(id) {
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
   await chargerActivites(id);
-
-  // Adapter le bouton chiffrage selon qu'un chiffrage existe déjà
-  const btnC = document.getElementById('btnChiffrage');
-  if (btnC) {
-    const { data: chiffExist } = await sb.from('chiffrages').select('id').eq('prospect_id', id).limit(1).maybeSingle();
-    btnC.textContent = chiffExist?.id ? '📄 Ouvrir le chiffrage' : '📊 Lancer le chiffrage';
-  }
+  chargerDevisProspect();
 
   document.getElementById('modalFicheProspect').classList.add('open');
 }
@@ -1826,16 +1827,52 @@ async function ajouterActivite() {
   toast('Activité ajoutée ✓');
 }
 
-async function allerChiffrage() {
-  if (!currentProspectId) return;
-  // Chercher un chiffrage existant pour ce prospect
-  const { data } = await sb.from('chiffrages').select('id').eq('prospect_id', currentProspectId).order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (!data?.id) logActiviteAuto(currentProspectId, 'chiffrage', 'Nouveau chiffrage lancé');
-  if (data?.id) {
-    window.location.href = '/chiffrage?chiffrage=' + data.id;
-  } else {
-    window.location.href = '/chiffrage?prospect=' + currentProspectId;
+async function chargerDevisProspect() {
+  const cont = document.getElementById('ficheDevisList');
+  if (!currentProspectId || !cont) return;
+
+  const { data: devis } = await sb.from('chiffrages')
+    .select('id,statut,created_at,surfaces,raison_sociale')
+    .eq('prospect_id', currentProspectId)
+    .order('created_at', { ascending: false });
+
+  const list = devis || [];
+  if (!list.length) {
+    cont.innerHTML = '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:12px;">Aucun devis — cliquez sur "+ Nouveau devis" pour commencer.</div>';
+    return;
   }
+
+  cont.innerHTML = list.map((d, i) => {
+    const s = d.surfaces || {};
+    const montant = s.totalTTC ? `${Number(s.totalTTC).toLocaleString('fr-FR',{minimumFractionDigits:2})} € TTC` : 'Montant non calculé';
+    const date = new Date(d.created_at).toLocaleDateString('fr-FR');
+    const statutLabel = d.statut === 'signe'
+      ? '<span style="color:#16A34A;font-weight:700;">✅ Signé</span>'
+      : d.statut === 'envoye_signature'
+      ? '<span style="color:#D97706;font-weight:700;">⏳ En attente</span>'
+      : d.statut === 'valide'
+      ? '<span style="color:#16A34A;font-weight:700;">✅ Validé</span>'
+      : '<span style="color:#6B7280;">📝 Brouillon</span>';
+    const num = list.length - i;
+    const token = s.signatureToken;
+    return `<div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#111827;">Devis v${num} — ${date}</div>
+        <div style="font-size:12px;color:#6B7280;margin-top:2px;">${montant} · ${statutLabel}</div>
+        ${s.signatureDate ? `<div style="font-size:11px;color:#9CA3AF;margin-top:2px;">Signé le ${new Date(s.signatureDate).toLocaleDateString('fr-FR')} par ${s.signatureNom||''}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        ${d.statut !== 'signe' ? `<button onclick="window.location.href='/chiffrage?chiffrage=${d.id}'" style="padding:5px 10px;background:#2D6A3F;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✏️ Reprendre</button>` : ''}
+        ${token ? `<button onclick="window.open('/signature?token=${token}','_blank')" style="padding:5px 10px;background:#6366F1;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">👁 Voir</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function nouveauDevis() {
+  if (!currentProspectId) return;
+  logActiviteAuto(currentProspectId, 'chiffrage', 'Nouveau devis créé');
+  window.location.href = '/chiffrage?prospect=' + currentProspectId;
 }
 
 // ── GOOGLE MAPS ────────────────────────────────────────────────────────
