@@ -482,7 +482,7 @@
       const adr    = [site.adresse,site.code_postal,site.ville].filter(Boolean).join(', ')||site.adresse||'—';
       const tel    = site.telephone||site.tel||'—';
       const email  = site.email||null;
-      const sc     = site.statut_contrat||'actif';
+      const sc     = site.statut||'actif';
       const depuis = fmt(site.date_debut_contrat||site.date_signature||site.created_at);
       const secteur= site.secteur_activite||site.type_site||'—';
       const contact= site.contact_nom||site.nom_contact||'—';
@@ -530,7 +530,7 @@
       document.getElementById('iAM').textContent       = am;
       document.getElementById('iStatut').textContent   = badgeSc;
       document.getElementById('iDepuis').textContent   = depuis;
-      document.getElementById('iSurface').textContent  = site.surface_totale ? `${site.surface_totale} m²` : '—';
+      document.getElementById('iSurface').textContent  = site.surface_m2 ? `${site.surface_m2} m²` : '—';
       document.getElementById('iSecteur').textContent  = secteur;
       document.getElementById('iFrequence').textContent= site.frequence||site.frequence_passage||'—';
       document.getElementById('iNotes').textContent    = site.notes||site.commentaire||'—';
@@ -692,13 +692,13 @@
     async function chargerContrat(){
       _loadedContrat = true;
       const { data: site } = await sb.from('sites')
-        .select('frequence,frequence_passage,surface_totale,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,marge_pct,notes')
+        .select('frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,marge_pct,notes')
         .eq('id', siteId).single();
       if (!site) return;
 
       const euro = v => v ? `${Number(v).toLocaleString('fr-FR',{minimumFractionDigits:2})} €` : '—';
-      document.getElementById('cFrequence').textContent = site.frequence || site.frequence_passage || '—';
-      document.getElementById('cSurface').textContent   = site.surface_totale ? `${site.surface_totale} m²` : '—';
+      document.getElementById('cFrequence').textContent = site.frequence || '—';
+      document.getElementById('cSurface').textContent   = site.surface_m2 ? `${site.surface_m2} m²` : '—';
       document.getElementById('cTypeSite').textContent  = site.type_site || site.secteur || '—';
       document.getElementById('cCA').textContent        = euro(site.ca_mensuel);
       document.getElementById('cMO').textContent        = euro(site.cout_main_oeuvre);
