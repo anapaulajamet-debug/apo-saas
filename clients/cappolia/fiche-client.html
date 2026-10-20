@@ -692,7 +692,7 @@
     async function chargerContrat(){
       _loadedContrat = true;
       const { data: site } = await sb.from('sites')
-        .select('nom,frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,marge_pct,notes')
+        .select('nom,frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,notes')
         .eq('id', siteId).single();
       if (!site) return;
 
@@ -722,9 +722,7 @@
       document.getElementById('cTypeSite').textContent   = site.type_site || site.secteur || fc.typeSite || '—';
       document.getElementById('cCA').textContent         = euro(site.ca_mensuel || chiffrage?.prix_ht);
       document.getElementById('cMO').textContent         = euro(site.cout_main_oeuvre || chiffrage?.masse_salariale);
-      document.getElementById('cMarge').textContent      = site.marge_pct != null
-        ? `${site.marge_pct} %`
-        : pv.marge ? `${parseFloat(pv.marge).toFixed(1)} %` : '—';
+      document.getElementById('cMarge').textContent      = pv.marge ? `${parseFloat(pv.marge).toFixed(1)} %` : '—';
       document.getElementById('cDateDebut').textContent  = site.date_debut
         ? new Date(site.date_debut).toLocaleDateString('fr-FR') : '—';
 
