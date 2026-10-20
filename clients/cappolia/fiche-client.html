@@ -695,7 +695,7 @@
       const dbg = document.getElementById('cDebug');
       try {
         const { data: site, error: siteErr } = await sb.from('sites')
-          .select('nom,frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,notes')
+          .select('nom,frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre')
           .eq('id', siteId).single();
         if (dbg) dbg.textContent = 'site=' + JSON.stringify(site) + ' err=' + (siteErr?.message||'ok');
         if (!site) return;
