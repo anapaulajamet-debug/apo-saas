@@ -526,7 +526,7 @@
       }
 
       // Infos contrat
-      const badgeSc = sc==='actif'?'● Actif':sc==='essai'?'⏳ Période d\'essai':'✕ Résilié';
+      const badgeSc = sc==='actif'?'● Actif':sc==='essai'?'⏳ Période d\'essai':sc==='en_attente_signature'?'⏳ En attente signature':'✕ Résilié';
       document.getElementById('iAM').textContent       = am;
       document.getElementById('iStatut').textContent   = badgeSc;
       document.getElementById('iDepuis').textContent   = depuis;
@@ -706,7 +706,6 @@
         const { data: c } = await sb.from('chiffrages')
           .select('prix_ht,masse_salariale,surface_totale,surfaces')
           .eq('prospect_id', prospect.id)
-          .in('statut', ['signe', 'valide'])
           .order('created_at', { ascending: false })
           .limit(1).maybeSingle();
         chiffrage = c;
