@@ -441,7 +441,8 @@
       if (!confirm(`Supprimer définitivement la fiche "${nom}" ?`)) return;
       const { error } = await sb.from('sites').delete().eq('id', siteId);
       if (error) { alert('Erreur suppression : ' + error.message); return; }
-      window.location.href = '/clients';
+      alert('✅ Fiche supprimée.');
+      window.location.replace('/clients');
     });
 
     // ── Onglets ──
