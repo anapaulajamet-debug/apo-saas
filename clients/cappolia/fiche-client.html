@@ -381,6 +381,7 @@
 
         <!-- ══ CONTRAT ══ -->
         <div class="tab-panel" id="tab-contrat">
+          <div id="cDebug" style="background:#fff3cd;padding:8px;font-size:11px;word-break:break-all;display:block"></div>
           <div class="card">
             <div class="card-title">DÉTAIL PRESTATION</div>
             <div class="info-grid">
@@ -691,51 +692,55 @@
     // ── Contrat ──
     async function chargerContrat(){
       _loadedContrat = true;
-      const { data: site } = await sb.from('sites')
-        .select('nom,frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,notes')
-        .eq('id', siteId).single();
-      if (!site) return;
+      const dbg = document.getElementById('cDebug');
+      try {
+        const { data: site, error: siteErr } = await sb.from('sites')
+          .select('nom,frequence,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre,notes')
+          .eq('id', siteId).single();
+        if (dbg) dbg.textContent = 'site=' + JSON.stringify(site) + ' err=' + (siteErr?.message||'ok');
+        if (!site) return;
 
-      const euro = v => v ? `${Number(v).toLocaleString('fr-FR',{minimumFractionDigits:2})} €` : '—';
+        const euro = v => v ? `${Number(v).toLocaleString('fr-FR',{minimumFractionDigits:2})} €` : '—';
 
-      // Trouver le devis signé pour compléter les données manquantes
-      const { data: prospect } = await sb.from('prospects')
-        .select('id').ilike('raison_sociale', site.nom || '').maybeSingle();
-      let chiffrage = null;
-      if (prospect) {
-        const { data: c } = await sb.from('chiffrages')
-          .select('prix_ht,masse_salariale,surface_totale,surfaces')
-          .eq('prospect_id', prospect.id)
-          .order('created_at', { ascending: false })
-          .limit(1).maybeSingle();
-        chiffrage = c;
-      }
+        const { data: prospect } = await sb.from('prospects')
+          .select('id').ilike('raison_sociale', '%' + (site.nom||'') + '%').maybeSingle();
+        let chiffrage = null;
+        if (prospect) {
+          const { data: c } = await sb.from('chiffrages')
+            .select('prix_ht,masse_salariale,surface_totale,surfaces')
+            .eq('prospect_id', prospect.id)
+            .order('created_at', { ascending: false })
+            .limit(1).maybeSingle();
+          chiffrage = c;
+        }
+        if (dbg) dbg.textContent += ' | prospect=' + (prospect?.id||'null') + ' chiffrage=' + (chiffrage?.prix_ht||'null');
 
-      const fc = chiffrage?.surfaces?.ficheClient || {};
-      const pv = chiffrage?.surfaces?.pvParams   || {};
+        const fc = chiffrage?.surfaces?.ficheClient || {};
+        const pv = chiffrage?.surfaces?.pvParams   || {};
 
-      // Données : priorité aux champs sites, fallback chiffrage
-      document.getElementById('cFrequence').textContent  = site.frequence || fc.frequenceAutres || '—';
-      document.getElementById('cSurface').textContent    = site.surface_m2
-        ? `${site.surface_m2} m²`
-        : (chiffrage?.surface_totale || fc.surface) ? `${chiffrage?.surface_totale || fc.surface} m²` : '—';
-      document.getElementById('cTypeSite').textContent   = site.type_site || site.secteur || fc.typeSite || '—';
-      document.getElementById('cCA').textContent         = euro(site.ca_mensuel || chiffrage?.prix_ht);
-      document.getElementById('cMO').textContent         = euro(site.cout_main_oeuvre || chiffrage?.masse_salariale);
-      document.getElementById('cMarge').textContent      = pv.marge ? `${parseFloat(pv.marge).toFixed(1)} %` : '—';
-      document.getElementById('cDateDebut').textContent  = site.date_debut
-        ? new Date(site.date_debut).toLocaleDateString('fr-FR') : '—';
+        document.getElementById('cFrequence').textContent  = site.frequence || fc.frequenceAutres || '—';
+        document.getElementById('cSurface').textContent    = site.surface_m2
+          ? `${site.surface_m2} m²`
+          : (chiffrage?.surface_totale || fc.surface) ? `${chiffrage?.surface_totale || fc.surface} m²` : '—';
+        document.getElementById('cTypeSite').textContent   = site.type_site || site.secteur || fc.typeSite || '—';
+        document.getElementById('cCA').textContent         = euro(site.ca_mensuel || chiffrage?.prix_ht);
+        document.getElementById('cMO').textContent         = euro(site.cout_main_oeuvre || chiffrage?.masse_salariale);
+        document.getElementById('cMarge').textContent      = pv.marge ? `${parseFloat(pv.marge).toFixed(1)} %` : '—';
+        document.getElementById('cDateDebut').textContent  = site.date_debut
+          ? new Date(site.date_debut).toLocaleDateString('fr-FR') : '—';
 
-      // Prestations depuis groupesEC du chiffrage
-      const groupes = chiffrage?.surfaces?.groupesEC;
-      if (groupes?.length) {
-        document.getElementById('cPrestations').innerHTML = groupes.map(g =>
-          `<div style="padding:10px 0;border-bottom:1px solid var(--bordure);">
-            <strong>${esc(g.piece||g.local||'')}</strong>${g.surface ? ` — ${esc(String(g.surface))} m²` : ''}
-            ${g.taches?.length ? `<br><span style="color:var(--gris-doux);font-size:12px;">${esc(g.taches.join(', '))}</span>` : ''}
-          </div>`).join('');
-      } else {
-        document.getElementById('cPrestations').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Aucun devis signé trouvé</p></div>';
+        const groupes = chiffrage?.surfaces?.groupesEC;
+        if (groupes?.length) {
+          document.getElementById('cPrestations').innerHTML = groupes.map(g =>
+            `<div style="padding:10px 0;border-bottom:1px solid var(--bordure);">
+              <strong>${esc(g.piece||g.local||'')}</strong>${g.surface ? ` — ${esc(String(g.surface))} m²` : ''}
+              ${g.taches?.length ? `<br><span style="color:var(--gris-doux);font-size:12px;">${esc(g.taches.join(', '))}</span>` : ''}
+            </div>`).join('');
+        } else {
+          document.getElementById('cPrestations').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Aucun devis signé trouvé</p></div>';
+        }
+      } catch(e) {
+        if (dbg) dbg.textContent = 'ERREUR: ' + e.message;
       }
     }
 
