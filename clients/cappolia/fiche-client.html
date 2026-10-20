@@ -482,7 +482,7 @@
       const adr    = [site.adresse,site.code_postal,site.ville].filter(Boolean).join(', ')||site.adresse||'—';
       const tel    = site.telephone||site.tel||'—';
       const email  = site.email||null;
-      const sc     = site.statut||'actif';
+      const sc     = site.statut_contrat||site.statut||'actif';
       const depuis = fmt(site.date_debut_contrat||site.date_signature||site.created_at);
       const secteur= site.secteur_activite||site.type_site||'—';
       const contact= site.contact_nom||site.nom_contact||'—';
