@@ -730,44 +730,67 @@
     async function chargerDocuments(){
       _loadedDocuments = true;
       const cont = document.getElementById('documentsContainer');
+      let html = '';
 
-      // Trouver le prospect lié par nom
+      // ── Documents contractuels (site_documents) ──
+      const { data: docs } = await sb.from('site_documents')
+        .select('id,nom,type,url,statut,created_at')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false });
+
+      if (docs && docs.length) {
+        const typeIcon = { contrat:'📑', cahier_charges:'📋', devis:'📊', autre:'📄' };
+        html += `<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Documents contractuels</div>`;
+        html += docs.map(d => {
+          const icon = typeIcon[d.type] || '📄';
+          const statutLabel = d.statut === 'signe'
+            ? '<span style="color:var(--vert);font-weight:700;">✅ Signé</span>'
+            : d.statut === 'en_attente_signature'
+            ? '<span style="color:var(--or);font-weight:700;">⏳ En attente signature client</span>'
+            : `<span style="color:var(--gris-doux);">${esc(d.statut||'')}</span>`;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bordure);">
+            <div>
+              <div style="font-weight:700;font-size:14px;">${icon} ${esc(d.nom)}</div>
+              <div style="font-size:12px;color:var(--gris-doux);margin-top:2px;">${statutLabel} · ${new Date(d.created_at).toLocaleDateString('fr-FR')}</div>
+            </div>
+            <div>${d.url ? `<a href="${esc(d.url)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">👁 Ouvrir</a>` : ''}</div>
+          </div>`;
+        }).join('');
+        html += '<div style="margin-bottom:20px;"></div>';
+      }
+
+      // ── Devis signés (chiffrages) ──
       const { data: site } = await sb.from('sites').select('nom').eq('id', siteId).single();
-      if (!site) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><p>Site introuvable</p></div>'; return; }
+      if (site) {
+        const { data: prospect } = await sb.from('prospects')
+          .select('id').ilike('raison_sociale', site.nom).maybeSingle();
+        if (prospect) {
+          const { data: chiffrages } = await sb.from('chiffrages')
+            .select('id,statut,created_at,surfaces')
+            .eq('prospect_id', prospect.id)
+            .order('created_at', { ascending: false });
+          if (chiffrages && chiffrages.length) {
+            html += `<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Devis</div>`;
+            html += chiffrages.map((c, i) => {
+              const s = c.surfaces || {};
+              const statutLabel = c.statut === 'signe' ? '<span style="color:var(--vert);font-weight:700;">✅ Signé</span>'
+                : c.statut === 'envoye_signature' ? '<span style="color:var(--or);font-weight:700;">⏳ En attente</span>'
+                : `<span style="color:var(--gris-doux);">📝 Brouillon</span>`;
+              const montant = s.totalTTC ? `${Number(s.totalTTC).toLocaleString('fr-FR',{minimumFractionDigits:2})} € TTC` : '—';
+              const token = s.signatureToken;
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bordure);">
+                <div>
+                  <div style="font-weight:700;font-size:14px;">📊 Devis v${chiffrages.length - i} — ${new Date(c.created_at).toLocaleDateString('fr-FR')}</div>
+                  <div style="font-size:12px;color:var(--gris-doux);margin-top:2px;">${montant} · ${statutLabel}</div>
+                </div>
+                <div>${token ? `<a href="/signature?token=${esc(token)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">👁 Voir</a>` : ''}</div>
+              </div>`;
+            }).join('');
+          }
+        }
+      }
 
-      const { data: prospect } = await sb.from('prospects')
-        .select('id').ilike('raison_sociale', site.nom).single();
-
-      if (!prospect) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><p>Aucun devis trouvé pour ce client</p></div>'; return; }
-
-      const { data: chiffrages } = await sb.from('chiffrages')
-        .select('id,statut,created_at,surfaces,contact_nom,raison_sociale')
-        .eq('prospect_id', prospect.id)
-        .order('created_at', {ascending: false});
-
-      const list = chiffrages || [];
-      if (!list.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><p>Aucun document trouvé</p></div>'; return; }
-
-      cont.innerHTML = list.map(c => {
-        const s = c.surfaces || {};
-        const statutLabel = c.statut === 'signe' ? '<span style="color:var(--vert);font-weight:700;">✅ Signé</span>'
-          : c.statut === 'envoye_signature' ? '<span style="color:var(--or);font-weight:700;">⏳ En attente signature</span>'
-          : c.statut === 'valide' ? '<span style="color:var(--vert);font-weight:700;">✅ Validé</span>'
-          : `<span style="color:var(--gris-doux);">${esc(c.statut||'')}</span>`;
-        const montant = s.totalTTC ? `${Number(s.totalTTC).toLocaleString('fr-FR',{minimumFractionDigits:2})} € TTC` : '—';
-        const dateSign = s.signatureDate ? `Signé le ${new Date(s.signatureDate).toLocaleDateString('fr-FR')} par ${esc(s.signatureNom||'')}` : '';
-        const token = s.signatureToken;
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--bordure);">
-          <div>
-            <div style="font-weight:700;font-size:14px;">Devis du ${new Date(c.created_at).toLocaleDateString('fr-FR')}</div>
-            <div style="font-size:12px;color:var(--gris-doux);margin-top:2px;">${montant} · ${statutLabel}</div>
-            ${dateSign ? `<div style="font-size:11px;color:var(--gris-doux);margin-top:2px;">${dateSign}</div>` : ''}
-          </div>
-          <div style="display:flex;gap:8px;">
-            ${token ? `<a href="/signature?token=${esc(token)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">👁 Voir le devis</a>` : ''}
-          </div>
-        </div>`;
-      }).join('');
+      cont.innerHTML = html || '<div class="empty"><div class="empty-icon">📁</div><p>Aucun document trouvé</p></div>';
     }
 
     function dessinerGraphe(controles){
