@@ -436,6 +436,14 @@
     }
     document.getElementById('btnDeconnexion').addEventListener('click',async()=>{ await sb.auth.signOut(); window.location.href='/'; });
 
+    document.getElementById('btnSuppr').addEventListener('click', async () => {
+      const nom = document.getElementById('clientNom')?.textContent || 'ce client';
+      if (!confirm(`Supprimer définitivement la fiche "${nom}" ?`)) return;
+      const { error } = await sb.from('sites').delete().eq('id', siteId);
+      if (error) { alert('Erreur suppression : ' + error.message); return; }
+      window.location.href = '/clients';
+    });
+
     // ── Onglets ──
     function showTab(id,btn){
       document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
