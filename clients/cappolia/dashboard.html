@@ -593,9 +593,24 @@
           <div class="kpi-badge badge-orange">Ce mois</div>
         </div>
         <div class="kpi-card ok">
-          <div class="kpi-label">CA mensuel</div>
+          <div class="kpi-label">CA mensuel en cours</div>
           <div class="kpi-valeur" id="kpiCA">…</div>
           <div class="kpi-sous" id="kpiCASous"></div>
+          <div id="kpiMargeSous" style="font-size:11px;margin-top:4px;color:var(--vert);font-weight:700;"></div>
+        </div>
+        <div class="kpi-card ok">
+          <div class="kpi-label">Volume d'heures</div>
+          <div style="display:flex;gap:12px;align-items:flex-end;margin-top:4px;">
+            <div>
+              <div class="kpi-valeur" id="kpiHeuresSem">…</div>
+              <div class="kpi-sous">/ semaine</div>
+            </div>
+            <div style="color:var(--bordure);font-size:20px;padding-bottom:4px;">|</div>
+            <div>
+              <div class="kpi-valeur" id="kpiHeuresMois">…</div>
+              <div class="kpi-sous">/ mois</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -694,7 +709,7 @@
       // Sites
       const { data: sites } = await supabaseClient
         .from('sites')
-        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email')
+        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email,heures_par_semaine,nb_heures_semaine')
         .eq('tenant_id', TENANT);
 
       const today = new Date();
@@ -706,8 +721,23 @@
       // CA mensuel = seulement les sites dont le contrat a démarré
       const sitesDemar = sitesActifs.filter(s => s.date_debut && s.date_debut <= todayStr);
       const caTotal = sitesDemar.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
+      const moTotal = sitesDemar.reduce((s, x) => s + (parseFloat(x.cout_main_oeuvre)||0), 0);
+      const margeTotal = caTotal - moTotal;
+      const margePct   = caTotal > 0 ? Math.round(margeTotal / caTotal * 100) : 0;
+
       document.getElementById('kpiCA').textContent = euro(caTotal);
       document.getElementById('kpiCASous').textContent = `${sitesDemar.length} contrat${sitesDemar.length>1?'s':''} démarré${sitesDemar.length>1?'s':''}`;
+      document.getElementById('kpiMargeSous').textContent = caTotal > 0 ? `Marge : ${euro(margeTotal)} (${margePct} %)` : '';
+
+      // ── Volume d'heures ──
+      const heuresSem = sitesDemar.reduce((s, x) => {
+        const h = parseFloat(x.heures_par_semaine || x.nb_heures_semaine) || 0;
+        return s + h;
+      }, 0);
+      const heuresMois = Math.round(heuresSem * 4.33);
+      const fmtH = v => v > 0 ? v.toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' h' : '—';
+      document.getElementById('kpiHeuresSem').textContent  = fmtH(heuresSem);
+      document.getElementById('kpiHeuresMois').textContent = fmtH(heuresMois);
 
       // ── Projection sur 4 mois ──
       const nomMois = ['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
