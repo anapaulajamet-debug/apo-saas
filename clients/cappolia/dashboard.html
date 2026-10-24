@@ -685,7 +685,7 @@
         .gte('date_audit', debut.toISOString().slice(0,10))
         .lte('date_audit', fin.toISOString().slice(0,10));
       const sitesCoverts = new Set((auditsRealises||[]).map(a => a.site_id));
-      const sitesSansAudit = sitesActifs.filter(s => !sitesCoverts.has(s.id));
+      const sitesSansAudit = sitesActifs.filter(s => s.date_debut && !sitesCoverts.has(s.id));
       document.getElementById('kpiAudits').textContent = sitesSansAudit.length;
 
       // Alertes panel
