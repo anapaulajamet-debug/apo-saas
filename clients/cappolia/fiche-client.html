@@ -556,6 +556,8 @@
                       <th style="min-width:90px;">H. hebdo ctrl.</th>
                       <th style="min-width:105px;">Taux hor. (€)</th>
                       <th style="min-width:80px;">% dégag.</th>
+                      <th style="min-width:85px;" title="Taux charges patronales brut avant allègement">Charges pat. (%)</th>
+                      <th style="min-width:100px;color:var(--vert);" title="Réduction générale Fillon — calculé automatiquement">Allèg. Fillon (€)</th>
                       <th style="min-width:80px;">Prime transp.</th>
                       <th style="min-width:80px;">Prime div.</th>
                       <th class="td-del"></th>
@@ -575,10 +577,6 @@
             <div class="ce-card-header green">Charges directes — Données réelles</div>
             <div class="ce-card-body">
               <div class="ce-charges-grid">
-                <div class="ce-field">
-                  <label>Taux charges patronales (%)</label>
-                  <input type="number" step="0.01" id="ceTauxCharges" placeholder="57.46" oninput="rafraichirCE()" />
-                </div>
                 <div class="ce-field">
                   <label>Produits d'entretien (€/mois)</label>
                   <input type="number" step="0.01" id="ceCoutProduits" placeholder="0" oninput="rafraichirCE()" />
@@ -730,32 +728,50 @@
     const pct  = v => Number(v||0).toFixed(1) + ' %';
 
     // ─── helpers calcul CE ───────────────────────────────────────────────────
-    function calculerLignePersonnel(row, tauxCharges) {
-      const role  = row.role || 'agent';
-      const hProd = parseFloat(row.heures_hebdo_prod) || 0;
-      const hCtrl = parseFloat(row.heures_hebdo_ctrl) || 0;
-      const tauxH = parseFloat(row.taux_horaire) || SMIC_2026;
-      const pctDeg = parseFloat(row.pct_degagement ?? 100) / 100;
-      const primesT = parseFloat(row.primes_transport) || 0;
-      const primesD = parseFloat(row.primes_diverses)  || 0;
-      if (role === 'dirigeant') return { salairesBruts:0, chargesSoc:0, primes:0, masseSal:0 };
-      const heuresMens   = (hProd + hCtrl) * (52 / 12) * pctDeg;
-      const salairesBruts= heuresMens * tauxH;
-      const chargesSoc   = salairesBruts * (tauxCharges / 100);
-      const primes        = (primesT + primesD) * pctDeg;
-      const masseSal      = salairesBruts + chargesSoc + primes;
-      return { salairesBruts, chargesSoc, primes, masseSal };
+    // SMIC mensuel 2026 pour calcul allègement Fillon
+    // SMIC horaire 11.88 × 151.67h = 1 801.84 €/mois
+    const SMIC_MENSUEL_2026 = 11.88 * 151.67;
+
+    function calculerAllegementFillon(salaireBrutMensuel) {
+      // Réduction générale de cotisations patronales (ex-allègement Fillon) 2026
+      // T = 0.3209 pour entreprises < 50 salariés, 0.3245 pour 50+
+      // Cappolia = petite entreprise → T = 0.3209
+      if (salaireBrutMensuel <= 0) return 0;
+      const T = 0.3209;
+      const coeff = Math.min(T, Math.max(0, (T / 0.6) * ((1.6 * SMIC_MENSUEL_2026 / salaireBrutMensuel) - 1)));
+      return coeff * salaireBrutMensuel;
     }
 
-    function calculerMasseSalTotale(lignes, tauxCharges) {
+    function calculerLignePersonnel(row) {
+      const role     = row.role || 'agent';
+      const hProd    = parseFloat(row.heures_hebdo_prod) || 0;
+      const hCtrl    = parseFloat(row.heures_hebdo_ctrl) || 0;
+      const tauxH    = parseFloat(row.taux_horaire) || SMIC_2026;
+      const pctDeg   = parseFloat(row.pct_degagement ?? 100) / 100;
+      const tauxCh   = parseFloat(row.taux_charges ?? TAUX_CHARGES_PROPRETE);
+      const primesT  = parseFloat(row.primes_transport) || 0;
+      const primesD  = parseFloat(row.primes_diverses)  || 0;
+      if (role === 'dirigeant') return { salairesBruts:0, chargesSoc:0, allegement:0, chargesNettes:0, primes:0, masseSal:0 };
+      const heuresMens    = (hProd + hCtrl) * (52 / 12) * pctDeg;
+      const salairesBruts = heuresMens * tauxH;
+      const chargesBrutes = salairesBruts * (tauxCh / 100);
+      const allegement    = calculerAllegementFillon(salairesBruts);
+      const chargesNettes = Math.max(0, chargesBrutes - allegement);
+      const primes        = (primesT + primesD) * pctDeg;
+      const masseSal      = salairesBruts + chargesNettes + primes;
+      return { salairesBruts, chargesSoc: chargesNettes, allegement, chargesNettes, primes, masseSal };
+    }
+
+    function calculerMasseSalTotale(lignes) {
       return lignes.reduce((acc, r) => {
-        const c = calculerLignePersonnel(r, tauxCharges);
+        const c = calculerLignePersonnel(r);
         acc.salairesBruts += c.salairesBruts;
         acc.chargesSoc    += c.chargesSoc;
+        acc.allegement    += c.allegement;
         acc.primes        += c.primes;
         acc.masseSal      += c.masseSal;
         return acc;
-      }, { salairesBruts:0, chargesSoc:0, primes:0, masseSal:0 });
+      }, { salairesBruts:0, chargesSoc:0, allegement:0, primes:0, masseSal:0 });
     }
 
     function ligneComp(label, prev, reel, bold=false, isMarge=false) {
@@ -839,6 +855,7 @@
         heures_hebdo_ctrl:parseFloat(tr.querySelector('.ce-hctrl').value)||0,
         taux_horaire:     parseFloat(tr.querySelector('.ce-taux').value)||SMIC_2026,
         pct_degagement:   parseFloat(tr.querySelector('.ce-deg').value)||100,
+        taux_charges:     parseFloat(tr.querySelector('.ce-taux-charges')?.value)||TAUX_CHARGES_PROPRETE,
         primes_transport: parseFloat(tr.querySelector('.ce-pt').value)||0,
         primes_diverses:  parseFloat(tr.querySelector('.ce-pd').value)||0,
         ordre:            parseInt(tr.dataset.idx)||0,
@@ -863,6 +880,8 @@
         <td><input class="ce-hctrl" type="number" step="0.25" value="${r.heures_hebdo_ctrl||''}" placeholder="0" oninput="rafraichirCE()"/></td>
         <td><input class="ce-taux"  type="number" step="0.01" value="${tauxDefaut}" title="Modifiable si taux supérieur à la grille CC" oninput="rafraichirCE()"/></td>
         <td><input class="ce-deg"   type="number" step="1"    value="${r.pct_degagement??100}" oninput="rafraichirCE()"/></td>
+        <td><input class="ce-taux-charges" type="number" step="0.01" value="${r.taux_charges||TAUX_CHARGES_PROPRETE}" title="Taux charges patronales % avant allègement" oninput="rafraichirCE()"/></td>
+        <td class="td-allegement"><span class="ce-allegement">—</span></td>
         <td><input class="ce-pt"    type="number" step="0.01" value="${r.primes_transport||''}" placeholder="0" oninput="rafraichirCE()"/></td>
         <td><input class="ce-pd"    type="number" step="0.01" value="${r.primes_diverses||''}"  placeholder="0" oninput="rafraichirCE()"/></td>
         <td class="td-del"><button class="btn-del-row" onclick="this.closest('tr').remove();rafraichirCE()">✕</button></td>`;
@@ -873,14 +892,26 @@
     function rafraichirCE() {
       if (!_ceSite) return;
       const ca = parseFloat(_ceSite.ca_mensuel || _ceChiffrage?.prix_ht || 0);
-      const tauxCharges = parseFloat(document.getElementById('ceTauxCharges')?.value || TAUX_CHARGES_PROPRETE);
       const coutProdReel  = parseFloat(document.getElementById('ceCoutProduits')?.value || 0);
       const coutMatReel   = parseFloat(document.getElementById('ceCoutMateriel')?.value || 0);
       const sousTrait     = parseFloat(document.getElementById('ceSousTraitance')?.value || 0);
       const coutDivReel   = parseFloat(document.getElementById('ceCoutDivers')?.value || 0);
 
       const lignes = lirePersonnel();
-      const reel   = calculerMasseSalTotale(lignes, tauxCharges);
+
+      // Mettre à jour l'affichage de l'allègement Fillon sur chaque ligne
+      const tbody = document.getElementById('cePersonnelBody');
+      if (tbody) {
+        [...tbody.querySelectorAll('tr[data-idx]')].forEach((tr, i) => {
+          const row = lignes[i];
+          if (!row) return;
+          const calc = calculerLignePersonnel(row);
+          const span = tr.querySelector('.ce-allegement');
+          if (span) span.textContent = calc.allegement > 0 ? '- ' + euro(calc.allegement) : '—';
+        });
+      }
+
+      const reel   = calculerMasseSalTotale(lignes);
       const chargesDirReel = coutProdReel + coutMatReel + sousTrait + coutDivReel;
       const prixRevReel    = reel.masseSal + chargesDirReel;
       const margeReel      = ca - prixRevReel;
@@ -897,13 +928,15 @@
 
       const hasReel = lignes.length > 0;
 
-      const tbody = document.getElementById('ceCompBody');
-      if (!tbody) return;
-      tbody.innerHTML = `
+      const compTbody = document.getElementById('ceCompBody');
+      if (!compTbody) return;
+      compTbody.innerHTML = `
         <tr class="total-rev"><td style="font-weight:700;color:var(--vert);">CA MENSUEL HT</td><td style="text-align:right;font-weight:700;">${euro(ca)}</td><td style="text-align:right;font-weight:700;">${euro(ca)}</td><td style="text-align:right;">—</td></tr>
         ${sectionHead('CHARGES PERSONNEL')}
         ${ligneComp('Salaires bruts', salairesPrev, reel.salairesBruts)}
-        ${ligneComp('Charges sociales patronales', chargesSocPrev, reel.chargesSoc)}
+        ${ligneComp('Charges sociales brutes', chargesSocPrev, reel.salairesBruts > 0 ? reel.salairesBruts * (TAUX_CHARGES_PROPRETE/100) : 0)}
+        ${hasReel && reel.allegement > 0 ? ligneComp('Allègement Fillon (réduction)', 0, -reel.allegement) : ''}
+        ${ligneComp('Charges sociales nettes', chargesSocPrev, reel.chargesSoc)}
         ${ligneComp('Primes (transport + diverses)', 0, reel.primes)}
         ${ligneComp('TOTAL MASSE SALARIALE', masseSalPrev, reel.masseSal, true)}
         ${sectionHead('CHARGES DIRECTES')}
@@ -948,22 +981,19 @@
         _ceChiffrage = c;
       }
 
-      // Charger header (taux + charges directes)
+      // Charger header (charges directes)
       const { data: header } = await sb.from('comptes_exploitation')
         .select('*').eq('site_id', siteId).maybeSingle();
       if (header) {
-        document.getElementById('ceTauxCharges').value  = header.taux_charges || TAUX_CHARGES_PROPRETE;
         document.getElementById('ceCoutProduits').value = header.cout_produits_reel || '';
         document.getElementById('ceCoutMateriel').value = header.cout_materiel || '';
         document.getElementById('ceSousTraitance').value= header.sous_traitance || '';
         document.getElementById('ceCoutDivers').value   = header.cout_divers_reel || '';
-      } else {
-        document.getElementById('ceTauxCharges').value = TAUX_CHARGES_PROPRETE;
       }
 
-      // Charger lignes personnel
+      // Charger lignes personnel (taux_charges inclus par ligne)
       const { data: personnel } = await sb.from('ce_personnel')
-        .select('role,nom_matricule,qualification,heures_hebdo_prod,heures_hebdo_ctrl,taux_horaire,pct_degagement,primes_transport,primes_diverses,ordre')
+        .select('role,nom_matricule,qualification,heures_hebdo_prod,heures_hebdo_ctrl,taux_horaire,pct_degagement,taux_charges,primes_transport,primes_diverses,ordre')
         .eq('site_id', siteId).order('ordre');
       if (personnel && personnel.length > 0) {
         personnel.forEach(r => ajouterLignePersonnel(r));
@@ -980,7 +1010,6 @@
       // 1. Upsert header
       const headerPayload = {
         site_id: siteId, tenant_id: tid,
-        taux_charges:       parseFloat(document.getElementById('ceTauxCharges').value) || TAUX_CHARGES_PROPRETE,
         cout_produits_reel: parseFloat(document.getElementById('ceCoutProduits').value) || 0,
         cout_materiel:      parseFloat(document.getElementById('ceCoutMateriel').value) || 0,
         sous_traitance:     parseFloat(document.getElementById('ceSousTraitance').value) || 0,
@@ -1012,8 +1041,7 @@
       }
 
       // 3. Sync cout_main_oeuvre dans sites
-      const tauxC = parseFloat(document.getElementById('ceTauxCharges').value) || TAUX_CHARGES_PROPRETE;
-      const ms = calculerMasseSalTotale(lignes, tauxC);
+      const ms = calculerMasseSalTotale(lignes);
       if (ms.masseSal > 0) {
         await sb.from('sites').update({ cout_main_oeuvre: ms.masseSal }).eq('id', siteId);
       }
