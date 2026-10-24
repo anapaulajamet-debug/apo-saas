@@ -160,6 +160,45 @@
     .empty-icon { font-size: 36px; margin-bottom: 10px; }
     .empty p { font-size: 13px; }
 
+    /* ── COMPTE D'EXPLOITATION ── */
+    .ce-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px; }
+    @media (max-width: 800px) { .ce-grid { grid-template-columns: 1fr; } }
+    .ce-section { background: var(--blanc); border-radius: 10px; border: 1px solid var(--bordure); overflow: hidden; }
+    .ce-section-header { padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--blanc); }
+    .ce-prev .ce-section-header { background: var(--teal); }
+    .ce-reel .ce-section-header { background: #1D4ED8; }
+    .ce-body { padding: 16px; }
+    .ce-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--bordure); font-size: 13px; }
+    .ce-row:last-child { border-bottom: none; }
+    .ce-row.total { font-weight: 700; font-size: 14px; padding-top: 10px; }
+    .ce-row.marge-positive { color: var(--vert); font-weight: 700; font-size: 15px; }
+    .ce-row.marge-negative { color: var(--rouge); font-weight: 700; font-size: 15px; }
+    .ce-label { color: var(--gris-doux); }
+    .ce-val { font-weight: 600; }
+    .ce-input-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--bordure); gap: 10px; font-size: 13px; }
+    .ce-input-row:last-child { border-bottom: none; }
+    .ce-input-label { color: var(--gris-doux); flex: 1; }
+    .ce-input { width: 110px; padding: 6px 10px; border: 1.5px solid var(--bordure); border-radius: 6px; font-size: 13px; text-align: right; font-family: Arial,sans-serif; }
+    .ce-input:focus { outline: none; border-color: #1D4ED8; }
+    .ce-input.unit::after { content: '€'; }
+    .ce-ecart { background: var(--blanc); border-radius: 10px; border: 1px solid var(--bordure); overflow: hidden; margin-bottom: 16px; }
+    .ce-ecart-header { padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--blanc); background: #7C3AED; }
+    .ce-ecart-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0; }
+    .ce-ecart-th { padding: 8px 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--gris-doux); border-bottom: 1px solid var(--bordure); background: #FAFBFC; }
+    .ce-ecart-td { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--bordure); }
+    .ce-ecart-tr:last-child .ce-ecart-td { border-bottom: none; font-weight: 700; }
+    .ecart-pos { color: var(--vert); font-weight: 700; }
+    .ecart-neg { color: var(--rouge); font-weight: 700; }
+    .ecart-neu { color: var(--gris-doux); }
+    .ce-select { width: 100%; padding: 8px 11px; border: 1.5px solid var(--bordure); border-radius: 6px; font-size: 13px; font-family: Arial,sans-serif; background: #F8FAFC; }
+    .ce-select:focus { outline: none; border-color: #1D4ED8; }
+    .ce-save-btn { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .btn-ce-save { padding: 10px 24px; background: #1D4ED8; color: #fff; font-size: 13px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; font-family: Arial,sans-serif; }
+    .btn-ce-save:hover { background: #1e40af; }
+    .ce-msg { text-align: right; font-size: 12px; margin-top: 6px; display: none; }
+    .ce-msg.ok { color: var(--vert); }
+    .ce-msg.err { color: var(--rouge); }
+
     /* Modal Modifier Contrat */
     #modalContrat { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); z-index:9999; align-items:center; justify-content:center; }
     #modalContrat.open { display:flex; }
@@ -319,6 +358,7 @@
         <button class="tab-btn" onclick="showTab('bons',this)">📄 Bons de commande</button>
         <button class="tab-btn" onclick="showTab('contrat',this)">📑 Contrat</button>
         <button class="tab-btn" onclick="showTab('documents',this)">📁 Documents</button>
+        <button class="tab-btn" onclick="showTab('exploitation',this);chargerExploitation()">📊 Compte d'exploitation</button>
       </div>
 
       <div class="content">
@@ -490,6 +530,78 @@
           </div>
         </div>
 
+        <!-- ══ COMPTE D'EXPLOITATION ══ -->
+        <div class="tab-panel" id="tab-exploitation">
+          <div class="card">
+            <div class="card-title">PARAMÈTRES RÉELS (EXPLOITATION)</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Exécutant</label>
+                <select class="ce-select" id="ceExecutant">
+                  <option value="salarie">Salarié(e)</option>
+                  <option value="dirigeant">Dirigeant (sans masse salariale)</option>
+                </select>
+              </div>
+              <div id="ceFieldsPersonnel">
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Heures hebdo — Production</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.25" id="ceHebdoProd" placeholder="ex: 4.5" />
+              </div>
+              <div id="ceFieldsCtrl">
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Heures hebdo — Contrôle</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.25" id="ceHebdoCtrl" placeholder="ex: 0.5" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Taux horaire brut (€/h)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="ceTauxHoraire" placeholder="11.88" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Primes transport (€/mois)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="cePrimesTransport" placeholder="0" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Primes diverses (€/mois)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="cePrimesDiverses" placeholder="0" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Taux charges patronales (%)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="ceTauxCharges" placeholder="57.46" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Produits d'entretien (€/mois)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="ceCoutProduits" placeholder="0" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Matériel / Amortissements (€/mois)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="ceCoutMateriel" placeholder="0" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Sous-traitance (€/mois)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="ceSousTraitance" placeholder="0" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gris-doux);display:block;margin-bottom:6px;">Divers (€/mois)</label>
+                <input class="ce-input" style="width:100%" type="number" step="0.01" id="ceCoutDivers" placeholder="0" />
+              </div>
+            </div>
+            <div class="ce-save-btn" style="margin-top:16px;">
+              <button class="btn-ce-save" onclick="sauvegarderExploitation()">💾 Enregistrer les données réelles</button>
+            </div>
+            <div class="ce-msg" id="ceSaveMsg"></div>
+          </div>
+
+          <!-- Tableau comparatif -->
+          <div class="ce-ecart">
+            <div class="ce-ecart-header">COMPTE D'EXPLOITATION — Prévisionnel vs Réel</div>
+            <div class="ce-ecart-grid">
+              <div class="ce-ecart-th">DÉSIGNATION</div>
+              <div class="ce-ecart-th" style="text-align:right;">PRÉVISIONNEL</div>
+              <div class="ce-ecart-th" style="text-align:right;">RÉEL</div>
+              <div class="ce-ecart-th" style="text-align:right;">ÉCART</div>
+            </div>
+            <div id="ceTableauBody"></div>
+          </div>
+        </div>
+
       </div><!-- /content -->
     </div><!-- /pageContent -->
   </div><!-- /main -->
@@ -579,10 +691,233 @@
       if(id==='equipe'    && !_loadedEquipe)     chargerEquipe();
       if(id==='controles' && !_loadedControles)  chargerControles();
       if(id==='contrat'   && !_loadedContrat)    chargerContrat();
-      if(id==='documents' && !_loadedDocuments)  chargerDocuments();
+      if(id==='documents'    && !_loadedDocuments)   chargerDocuments();
     }
 
     let _loadedEquipe=false, _loadedControles=false, _loadedContrat=false, _loadedDocuments=false;
+
+    // ══════════════════════════════════════
+    // COMPTE D'EXPLOITATION
+    // ══════════════════════════════════════
+    const SMIC_2026 = 11.88;
+    const TAUX_CHARGES_PROPRETE = 57.46; // charges patronales secteur propreté 2026
+
+    const euro = v => Number(v||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+    const pct  = v => Number(v||0).toFixed(1) + ' %';
+
+    function calculerCE(params) {
+      const { ca, executant, hebdoProd, hebdoCtrl, tauxH, primesT, primesD, tauxCharges, coutProd, coutMat, sousTrait, coutDiv } = params;
+      const heuresMens = (hebdoProd + hebdoCtrl) * (52 / 12);
+      const salairesBruts = executant === 'dirigeant' ? 0 : heuresMens * tauxH;
+      const chargesSoc   = executant === 'dirigeant' ? 0 : salairesBruts * (tauxCharges / 100);
+      const primes        = executant === 'dirigeant' ? 0 : (primesT + primesD);
+      const masseSal      = salairesBruts + chargesSoc + primes;
+      const chargesDir    = coutProd + coutMat + sousTrait + coutDiv;
+      const prixRevient   = masseSal + chargesDir;
+      const marge         = ca - prixRevient;
+      const tauxMarge     = ca > 0 ? (marge / ca * 100) : 0;
+      return { heuresMens, salairesBruts, chargesSoc, primes, masseSal, chargesDir, prixRevient, marge, tauxMarge };
+    }
+
+    function ligneEcart(label, prev, reel, isTotal=false, isMarge=false) {
+      const ecart = reel - prev;
+      const clsEcart = isMarge
+        ? (ecart >= 0 ? 'ecart-pos' : 'ecart-neg')
+        : (ecart <= 0 ? 'ecart-pos' : 'ecart-neg');
+      const signe = ecart >= 0 ? '+' : '';
+      const rowCls = isMarge
+        ? (reel >= 0 ? 'marge-positive' : 'marge-negative')
+        : (isTotal ? 'ce-ecart-tr font-bold' : 'ce-ecart-tr');
+      return `<div class="ce-ecart-grid" style="${isTotal?'background:#FAFBFC;font-weight:700;':''}${isMarge?'background:var(--teal-light);':''}">
+        <div class="ce-ecart-td">${label}</div>
+        <div class="ce-ecart-td" style="text-align:right;">${euro(prev)}</div>
+        <div class="ce-ecart-td" style="text-align:right;">${euro(reel)}</div>
+        <div class="ce-ecart-td" style="text-align:right;" class="${clsEcart}"><span class="${clsEcart}">${signe}${euro(ecart)}</span></div>
+      </div>`;
+    }
+
+    function rafraichirTableau(site, chiffrage, real) {
+      const ca = parseFloat(site.ca_mensuel || chiffrage?.prix_ht || 0);
+
+      // Prévisionnel depuis chiffrage
+      const hProd_prev  = parseFloat(chiffrage?.surfaces?.pvParams?.heuresProd || chiffrage?.surfaces?.pvParams?.heuresMens || 0);
+      const tauxH_prev  = parseFloat(chiffrage?.surfaces?.pvParams?.tauxHoraire || SMIC_2026);
+      const prev = calculerCE({
+        ca, executant: 'salarie',
+        hebdoProd: hProd_prev, hebdoCtrl: 0,
+        tauxH: tauxH_prev > 0 ? tauxH_prev : SMIC_2026,
+        primesT: 0, primesD: 0,
+        tauxCharges: TAUX_CHARGES_PROPRETE,
+        coutProd: parseFloat(site.cout_produits || 0),
+        coutMat: 0,
+        sousTrait: 0,
+        coutDiv: parseFloat(site.cout_divers || 0)
+      });
+      // Fallback: utiliser cout_main_oeuvre du chiffrage comme masse salariale prévisionnelle
+      const masseSalPrev = chiffrage?.masse_salariale
+        ? parseFloat(chiffrage.masse_salariale)
+        : prev.masseSal;
+
+      // Réel depuis données saisies
+      const reel = calculerCE({
+        ca,
+        executant: real.executant || 'salarie',
+        hebdoProd: parseFloat(real.heures_hebdo_prod || 0),
+        hebdoCtrl: parseFloat(real.heures_hebdo_ctrl || 0),
+        tauxH: parseFloat(real.taux_horaire || SMIC_2026),
+        primesT: parseFloat(real.primes_transport || 0),
+        primesD: parseFloat(real.primes_diverses || 0),
+        tauxCharges: parseFloat(real.taux_charges || TAUX_CHARGES_PROPRETE),
+        coutProd: parseFloat(real.cout_produits_reel || site.cout_produits || 0),
+        coutMat: parseFloat(real.cout_materiel || 0),
+        sousTrait: parseFloat(real.sous_traitance || 0),
+        coutDiv: parseFloat(real.cout_divers_reel || site.cout_divers || 0)
+      });
+
+      const chargesDirPrev = parseFloat(site.cout_produits||0) + parseFloat(site.cout_divers||0);
+      const prixRevPrev = masseSalPrev + chargesDirPrev;
+      const margePrev = ca - prixRevPrev;
+      const tauxMargePrev = ca > 0 ? (margePrev / ca * 100) : 0;
+
+      const hasReel = parseFloat(real.heures_hebdo_prod||0) > 0 || real.executant === 'dirigeant';
+
+      const html = `
+        <div class="ce-ecart-grid" style="background:#FAFBFC;">
+          <div class="ce-ecart-th">DÉSIGNATION</div>
+          <div class="ce-ecart-th" style="text-align:right;">PRÉVISIONNEL (CHIFFRAGE)</div>
+          <div class="ce-ecart-th" style="text-align:right;">RÉEL (EXPLOITATION)</div>
+          <div class="ce-ecart-th" style="text-align:right;">ÉCART</div>
+        </div>
+        <div class="ce-ecart-grid" style="background:#F0FDF4;">
+          <div class="ce-ecart-td" style="font-weight:700;color:var(--vert);">CA MENSUEL HT</div>
+          <div class="ce-ecart-td" style="text-align:right;font-weight:700;">${euro(ca)}</div>
+          <div class="ce-ecart-td" style="text-align:right;font-weight:700;">${euro(ca)}</div>
+          <div class="ce-ecart-td" style="text-align:right;">—</div>
+        </div>
+        <div class="ce-ecart-grid" style="background:#F8FAFC;">
+          <div class="ce-ecart-td" style="color:var(--gris-doux);font-size:11px;text-transform:uppercase;letter-spacing:.5px;" colspan="4">CHARGES PERSONNEL</div>
+          <div class="ce-ecart-td"></div><div class="ce-ecart-td"></div><div class="ce-ecart-td"></div>
+        </div>
+        ${ligneEcart('Salaires bruts', chiffrage?.masse_salariale ? masseSalPrev * (1/(1+TAUX_CHARGES_PROPRETE/100)) : prev.salairesBruts, reel.salairesBruts)}
+        ${ligneEcart('Charges sociales patronales', chiffrage?.masse_salariale ? masseSalPrev - masseSalPrev*(1/(1+TAUX_CHARGES_PROPRETE/100)) : prev.chargesSoc, reel.chargesSoc)}
+        ${ligneEcart('Primes (transport + diverses)', 0, reel.primes)}
+        ${ligneEcart('TOTAL MASSE SALARIALE', masseSalPrev, reel.masseSal, true)}
+        <div class="ce-ecart-grid" style="background:#F8FAFC;">
+          <div class="ce-ecart-td" style="color:var(--gris-doux);font-size:11px;text-transform:uppercase;letter-spacing:.5px;">CHARGES DIRECTES</div>
+          <div class="ce-ecart-td"></div><div class="ce-ecart-td"></div><div class="ce-ecart-td"></div>
+        </div>
+        ${ligneEcart('Produits d\'entretien', parseFloat(site.cout_produits||0), parseFloat(real.cout_produits_reel||site.cout_produits||0))}
+        ${ligneEcart('Matériel / Amortissements', 0, parseFloat(real.cout_materiel||0))}
+        ${ligneEcart('Sous-traitance', 0, parseFloat(real.sous_traitance||0))}
+        ${ligneEcart('Divers', parseFloat(site.cout_divers||0), parseFloat(real.cout_divers_reel||site.cout_divers||0))}
+        ${ligneEcart('TOTAL CHARGES DIRECTES', chargesDirPrev, reel.chargesDir, true)}
+        ${ligneEcart('PRIX DE REVIENT', prixRevPrev, reel.prixRevient, true)}
+        <div class="ce-ecart-grid" style="background:${reel.marge>=0?'#D1FAE5':'#FEE2E2'};font-weight:700;font-size:15px;">
+          <div class="ce-ecart-td">MARGE BRUTE</div>
+          <div class="ce-ecart-td" style="text-align:right;color:${margePrev>=0?'var(--vert)':'var(--rouge)'};">${euro(margePrev)} <span style="font-size:12px;">(${pct(tauxMargePrev)})</span></div>
+          <div class="ce-ecart-td" style="text-align:right;color:${reel.marge>=0?'var(--vert)':'var(--rouge)'};">${euro(reel.marge)} <span style="font-size:12px;">(${pct(reel.tauxMarge)})</span></div>
+          <div class="ce-ecart-td" style="text-align:right;"><span class="${reel.marge-margePrev>=0?'ecart-pos':'ecart-neg'}">${reel.marge-margePrev>=0?'+':''}${euro(reel.marge-margePrev)}</span></div>
+        </div>
+        ${!hasReel ? '<div style="padding:12px 14px;color:var(--or);font-size:13px;">⚠ Saisissez les données réelles ci-dessus pour voir l\'écart.</div>' : ''}
+      `;
+      document.getElementById('ceTableauBody').innerHTML = html;
+    }
+
+    let _ceLoaded = false;
+    let _ceSite = null, _ceChiffrage = null;
+
+    async function chargerExploitation() {
+      if (_ceLoaded) return;
+      _ceLoaded = true;
+
+      // Récupérer données site
+      const { data: site } = await sb.from('sites')
+        .select('ca_mensuel,cout_main_oeuvre,cout_produits,cout_divers,nom')
+        .eq('id', siteId).single();
+      _ceSite = site || {};
+
+      // Récupérer chiffrage prévisionnel
+      const { data: prospect } = await sb.from('prospects')
+        .select('id').ilike('raison_sociale', '%' + (_ceSite.nom||'') + '%').maybeSingle();
+      if (prospect) {
+        const { data: c } = await sb.from('chiffrages')
+          .select('prix_ht,masse_salariale,surfaces')
+          .eq('prospect_id', prospect.id)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        _ceChiffrage = c;
+      }
+
+      // Récupérer données réelles si déjà saisies
+      const { data: real } = await sb.from('comptes_exploitation')
+        .select('*').eq('site_id', siteId).maybeSingle();
+
+      if (real) {
+        document.getElementById('ceExecutant').value       = real.executant || 'salarie';
+        document.getElementById('ceHebdoProd').value      = real.heures_hebdo_prod || '';
+        document.getElementById('ceHebdoCtrl').value      = real.heures_hebdo_ctrl || '';
+        document.getElementById('ceTauxHoraire').value    = real.taux_horaire || SMIC_2026;
+        document.getElementById('cePrimesTransport').value= real.primes_transport || '';
+        document.getElementById('cePrimesDiverses').value = real.primes_diverses || '';
+        document.getElementById('ceTauxCharges').value    = real.taux_charges || TAUX_CHARGES_PROPRETE;
+        document.getElementById('ceCoutProduits').value   = real.cout_produits_reel || '';
+        document.getElementById('ceCoutMateriel').value   = real.cout_materiel || '';
+        document.getElementById('ceSousTraitance').value  = real.sous_traitance || '';
+        document.getElementById('ceCoutDivers').value     = real.cout_divers_reel || '';
+        rafraichirTableau(_ceSite, _ceChiffrage, real);
+      } else {
+        document.getElementById('ceTauxHoraire').value = SMIC_2026;
+        document.getElementById('ceTauxCharges').value = TAUX_CHARGES_PROPRETE;
+        rafraichirTableau(_ceSite, _ceChiffrage, {});
+      }
+
+      // Mise à jour temps réel à chaque saisie
+      ['ceExecutant','ceHebdoProd','ceHebdoCtrl','ceTauxHoraire','cePrimesTransport',
+       'cePrimesDiverses','ceTauxCharges','ceCoutProduits','ceCoutMateriel','ceSousTraitance','ceCoutDivers'
+      ].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+          rafraichirTableau(_ceSite, _ceChiffrage, lireFormulaire());
+        });
+      });
+    }
+
+    function lireFormulaire() {
+      return {
+        executant:         document.getElementById('ceExecutant').value,
+        heures_hebdo_prod: parseFloat(document.getElementById('ceHebdoProd').value) || 0,
+        heures_hebdo_ctrl: parseFloat(document.getElementById('ceHebdoCtrl').value) || 0,
+        taux_horaire:      parseFloat(document.getElementById('ceTauxHoraire').value) || SMIC_2026,
+        primes_transport:  parseFloat(document.getElementById('cePrimesTransport').value) || 0,
+        primes_diverses:   parseFloat(document.getElementById('cePrimesDiverses').value) || 0,
+        taux_charges:      parseFloat(document.getElementById('ceTauxCharges').value) || TAUX_CHARGES_PROPRETE,
+        cout_produits_reel:parseFloat(document.getElementById('ceCoutProduits').value) || 0,
+        cout_materiel:     parseFloat(document.getElementById('ceCoutMateriel').value) || 0,
+        sous_traitance:    parseFloat(document.getElementById('ceSousTraitance').value) || 0,
+        cout_divers_reel:  parseFloat(document.getElementById('ceCoutDivers').value) || 0,
+      };
+    }
+
+    async function sauvegarderExploitation() {
+      const msgEl = document.getElementById('ceSaveMsg');
+      msgEl.style.display = 'none';
+      const payload = { ...lireFormulaire(), site_id: siteId, tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001' };
+      const { error } = await sb.from('comptes_exploitation')
+        .upsert(payload, { onConflict: 'site_id' });
+      if (error) {
+        msgEl.textContent = 'Erreur : ' + error.message;
+        msgEl.className = 'ce-msg err';
+      } else {
+        msgEl.textContent = '✅ Données enregistrées';
+        msgEl.className = 'ce-msg ok';
+        // Mettre à jour cout_main_oeuvre dans sites si on a une valeur réelle
+        const reel = lireFormulaire();
+        const ce = calculerCE({ ca: parseFloat(_ceSite.ca_mensuel||0), ...reel });
+        if (ce.masseSal > 0) {
+          await sb.from('sites').update({ cout_main_oeuvre: ce.masseSal }).eq('id', siteId);
+        }
+      }
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display='none'; }, 3000);
+    }
 
     // ── Chargement fiche ──
     async function init(){
