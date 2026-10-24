@@ -881,26 +881,40 @@
 
       // ── Documents contractuels (site_documents) ──
       const { data: docs } = await sb.from('site_documents')
-        .select('id,nom,type,url,statut,created_at')
+        .select('id,nom,type,url,statut,created_at,analyse_ia,signature_detectee')
         .eq('site_id', siteId)
         .order('created_at', { ascending: false });
 
       if (docs && docs.length) {
-        const typeIcon = { contrat:'📑', cahier_charges:'📋', devis:'📊', autre:'📄' };
+        const typeIcon = { contrat:'📑', cahier_charges:'📋', devis:'📊', email:'📧', autre:'📄' };
         html += `<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Documents contractuels</div>`;
         html += docs.map(d => {
           const icon = typeIcon[d.type] || '📄';
           const statutLabel = d.statut === 'signe'
             ? '<span style="color:var(--vert);font-weight:700;">✅ Signé</span>'
             : d.statut === 'en_attente_signature'
-            ? '<span style="color:var(--or);font-weight:700;">⏳ En attente signature client</span>'
-            : `<span style="color:var(--gris-doux);">${esc(d.statut||'')}</span>`;
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bordure);">
-            <div>
-              <div style="font-weight:700;font-size:14px;">${icon} ${esc(d.nom)}</div>
-              <div style="font-size:12px;color:var(--gris-doux);margin-top:2px;">${statutLabel} · ${new Date(d.created_at).toLocaleDateString('fr-FR')}</div>
+            ? '<span style="color:var(--or);font-weight:700;">⏳ En attente signature</span>'
+            : `<span style="color:var(--gris-doux);">📝 Brouillon</span>`;
+          const ia = d.analyse_ia;
+          let iaBadges = '';
+          if (ia) {
+            const sigBadge = ia.signature
+              ? '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">✅ Signature détectée</span>'
+              : '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">⚠️ Pas de signature</span>';
+            const typeIa = ia.type_detecte ? `<span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(ia.type_detecte)}</span>` : '';
+            const montant = ia.montant ? `<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:10px;font-size:11px;">${esc(ia.montant)}</span>` : '';
+            iaBadges = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${sigBadge}${typeIa}${montant}</div>`;
+            if (ia.resume) iaBadges += `<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;">${esc(ia.resume)}</div>`;
+          }
+          return `<div style="padding:12px 0;border-bottom:1px solid var(--bordure);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:14px;">${icon} ${esc(d.nom)}</div>
+                <div style="font-size:12px;color:var(--gris-doux);margin-top:2px;">${statutLabel} · ${new Date(d.created_at).toLocaleDateString('fr-FR')}</div>
+                ${iaBadges}
+              </div>
+              <div style="margin-left:12px;">${d.url ? `<a href="${esc(d.url)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">👁 Ouvrir</a>` : ''}</div>
             </div>
-            <div>${d.url ? `<a href="${esc(d.url)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">👁 Ouvrir</a>` : ''}</div>
           </div>`;
         }).join('');
         html += '<div style="margin-bottom:20px;"></div>';
@@ -976,20 +990,35 @@
         document.getElementById('docProgress').style.display = 'none';
       }
 
-      const { error } = await sb.from('site_documents').insert({
+      const { data: inserted, error } = await sb.from('site_documents').insert({
         site_id: siteId,
         nom,
         type,
         statut,
         url,
         tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001'
-      });
+      }).select('id').single();
 
       btn.disabled = false;
       if (error) { alert('Erreur : ' + error.message); return; }
       document.getElementById('modalDoc').style.display = 'none';
       _loadedDocuments = false;
       chargerDocuments();
+
+      // Analyse IA en arrière-plan si fichier uploadé
+      if (url && inserted?.id) {
+        setTimeout(async () => {
+          try {
+            await fetch('https://zqehxwggzyepiftjrkxq.supabase.co/functions/v1/analyze-document', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+              body: JSON.stringify({ url, document_id: inserted.id })
+            });
+            _loadedDocuments = false;
+            chargerDocuments();
+          } catch(e) { console.warn('Analyse IA échouée', e); }
+        }, 500);
+      }
     });
 
     function dessinerGraphe(controles){
