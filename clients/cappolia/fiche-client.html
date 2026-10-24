@@ -234,6 +234,7 @@
         <div><label>CA mensuel HT (€)</label><input id="mCA" type="number" step="0.01" placeholder="0.00"></div>
         <div><label>Coût main d'œuvre (€)</label><input id="mMO" type="number" step="0.01" placeholder="0.00"></div>
         <div class="form-full"><label>Date de début</label><input id="mDateDebut" type="date"></div>
+        <div class="form-full"><label>SIREN / RCS du client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
       </div>
       <div class="modal-actions">
         <button class="btn-action" onclick="document.getElementById('modalContrat').classList.remove('open')">Annuler</button>
@@ -715,6 +716,7 @@
         document.getElementById('mCA').value           = site.ca_mensuel || '';
         document.getElementById('mMO').value           = site.cout_main_oeuvre || '';
         document.getElementById('mDateDebut').value    = site.date_debut || '';
+        document.getElementById('mSiren').value        = site.siren || '';
       }
       document.getElementById('modalContrat').classList.add('open');
     });
@@ -733,6 +735,7 @@
         ca_mensuel:           parseFloat(document.getElementById('mCA').value) || null,
         cout_main_oeuvre:     parseFloat(document.getElementById('mMO').value) || null,
         date_debut:           document.getElementById('mDateDebut').value || null,
+        siren:                document.getElementById('mSiren').value.trim() || null,
       };
       const { error } = await sb.from('sites').update(payload).eq('id', siteId);
       btn.disabled = false; btn.textContent = '💾 Enregistrer';
@@ -1545,8 +1548,28 @@
       const contact   = site.contact_nom || site.nom_contact || '—';
       const tel       = site.telephone || site.tel || '—';
       const email     = site.email || '—';
-      const siret     = site.siret || '';
+      const siret     = site.siren || site.siret || '';
       const ca        = site.ca_mensuel ? `${parseFloat(site.ca_mensuel).toFixed(2).replace('.', ',')} € HT/mois` : '';
+
+      // Récupérer les tâches depuis le chiffrage
+      let tachesChiffrage = '';
+      try {
+        const { data: prospect } = await sb.from('prospects')
+          .select('id').ilike('raison_sociale', '%' + (site.nom||'') + '%').maybeSingle();
+        if (prospect) {
+          const { data: c } = await sb.from('chiffrages')
+            .select('surfaces').eq('prospect_id', prospect.id)
+            .order('created_at', { ascending: false }).limit(1).maybeSingle();
+          const groupes = c?.surfaces?.groupesEC || c?.surfaces?.groupes || [];
+          if (groupes.length > 0) {
+            tachesChiffrage = groupes.map(g => {
+              const taches = g.taches || g.prestations || [];
+              const label = g.nom || g.label || '';
+              return taches.length > 0 ? (label ? `${label} : ${taches.join(', ')}` : taches.join(', ')) : label;
+            }).filter(Boolean).join(' — ');
+          }
+        }
+      } catch(e) { console.warn('Chiffrage non récupéré', e); }
       const freq      = site.frequence || site.frequence_passage || '';
       const duree     = site.duree_passage || '';
       const jours     = site.jours_intervention || '';
@@ -1597,7 +1620,7 @@
           <strong>Le Client</strong><br>
           Raison sociale / Nom : ${champFige(nom)}<br>
           Forme juridique et capital : ${champ('clientForme', '', 'SAS / SARL / EURL…')}<br>
-          SIREN / RCS : ${champ('clientSiren', siret, 'À renseigner')}<br>
+          SIREN / RCS : ${siret ? champFige(siret) : champ('clientSiren', '', 'À renseigner — compléter dans la fiche client')}<br>
           N° TVA intracommunautaire : ${champ('clientTVA', '', 'FR…')}<br>
           Adresse de facturation : ${champFige(adr)}<br>
           Représenté par : ${champ('clientRepresentant', contact)}, ${champ('clientQualite', '', 'Fonction')}<br>
@@ -1626,7 +1649,7 @@
           <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Adresse du site</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('adresseSite', adr)}</td></tr>
           <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Nature des locaux et surface</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('natureLocaux', [typeSite, surface].filter(Boolean).join(' — '), 'Bureaux — surface à préciser')}</td></tr>
           <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Prestations confiées</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('prestationsTypes', 'Nettoyage des bureaux / parties communes, sanitaires', 'Nettoyage bureaux, sanitaires…')}</td></tr>
-          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Détail des tâches</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('tachesDetail', '', 'Balayage, lavage sols, dépoussiérage, vidage corbeilles…')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Détail des tâches</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('tachesDetail', tachesChiffrage, 'Balayage, lavage sols, dépoussiérage, vidage corbeilles…')}</td></tr>
           <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Fréquences et horaires</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('freqHoraires', [freq, jours, hDeb && hFin ? `de ${hDeb} à ${hFin}` : '', duree ? `(${duree})` : ''].filter(Boolean).join(' — '), 'À préciser')}</td></tr>
           <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Accès, clés, local technique</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('acces', '', 'Clés confiées / badge / local fourni')}</td></tr>
         </table>
@@ -1661,7 +1684,8 @@
           Les modes de paiement acceptés sont le virement bancaire, la carte bancaire et le chèque à l'ordre de Cappolia Propreté.
           Tout retard entraîne de plein droit des pénalités égales à trois fois le taux d'intérêt légal
           ainsi qu'une indemnité forfaitaire de recouvrement de 40 € (article 6.3 des CGV).<br><br>
-          Virement bancaire — IBAN : ${champ('iban', '', 'À compléter')} — BIC : ${champ('bic', '', 'À compléter')}
+          Virement bancaire au nom de <strong>Cappolia Propreté</strong><br>
+          IBAN : <strong>FR76 1732 8844 0029 7430 6287 116</strong> — BIC : <strong>SWNBFR22</strong>
         </p>
 
         <!-- Art. 6 -->
