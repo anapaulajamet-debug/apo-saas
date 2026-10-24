@@ -430,6 +430,7 @@
               <div class="info-item"><label>Coût main d'œuvre</label><p id="cMO">—</p></div>
               <div class="info-item"><label>Marge</label><p id="cMarge">—</p></div>
               <div class="info-item"><label>Date début</label><p id="cDateDebut">—</p></div>
+              <div class="info-item" style="grid-column:1/-1"><label>Période d'essai</label><p id="cPeriodeEssai">—</p></div>
             </div>
           </div>
           <div class="card">
@@ -809,6 +810,13 @@
       document.getElementById('cMarge').textContent      = pv.marge ? `${parseFloat(pv.marge).toFixed(1)} %` : '—';
       document.getElementById('cDateDebut').textContent  = site.date_debut
         ? new Date(site.date_debut).toLocaleDateString('fr-FR') : '—';
+      if (site.date_debut) {
+        const finEssai = new Date(site.date_debut);
+        finEssai.setMonth(finEssai.getMonth() + 1);
+        document.getElementById('cPeriodeEssai').textContent = `1 mois — fin le ${finEssai.toLocaleDateString('fr-FR')}`;
+      } else {
+        document.getElementById('cPeriodeEssai').textContent = '—';
+      }
 
       const groupes = chiffrage?.surfaces?.groupesEC;
       if (groupes?.length) {
