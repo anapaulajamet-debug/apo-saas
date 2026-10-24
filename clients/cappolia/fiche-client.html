@@ -282,6 +282,20 @@
     </div>
   </div>
 
+  <!-- ══ MODAL PROPOSITION CONTRAT (après devis signé) ══ -->
+  <div id="modalPropositionContrat" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:36px;width:min(460px,90vw);box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">📑</div>
+      <h3 style="margin:0 0 10px;font-size:18px;font-weight:700;color:#1a1a1a;">Devis signé enregistré</h3>
+      <p style="margin:0 0 28px;font-size:14px;color:#555;line-height:1.6;">Souhaitez-vous générer le contrat pour ce client, ou l'avez-vous déjà réalisé ?</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-action primary" style="font-size:15px;padding:13px;" onclick="propositionContrat_generer()">✍️ Générer le contrat maintenant</button>
+        <button class="btn-action" style="font-size:14px;" onclick="propositionContrat_dejaFait()">✅ Contrat déjà réalisé</button>
+        <button class="btn-action" style="font-size:13px;color:#999;background:transparent;border:none;box-shadow:none;padding:8px;" onclick="document.getElementById('modalPropositionContrat').style.display='none'">Plus tard</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -1467,6 +1481,22 @@
     }
 
     // ── Upload document ──
+    function propositionContrat_generer() {
+      document.getElementById('modalPropositionContrat').style.display = 'none';
+      // Basculer sur l'onglet Contrat
+      const btnContrat = document.querySelector('.tab-btn[onclick*="contrat"]');
+      if (btnContrat) btnContrat.click();
+      // Ouvrir la modale de saisie du contrat après un court délai
+      setTimeout(() => {
+        document.getElementById('btnModif')?.click();
+      }, 300);
+    }
+
+    function propositionContrat_dejaFait() {
+      document.getElementById('modalPropositionContrat').style.display = 'none';
+      // Basculer sur l'onglet Documents pour confirmer visuellement
+    }
+
     function ouvrirModalDoc(){
       document.getElementById('docNom').value = '';
       document.getElementById('docFichier').value = '';
@@ -1516,6 +1546,11 @@
       document.getElementById('modalDoc').style.display = 'none';
       _loadedDocuments = false;
       chargerDocuments();
+
+      // Proposer de générer le contrat si devis signé
+      if (type === 'devis' && statut === 'signe') {
+        document.getElementById('modalPropositionContrat').style.display = 'flex';
+      }
 
       // Analyse IA en arrière-plan si fichier uploadé
       if (url && inserted?.id) {
