@@ -2021,6 +2021,43 @@
     }
     function fermerModalAgent() {
       document.getElementById('modalAgent').style.display = 'none';
+      agWizardEtape(1);
+    }
+
+    function agWizardEtape(n) {
+      [1,2,3].forEach(i => {
+        document.getElementById('agEtape'+i).style.display = i===n ? '' : 'none';
+        const dot  = document.getElementById('agStepDot'+i);
+        const line = document.getElementById('agStepLine'+i);
+        dot.classList.toggle('active', i <= n);
+        dot.classList.toggle('done',   i <  n);
+        if (line) line.classList.toggle('done', i < n);
+      });
+      const labels = ['Pièces justificatives','Données personnelles','Planning'];
+      document.getElementById('agStepLabel').textContent = labels[n-1];
+
+      // Étape 3 : pré-remplir jours/heures depuis le contrat du site
+      if (n === 3) preRemplirPlanning();
+    }
+
+    function preRemplirPlanning() {
+      if (!siteData) return;
+      // Essayer de déduire les jours depuis les champs de contrat si disponibles
+      const hj = siteData.heures_par_jour || siteData.heures_journalieres;
+      if (hj) {
+        const hjEl = document.getElementById('agHJ');
+        if (hjEl && !hjEl.value) hjEl.value = hj;
+      }
+      const hdeb = siteData.heure_debut;
+      if (hdeb) {
+        const el = document.getElementById('agHDeb');
+        if (el && !el.value) el.value = hdeb;
+      }
+      const hfin = siteData.heure_fin;
+      if (hfin) {
+        const el = document.getElementById('agHFin');
+        if (el && !el.value) el.value = hfin;
+      }
     }
 
     // Recherche agent existant
@@ -2216,139 +2253,150 @@
         <button id="tabExistant" class="modal-tab" onclick="switchTabModal('Existant')">🔍 Agent existant</button>
       </div>
 
-      <!-- Panel Nouvel agent -->
+      <!-- Panel Nouvel agent — wizard 3 étapes -->
       <div id="panelNouveauAgent" class="modal-tab-panel" style="padding:20px 24px;">
+
+        <!-- Indicateur d'étape -->
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;">
+          <div class="ag-step active" id="agStepDot1">1</div>
+          <div class="ag-step-line" id="agStepLine1"></div>
+          <div class="ag-step" id="agStepDot2">2</div>
+          <div class="ag-step-line" id="agStepLine2"></div>
+          <div class="ag-step" id="agStepDot3">3</div>
+          <div style="flex:1;margin-left:10px;font-size:12px;color:var(--gris-doux);" id="agStepLabel">Pièces justificatives</div>
+        </div>
+
         <form id="formAgent" onsubmit="creerAgent(event)">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-            <div>
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">NOM *</label>
-              <input id="agNom" type="text" required placeholder="Dupont"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">PRÉNOM *</label>
-              <input id="agPrenom" type="text" required placeholder="Marie"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">DATE DE NAISSANCE</label>
-              <input id="agDDN" type="date"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">TÉLÉPHONE</label>
-              <input id="agTel" type="tel" placeholder="06 00 00 00 00"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
-            </div>
-            <div style="grid-column:1/-1;">
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">EMAIL</label>
-              <input id="agEmail" type="email" placeholder="marie.dupont@email.com"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
-            </div>
-          </div>
 
-          <!-- Jours travaillés -->
-          <div style="margin-top:18px;">
-            <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">JOURS TRAVAILLÉS SUR CE SITE</label>
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Lun"> Lun</label>
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Mar"> Mar</label>
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Mer"> Mer</label>
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Jeu"> Jeu</label>
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Ven"> Ven</label>
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Sam"> Sam</label>
-              <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Dim"> Dim</label>
-            </div>
-          </div>
-
-          <div style="margin-top:14px;max-width:180px;">
-            <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">HEURES / JOUR</label>
-            <input id="agHJ" type="number" step="0.5" min="0" max="24" placeholder="ex: 2.5"
-              style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
-          </div>
-
-          <!-- Champs données personnelles -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;">
-            <div style="grid-column:1/-1;">
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">N° SÉCURITÉ SOCIALE</label>
-              <input id="agNumSS" type="text" placeholder="1 85 06 75 115 025 48" maxlength="21"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">IBAN</label>
-              <input id="agIBAN" type="text" placeholder="FR76 …"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">BIC</label>
-              <input id="agBIC" type="text" placeholder="XXXXXXXX"
-                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
-            </div>
-          </div>
-
-          <!-- Documents avec lecture OCR -->
-          <div style="margin-top:18px;">
-            <div style="font-size:12px;font-weight:700;color:var(--gris-doux);margin-bottom:10px;">📎 PIÈCES JUSTIFICATIVES <span style="font-weight:400;font-style:italic;">(optionnel — lecture automatique)</span></div>
+          <!-- ÉTAPE 1 : Pièces justificatives -->
+          <div id="agEtape1">
+            <div style="font-size:13px;color:var(--gris-doux);margin-bottom:14px;">Ajoutez les pièces disponibles — les données seront extraites automatiquement.</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-
-              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:10px;background:var(--blanc);">
+              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
                 <input type="file" id="docCNI" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'cni')">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:12px;font-weight:700;">🪪 Carte d'identité</span>
-                  <button type="button" onclick="document.getElementById('docCNI').click()" style="padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                  <span style="font-size:13px;font-weight:700;">🪪 Carte d'identité</span>
+                  <button type="button" onclick="document.getElementById('docCNI').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
                 </div>
-                <div id="docCNIStatus" style="font-size:11px;color:var(--gris-doux);margin-top:5px;min-height:16px;"></div>
+                <div id="docCNIStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
-
-              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:10px;background:var(--blanc);">
+              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
                 <input type="file" id="docVitale" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'vitale')">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:12px;font-weight:700;">💳 Carte Vitale</span>
-                  <button type="button" onclick="document.getElementById('docVitale').click()" style="padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                  <span style="font-size:13px;font-weight:700;">💳 Carte Vitale</span>
+                  <button type="button" onclick="document.getElementById('docVitale').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
                 </div>
-                <div id="docVitaleStatus" style="font-size:11px;color:var(--gris-doux);margin-top:5px;min-height:16px;"></div>
+                <div id="docVitaleStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
-
-              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:10px;background:var(--blanc);">
+              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
                 <input type="file" id="docRIB" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'rib')">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:12px;font-weight:700;">🏦 RIB</span>
-                  <button type="button" onclick="document.getElementById('docRIB').click()" style="padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                  <span style="font-size:13px;font-weight:700;">🏦 RIB</span>
+                  <button type="button" onclick="document.getElementById('docRIB').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
                 </div>
-                <div id="docRIBStatus" style="font-size:11px;color:var(--gris-doux);margin-top:5px;min-height:16px;"></div>
+                <div id="docRIBStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
-
-              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:10px;background:var(--blanc);">
+              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
                 <input type="file" id="docPermis" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'permis')">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:12px;font-weight:700;">🚗 Permis de conduire</span>
-                  <button type="button" onclick="document.getElementById('docPermis').click()" style="padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                  <span style="font-size:13px;font-weight:700;">🚗 Permis de conduire</span>
+                  <button type="button" onclick="document.getElementById('docPermis').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
                 </div>
-                <div id="docPermisStatus" style="font-size:11px;color:var(--gris-doux);margin-top:5px;min-height:16px;"></div>
+                <div id="docPermisStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
-
-              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:10px;background:var(--blanc);grid-column:1/-1;">
+              <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);grid-column:1/-1;">
                 <input type="file" id="docDomicile" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'domicile')">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:12px;font-weight:700;">📄 Justificatif de domicile</span>
-                  <button type="button" onclick="document.getElementById('docDomicile').click()" style="padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                  <span style="font-size:13px;font-weight:700;">📄 Justificatif de domicile</span>
+                  <button type="button" onclick="document.getElementById('docDomicile').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
                 </div>
-                <div id="docDomicileStatus" style="font-size:11px;color:var(--gris-doux);margin-top:5px;min-height:16px;"></div>
+                <div id="docDomicileStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
-
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:space-between;">
+              <button type="button" onclick="fermerModalAgent()" style="padding:10px 20px;border:1.5px solid var(--bordure);border-radius:8px;background:var(--blanc);cursor:pointer;font-size:14px;">Annuler</button>
+              <button type="button" onclick="agWizardEtape(2)" style="padding:10px 22px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">Suivant →</button>
             </div>
           </div>
 
-          <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
-            <button type="button" onclick="fermerModalAgent()"
-              style="padding:10px 20px;border:1.5px solid var(--bordure);border-radius:8px;background:var(--blanc);cursor:pointer;font-size:14px;">
-              Annuler
-            </button>
-            <button type="submit"
-              style="padding:10px 22px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">
-              ✅ Créer et affecter
-            </button>
+          <!-- ÉTAPE 2 : Données personnelles -->
+          <div id="agEtape2" style="display:none;">
+            <div style="font-size:13px;color:var(--gris-doux);margin-bottom:14px;">Vérifiez et complétez les informations extraites.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">NOM *</label>
+                <input id="agNom" type="text" required placeholder="Dupont" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">PRÉNOM *</label>
+                <input id="agPrenom" type="text" required placeholder="Marie" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">DATE DE NAISSANCE</label>
+                <input id="agDDN" type="date" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">TÉLÉPHONE</label>
+                <input id="agTel" type="tel" placeholder="06 00 00 00 00" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">EMAIL</label>
+                <input id="agEmail" type="email" placeholder="marie.dupont@email.com" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">N° SÉCURITÉ SOCIALE</label>
+                <input id="agNumSS" type="text" placeholder="1 85 06 75 115 025 48" maxlength="21" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">IBAN</label>
+                <input id="agIBAN" type="text" placeholder="FR76 …" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">BIC</label>
+                <input id="agBIC" type="text" placeholder="XXXXXXXX" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
+              </div>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:space-between;">
+              <button type="button" onclick="agWizardEtape(1)" style="padding:10px 20px;border:1.5px solid var(--bordure);border-radius:8px;background:var(--blanc);cursor:pointer;font-size:14px;">← Retour</button>
+              <button type="button" onclick="agWizardEtape(3)" style="padding:10px 22px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">Suivant →</button>
+            </div>
           </div>
+
+          <!-- ÉTAPE 3 : Planning -->
+          <div id="agEtape3" style="display:none;">
+            <div style="font-size:13px;color:var(--gris-doux);margin-bottom:14px;">Horaires sur ce site — pré-remplis depuis le contrat, modifiables.</div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">JOURS TRAVAILLÉS SUR CE SITE</label>
+              <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Lun"> Lun</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Mar"> Mar</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Mer"> Mer</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Jeu"> Jeu</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Ven"> Ven</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Sam"> Sam</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid var(--bordure);border-radius:7px;cursor:pointer;font-size:13px;"><input type="checkbox" class="ag-jour" value="Dim"> Dim</label>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px;">
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">HEURES / JOUR</label>
+                <input id="agHJ" type="number" step="0.5" min="0" max="24" placeholder="ex: 2.5" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">HEURE DÉBUT</label>
+                <input id="agHDeb" type="time" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">HEURE FIN</label>
+                <input id="agHFin" type="time" style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:space-between;">
+              <button type="button" onclick="agWizardEtape(2)" style="padding:10px 20px;border:1.5px solid var(--bordure);border-radius:8px;background:var(--blanc);cursor:pointer;font-size:14px;">← Retour</button>
+              <button type="submit" style="padding:10px 22px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">✅ Créer et affecter</button>
+            </div>
+          </div>
+
         </form>
       </div>
 
@@ -2368,6 +2416,11 @@
     .agent-result-item { padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--bordure);font-size:13px; }
     .agent-result-item:hover { background:var(--gris-fond); }
     .agent-result-item:last-child { border-bottom:none; }
+    .ag-step { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--gris-fond);color:var(--gris-doux);border:2px solid var(--bordure);flex-shrink:0; }
+    .ag-step.active { background:var(--teal);color:#fff;border-color:var(--teal); }
+    .ag-step.done { background:#e6f4ec;color:var(--teal);border-color:var(--teal); }
+    .ag-step-line { flex:1;height:2px;background:var(--bordure);margin:0 4px; }
+    .ag-step-line.done { background:var(--teal); }
   </style>
 
   <script>
