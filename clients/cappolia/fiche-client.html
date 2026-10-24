@@ -2060,20 +2060,23 @@
 
     function toggleAffiliation(checked) {
       const label = document.getElementById('vitaleOblLabel');
-      const btn   = document.getElementById('docVitaleBtn');
       const card  = document.getElementById('docVitaleCard');
+      const btnI  = document.getElementById('docVitaleBtnImport');
+      const btnP  = document.getElementById('docVitaleBtnPhoto');
       if (checked) {
         label.textContent = '(affiliation)';
         label.style.color = 'var(--or)';
         card.style.opacity = '0.6';
-        btn.disabled = true;
+        if (btnI) btnI.disabled = true;
+        if (btnP) btnP.disabled = true;
         document.getElementById('docVitaleStatus').textContent = '⚡ Demande d\'affiliation CPAM — carte Vitale non requise';
         document.getElementById('docVitaleStatus').style.color = 'var(--or)';
       } else {
         label.textContent = '*';
         label.style.color = '#e53e3e';
         card.style.opacity = '1';
-        btn.disabled = false;
+        if (btnI) btnI.disabled = false;
+        if (btnP) btnP.disabled = false;
         document.getElementById('docVitaleStatus').textContent = '';
       }
     }
@@ -2328,23 +2331,26 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <!-- CNI — obligatoire -->
               <div id="docCNICard" style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
-                <input type="file" id="docCNI" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'cni');marquerDoc('CNI')">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:13px;font-weight:700;">🪪 Carte d'identité <span style="color:#e53e3e;font-size:11px;">*</span></span>
-                  <button type="button" onclick="document.getElementById('docCNI').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                <input type="file" id="docCNI"        accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="lireDocumentOCR(this,'cni');marquerDoc('CNI')">
+                <input type="file" id="docCNICamera"  accept="image/*" capture="environment"       style="display:none;" onchange="lireDocumentOCR(this,'cni');marquerDoc('CNI')">
+                <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🪪 Carte d'identité <span style="color:#e53e3e;font-size:11px;">*</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" onclick="document.getElementById('docCNI').click()"       class="btn-doc-import">📁 Importer</button>
+                  <button type="button" onclick="document.getElementById('docCNICamera').click()" class="btn-doc-photo">📷 Photographier</button>
                 </div>
                 <div id="docCNIStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
 
               <!-- Carte Vitale — obligatoire sauf affiliation -->
               <div id="docVitaleCard" style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
-                <input type="file" id="docVitale" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'vitale');marquerDoc('Vitale')">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:13px;font-weight:700;">💳 Carte Vitale <span id="vitaleOblLabel" style="color:#e53e3e;font-size:11px;">*</span></span>
-                  <button type="button" id="docVitaleBtn" onclick="document.getElementById('docVitale').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                <input type="file" id="docVitale"       accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="lireDocumentOCR(this,'vitale');marquerDoc('Vitale')">
+                <input type="file" id="docVitaleCamera" accept="image/*" capture="environment"       style="display:none;" onchange="lireDocumentOCR(this,'vitale');marquerDoc('Vitale')">
+                <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💳 Carte Vitale <span id="vitaleOblLabel" style="color:#e53e3e;font-size:11px;">*</span></div>
+                <div style="display:flex;gap:6px;" id="docVitaleBtns">
+                  <button type="button" id="docVitaleBtnImport" onclick="document.getElementById('docVitale').click()"       class="btn-doc-import">📁 Importer</button>
+                  <button type="button" id="docVitaleBtnPhoto"  onclick="document.getElementById('docVitaleCamera').click()" class="btn-doc-photo">📷 Photographier</button>
                 </div>
                 <div id="docVitaleStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
-                <!-- Case affiliation -->
                 <label style="display:flex;align-items:center;gap:7px;margin-top:8px;cursor:pointer;font-size:12px;color:var(--gris-doux);padding:6px 8px;background:#fffbea;border-radius:6px;border:1px solid #f6e05e;">
                   <input type="checkbox" id="demandeAffiliation" onchange="toggleAffiliation(this.checked)">
                   <span>Demande d'affiliation CPAM <span style="font-style:italic;">(agent étranger — pas de N° SS)</span></span>
@@ -2353,30 +2359,36 @@
 
               <!-- RIB — obligatoire -->
               <div id="docRIBCard" style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
-                <input type="file" id="docRIB" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'rib');marquerDoc('RIB')">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:13px;font-weight:700;">🏦 RIB <span style="color:#e53e3e;font-size:11px;">*</span></span>
-                  <button type="button" onclick="document.getElementById('docRIB').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                <input type="file" id="docRIB"       accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="lireDocumentOCR(this,'rib');marquerDoc('RIB')">
+                <input type="file" id="docRIBCamera" accept="image/*" capture="environment"       style="display:none;" onchange="lireDocumentOCR(this,'rib');marquerDoc('RIB')">
+                <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🏦 RIB <span style="color:#e53e3e;font-size:11px;">*</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" onclick="document.getElementById('docRIB').click()"       class="btn-doc-import">📁 Importer</button>
+                  <button type="button" onclick="document.getElementById('docRIBCamera').click()" class="btn-doc-photo">📷 Photographier</button>
                 </div>
                 <div id="docRIBStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
 
               <!-- Permis — optionnel -->
               <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);">
-                <input type="file" id="docPermis" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'permis')">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:13px;font-weight:700;">🚗 Permis de conduire <span style="color:var(--gris-doux);font-size:11px;font-style:italic;">optionnel</span></span>
-                  <button type="button" onclick="document.getElementById('docPermis').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                <input type="file" id="docPermis"       accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="lireDocumentOCR(this,'permis')">
+                <input type="file" id="docPermisCamera" accept="image/*" capture="environment"       style="display:none;" onchange="lireDocumentOCR(this,'permis')">
+                <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🚗 Permis de conduire <span style="color:var(--gris-doux);font-size:11px;font-style:italic;">optionnel</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" onclick="document.getElementById('docPermis').click()"       class="btn-doc-import">📁 Importer</button>
+                  <button type="button" onclick="document.getElementById('docPermisCamera').click()" class="btn-doc-photo">📷 Photographier</button>
                 </div>
                 <div id="docPermisStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
 
               <!-- Domicile — pleine largeur, optionnel -->
               <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:12px;background:var(--blanc);grid-column:1/-1;">
-                <input type="file" id="docDomicile" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'domicile')">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:13px;font-weight:700;">📄 Justificatif de domicile <span style="color:var(--gris-doux);font-size:11px;font-style:italic;">optionnel</span></span>
-                  <button type="button" onclick="document.getElementById('docDomicile').click()" style="padding:5px 12px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;">+ Ajouter</button>
+                <input type="file" id="docDomicile"       accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="lireDocumentOCR(this,'domicile')">
+                <input type="file" id="docDomicileCamera" accept="image/*" capture="environment"       style="display:none;" onchange="lireDocumentOCR(this,'domicile')">
+                <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📄 Justificatif de domicile <span style="color:var(--gris-doux);font-size:11px;font-style:italic;">optionnel</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" onclick="document.getElementById('docDomicile').click()"       class="btn-doc-import">📁 Importer</button>
+                  <button type="button" onclick="document.getElementById('docDomicileCamera').click()" class="btn-doc-photo">📷 Photographier</button>
                 </div>
                 <div id="docDomicileStatus" style="font-size:11px;color:var(--gris-doux);margin-top:6px;min-height:16px;"></div>
               </div>
@@ -2491,6 +2503,11 @@
     .ag-step.done { background:#e6f4ec;color:var(--teal);border-color:var(--teal); }
     .ag-step-line { flex:1;height:2px;background:var(--bordure);margin:0 4px; }
     .ag-step-line.done { background:var(--teal); }
+    .btn-doc-import { flex:1;padding:6px 8px;border:1.5px solid var(--bordure);border-radius:6px;background:#fff;color:var(--gris-texte);font-size:11px;font-weight:600;cursor:pointer;font-family:Arial,sans-serif; }
+    .btn-doc-import:hover { background:var(--gris-fond); }
+    .btn-doc-photo { flex:1;padding:6px 8px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif; }
+    .btn-doc-photo:hover { background:var(--teal-light); }
+    .btn-doc-photo:disabled, .btn-doc-import:disabled { opacity:0.4;cursor:not-allowed; }
   </style>
 
   <script>
