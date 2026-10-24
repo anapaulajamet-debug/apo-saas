@@ -198,6 +198,46 @@
     </div>
   </div>
 
+  <!-- ══ MODAL DOCUMENT ══ -->
+  <div id="modalDoc" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:32px;width:min(480px,90vw);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.35);">
+      <h3 style="margin:0 0 20px;font-size:18px;">📎 Ajouter un document</h3>
+      <div style="display:grid;gap:14px;">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:5px;">Nom du document</label>
+          <input id="docNom" placeholder="ex: Devis signé octobre 2026" style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;background:#fafafa;color:#1a1a1a;">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:5px;">Type</label>
+          <select id="docType" style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;background:#fafafa;color:#1a1a1a;">
+            <option value="devis">📊 Devis signé</option>
+            <option value="contrat">📑 Contrat</option>
+            <option value="email">📧 Email / validation</option>
+            <option value="cahier_charges">📋 Cahier des charges</option>
+            <option value="autre">📄 Autre</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:5px;">Statut</label>
+          <select id="docStatut" style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;background:#fafafa;color:#1a1a1a;">
+            <option value="signe">✅ Signé</option>
+            <option value="en_attente_signature">⏳ En attente signature</option>
+            <option value="brouillon">📝 Brouillon</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:5px;">Fichier (PDF, image…)</label>
+          <input id="docFichier" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px dashed #e0e0e0;border-radius:8px;font-size:13px;background:#fafafa;">
+        </div>
+        <div id="docProgress" style="display:none;font-size:13px;color:#2d6a4f;font-weight:600;">⏳ Upload en cours…</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:24px;border-top:1px solid #eee;padding-top:18px;">
+        <button class="btn-action" onclick="document.getElementById('modalDoc').style.display='none'">Annuler</button>
+        <button class="btn-action primary" id="btnSauveDoc">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -442,7 +482,10 @@
         <!-- ══ DOCUMENTS ══ -->
         <div class="tab-panel" id="tab-documents">
           <div class="card">
-            <div class="card-title">DEVIS &amp; DOCUMENTS SIGNÉS</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div class="card-title" style="margin-bottom:0;">DEVIS &amp; DOCUMENTS SIGNÉS</div>
+              <button class="btn-action primary" onclick="ouvrirModalDoc()">+ Ajouter un document</button>
+            </div>
             <div id="documentsContainer"><div class="empty"><div class="empty-icon">📁</div><p>Chargement…</p></div></div>
           </div>
         </div>
@@ -896,6 +939,58 @@
 
       cont.innerHTML = html || '<div class="empty"><div class="empty-icon">📁</div><p>Aucun document trouvé</p></div>';
     }
+
+    // ── Upload document ──
+    function ouvrirModalDoc(){
+      document.getElementById('docNom').value = '';
+      document.getElementById('docFichier').value = '';
+      document.getElementById('docProgress').style.display = 'none';
+      document.getElementById('modalDoc').style.display = 'flex';
+    }
+
+    document.getElementById('btnSauveDoc').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSauveDoc');
+      const nom = document.getElementById('docNom').value.trim();
+      const type = document.getElementById('docType').value;
+      const statut = document.getElementById('docStatut').value;
+      const fichier = document.getElementById('docFichier').files[0];
+
+      if (!nom) { alert('Veuillez saisir un nom.'); return; }
+
+      btn.disabled = true;
+      let url = null;
+
+      if (fichier) {
+        document.getElementById('docProgress').style.display = 'block';
+        const ext = fichier.name.split('.').pop();
+        const path = `${siteId}/${Date.now()}.${ext}`;
+        const { data: up, error: upErr } = await sb.storage.from('documents').upload(path, fichier, { upsert: true });
+        if (upErr) {
+          alert('Erreur upload : ' + upErr.message);
+          btn.disabled = false;
+          document.getElementById('docProgress').style.display = 'none';
+          return;
+        }
+        const { data: pub } = sb.storage.from('documents').getPublicUrl(path);
+        url = pub.publicUrl;
+        document.getElementById('docProgress').style.display = 'none';
+      }
+
+      const { error } = await sb.from('site_documents').insert({
+        site_id: siteId,
+        nom,
+        type,
+        statut,
+        url,
+        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001'
+      });
+
+      btn.disabled = false;
+      if (error) { alert('Erreur : ' + error.message); return; }
+      document.getElementById('modalDoc').style.display = 'none';
+      _loadedDocuments = false;
+      chargerDocuments();
+    });
 
     function dessinerGraphe(controles){
       const canvas = document.getElementById('chartControles');
