@@ -508,37 +508,31 @@
 
       <!-- KPI -->
       <div class="kpi-grid">
-
         <div class="kpi-card ok">
           <div class="kpi-label">Sites actifs</div>
-          <div class="kpi-valeur">12</div>
-          <div class="kpi-sous">sur 14 contrats</div>
+          <div class="kpi-valeur" id="kpiSitesActifs">…</div>
+          <div class="kpi-sous" id="kpiSitesSous">…</div>
         </div>
-
         <div class="kpi-card">
-          <div class="kpi-label">Agents</div>
-          <div class="kpi-valeur">38</div>
-          <div class="kpi-sous">planifiés ce mois</div>
+          <div class="kpi-label">Collaborateurs</div>
+          <div class="kpi-valeur" id="kpiAgents">…</div>
+          <div class="kpi-sous" id="kpiAgentsSous">actifs</div>
         </div>
-
-        <div class="kpi-card alerte">
+        <div class="kpi-card alerte" id="kpiMargeCard">
           <div class="kpi-label">Alertes marge</div>
-          <div class="kpi-valeur rouge">3</div>
+          <div class="kpi-valeur rouge" id="kpiAlertesMarge">…</div>
           <div class="kpi-badge badge-rouge">Marge &lt; 30 %</div>
         </div>
-
         <div class="kpi-card warning">
           <div class="kpi-label">Audits à faire</div>
-          <div class="kpi-valeur orange">5</div>
+          <div class="kpi-valeur orange" id="kpiAudits">…</div>
           <div class="kpi-badge badge-orange">Ce mois</div>
         </div>
-
         <div class="kpi-card ok">
           <div class="kpi-label">CA mensuel</div>
-          <div class="kpi-valeur">48 200 €</div>
-          <div class="kpi-badge badge-vert">+4 % vs N-1</div>
+          <div class="kpi-valeur" id="kpiCA">…</div>
+          <div class="kpi-sous" id="kpiCASous"></div>
         </div>
-
       </div>
 
       <!-- Grille basse -->
@@ -548,48 +542,14 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-titre">Sites — Suivi des marges</span>
-            <a class="panel-lien" href="#">Voir tous →</a>
+            <a class="panel-lien" href="/clients">Voir tous →</a>
           </div>
           <table>
             <thead>
-              <tr>
-                <th>Site</th>
-                <th>Client</th>
-                <th>Marge</th>
-                <th>Statut</th>
-              </tr>
+              <tr><th>Site</th><th>Client</th><th>Marge</th><th>Statut</th></tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>Port de Fos</td>
-                <td>Grand Port Maritime</td>
-                <td class="marge-ok">38 %</td>
-                <td><span class="kpi-badge badge-vert">OK</span></td>
-              </tr>
-              <tr>
-                <td>Zone Industrielle Est</td>
-                <td>TOTAL Raffinerie</td>
-                <td class="marge-alerte">24 %</td>
-                <td><span class="kpi-badge badge-rouge">Alerte</span></td>
-              </tr>
-              <tr>
-                <td>Résidence Les Pins</td>
-                <td>Bailleur Social OPH</td>
-                <td class="marge-warning">29 %</td>
-                <td><span class="kpi-badge badge-orange">Limite</span></td>
-              </tr>
-              <tr>
-                <td>Entrepôts Logistique</td>
-                <td>FM Logistic</td>
-                <td class="marge-alerte">21 %</td>
-                <td><span class="kpi-badge badge-rouge">Alerte</span></td>
-              </tr>
-              <tr>
-                <td>Centre Commercial</td>
-                <td>Klepierre</td>
-                <td class="marge-ok">42 %</td>
-                <td><span class="kpi-badge badge-vert">OK</span></td>
-              </tr>
+            <tbody id="tbodyMarges">
+              <tr><td colspan="4" style="color:#9ca3af;font-size:13px;">Chargement…</td></tr>
             </tbody>
           </table>
         </div>
@@ -598,57 +558,8 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-titre">Alertes &amp; notifications</span>
-            <a class="panel-lien" href="#">Tout voir →</a>
           </div>
-
-          <div class="alerte-item">
-            <div class="alerte-puce puce-rouge"></div>
-            <div>
-              <div class="alerte-texte">Marge critique — Entrepôts Logistique (21 %)</div>
-              <div class="alerte-meta">Action requise · Aujourd'hui</div>
-            </div>
-          </div>
-
-          <div class="alerte-item">
-            <div class="alerte-puce puce-rouge"></div>
-            <div>
-              <div class="alerte-texte">Marge critique — Zone Industrielle Est (24 %)</div>
-              <div class="alerte-meta">Action requise · Aujourd'hui</div>
-            </div>
-          </div>
-
-          <div class="alerte-item">
-            <div class="alerte-puce puce-orange"></div>
-            <div>
-              <div class="alerte-texte">Audit qualité à planifier — Port de Fos</div>
-              <div class="alerte-meta">Échéance dans 5 jours</div>
-            </div>
-          </div>
-
-          <div class="alerte-item">
-            <div class="alerte-puce puce-orange"></div>
-            <div>
-              <div class="alerte-texte">Contrat à renouveler — Résidence Les Pins</div>
-              <div class="alerte-meta">Expiration le 31/07/2026</div>
-            </div>
-          </div>
-
-          <div class="alerte-item">
-            <div class="alerte-puce puce-vert"></div>
-            <div>
-              <div class="alerte-texte">Facturation juin envoyée — Grand Port Maritime</div>
-              <div class="alerte-meta">Signé via YouSign · 20/06/2026</div>
-            </div>
-          </div>
-
-          <div class="alerte-item">
-            <div class="alerte-puce puce-orange"></div>
-            <div>
-              <div class="alerte-texte">3 agents sans pointage hier soir</div>
-              <div class="alerte-meta">À vérifier · Planning du 22/06</div>
-            </div>
-          </div>
-
+          <div id="alertesContainer" style="color:#9ca3af;font-size:13px;">Chargement…</div>
         </div>
 
       </div>
@@ -702,6 +613,133 @@
       await supabaseClient.auth.signOut();
       window.location.href = '/';
     });
+
+    // ── Chargement données réelles ──
+    async function chargerDashboard() {
+      const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
+      const euro = v => Number(v||0).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
+
+      // Sites
+      const { data: sites } = await supabaseClient
+        .from('sites')
+        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut')
+        .eq('tenant_id', TENANT);
+
+      const sitesActifs = (sites||[]).filter(s => s.statut_contrat !== 'resilie' && s.statut_contrat !== 'inactif');
+      document.getElementById('kpiSitesActifs').textContent = sitesActifs.length;
+      document.getElementById('kpiSitesSous').textContent = `sur ${(sites||[]).length} contrats`;
+
+      // CA mensuel total
+      const caTotal = sitesActifs.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
+      document.getElementById('kpiCA').textContent = euro(caTotal);
+
+      // Marges
+      const sitesAvecMarge = sitesActifs
+        .filter(s => s.ca_mensuel > 0)
+        .map(s => {
+          const ca = parseFloat(s.ca_mensuel)||0;
+          const mo = parseFloat(s.cout_main_oeuvre)||0;
+          const marge = ca > 0 ? Math.round((ca - mo) / ca * 100) : null;
+          return { ...s, marge };
+        })
+        .sort((a, b) => (a.marge??999) - (b.marge??999));
+
+      const alertesMarge = sitesAvecMarge.filter(s => s.marge !== null && s.marge < 30);
+      document.getElementById('kpiAlertesMarge').textContent = alertesMarge.length;
+      if (alertesMarge.length === 0) document.getElementById('kpiMargeCard').className = 'kpi-card ok';
+
+      // Tableau des 5 premières marges (triées par marge croissante)
+      const top5 = sitesAvecMarge.slice(0, 5);
+      document.getElementById('tbodyMarges').innerHTML = top5.length
+        ? top5.map(s => {
+            const m = s.marge;
+            const cls = m === null ? '' : m < 25 ? 'marge-alerte' : m < 33 ? 'marge-warning' : 'marge-ok';
+            const badge = m === null ? '—'
+              : m < 25 ? '<span class="kpi-badge badge-rouge">Alerte</span>'
+              : m < 33 ? '<span class="kpi-badge badge-orange">Limite</span>'
+              : '<span class="kpi-badge badge-vert">OK</span>';
+            return `<tr>
+              <td><a href="/fiche-client?id=${s.id}" style="color:inherit;text-decoration:none;font-weight:600;">${s.nom||'—'}</a></td>
+              <td style="color:#6B7280;">${s.secteur||'—'}</td>
+              <td class="${cls}">${m !== null ? m + ' %' : '—'}</td>
+              <td>${badge}</td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="4" style="color:#9ca3af;">Aucun site avec données de marge</td></tr>';
+
+      // Collaborateurs
+      const { count: nbCollab } = await supabaseClient
+        .from('collaborateurs')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', TENANT)
+        .eq('statut', 'actif');
+      document.getElementById('kpiAgents').textContent = nbCollab ?? '—';
+
+      // Audits à faire ce mois
+      const debut = new Date(); debut.setDate(1);
+      const fin = new Date(debut.getFullYear(), debut.getMonth()+1, 0);
+      const { count: nbAudits } = await supabaseClient
+        .from('controles')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', TENANT)
+        .eq('statut', 'planifie')
+        .gte('date', debut.toISOString().slice(0,10))
+        .lte('date', fin.toISOString().slice(0,10));
+      document.getElementById('kpiAudits').textContent = nbAudits ?? 0;
+
+      // Alertes panel
+      const alertes = [];
+
+      // Marges critiques
+      alertesMarge.slice(0,3).forEach(s => {
+        alertes.push({ couleur: s.marge < 25 ? 'rouge' : 'orange',
+          texte: `Marge ${s.marge < 25 ? 'critique' : 'limite'} — ${s.nom} (${s.marge} %)`,
+          meta: 'Action requise · Aujourd\'hui' });
+      });
+
+      // Contrats expirant dans 60 jours
+      const dans60 = new Date(); dans60.setDate(dans60.getDate()+60);
+      (sites||[]).filter(s => s.date_debut).forEach(s => {
+        // période d'essai : 1 mois après date_debut
+        const finEssai = new Date(s.date_debut);
+        finEssai.setMonth(finEssai.getMonth()+1);
+        if (finEssai > new Date() && finEssai < dans60) {
+          alertes.push({ couleur: 'orange',
+            texte: `Fin période d'essai — ${s.nom}`,
+            meta: `Le ${finEssai.toLocaleDateString('fr-FR')}` });
+        }
+      });
+
+      // Audits planifiés dans les 7 jours
+      const dans7 = new Date(); dans7.setDate(dans7.getDate()+7);
+      const { data: auditsProches } = await supabaseClient
+        .from('controles')
+        .select('date,sites(nom)')
+        .eq('tenant_id', TENANT)
+        .eq('statut', 'planifie')
+        .gte('date', new Date().toISOString().slice(0,10))
+        .lte('date', dans7.toISOString().slice(0,10))
+        .limit(3);
+      (auditsProches||[]).forEach(a => {
+        alertes.push({ couleur: 'orange',
+          texte: `Audit à faire — ${a.sites?.nom||'Site'}`,
+          meta: `Planifié le ${new Date(a.date).toLocaleDateString('fr-FR')}` });
+      });
+
+      const puceClass = { rouge:'puce-rouge', orange:'puce-orange', vert:'puce-vert' };
+      document.getElementById('alertesContainer').innerHTML = alertes.length
+        ? alertes.map(a => `
+          <div class="alerte-item">
+            <div class="alerte-puce ${puceClass[a.couleur]||'puce-orange'}"></div>
+            <div>
+              <div class="alerte-texte">${a.texte}</div>
+              <div class="alerte-meta">${a.meta}</div>
+            </div>
+          </div>`).join('')
+        : '<div style="color:#9ca3af;font-size:13px;padding:12px 0;">Aucune alerte active</div>';
+    }
+
+    chargerDashboard();
 
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('open');
