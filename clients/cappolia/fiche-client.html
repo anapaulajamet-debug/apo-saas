@@ -322,7 +322,10 @@
       <!-- Pied de page actions -->
       <div style="padding:24px 28px;border-top:2px solid #e8e8e8;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8f9fa;border-radius:0 0 14px 14px;">
         <button class="btn-action" onclick="document.getElementById('modalGenContrat').style.display='none'">Annuler</button>
-        <button class="btn-action primary" style="font-size:15px;padding:13px 28px;" id="btnValiderContrat" onclick="validerContrat()">✅ Valider le contrat</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-action" style="font-size:14px;padding:11px 20px;" onclick="telechargerContratPDF()">⬇️ Télécharger PDF</button>
+          <button class="btn-action primary" style="font-size:15px;padding:13px 28px;" id="btnValiderContrat" onclick="validerContrat()">✅ Valider le contrat</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1821,19 +1824,47 @@
       }, 1800);
     }
 
-    function imprimerContrat() {
-      const corps = document.getElementById('contratCorps').innerHTML;
-      const w = window.open('', '_blank');
-      w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
-        <title>Contrat CAPPOLIA</title>
-        <style>
-          body { font-family: Georgia, serif; font-size: 13px; line-height: 1.8; color: #1a1a1a; padding: 30px 50px; max-width: 800px; margin: 0 auto; }
-          [contenteditable] { border-bottom: none !important; color: inherit !important; }
-          @media print { body { padding: 0; } }
-        </style></head><body>${corps}</body></html>`);
-      w.document.close();
-      w.focus();
-      setTimeout(() => w.print(), 500);
+    async function telechargerContratPDF() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '⏳ Génération…';
+
+      // Charger html2pdf si pas encore chargé
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      // Construire un conteneur propre sans les bordures éditables
+      const corps = document.getElementById('contratCorps').cloneNode(true);
+      corps.querySelectorAll('[contenteditable]').forEach(el => {
+        el.removeAttribute('contenteditable');
+        el.style.borderBottom = 'none';
+        el.style.color = 'inherit';
+      });
+
+      const container = document.createElement('div');
+      container.style.cssText = 'font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#1a1a1a;padding:30px 50px;max-width:800px;';
+      container.appendChild(corps);
+
+      // Nom du fichier
+      const numContrat = document.querySelector('#contratCorps [data-champ="numContrat"]')?.textContent?.trim() || 'contrat';
+      const nomFichier = `Contrat_Cappolia_${numContrat}.pdf`;
+
+      await html2pdf().set({
+        margin: [15, 15, 15, 15],
+        filename: nomFichier,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(container).save();
+
+      btn.disabled = false;
+      btn.textContent = '⬇️ Télécharger PDF';
     }
 
     function ouvrirModalDoc(){
