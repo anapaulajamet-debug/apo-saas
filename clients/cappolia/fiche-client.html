@@ -596,8 +596,12 @@
       document.getElementById('pageLoader').style.display='none';
       if(error||!site){ alert('Fiche introuvable — id: '+siteId+' err: '+(error?.message||'?')); return; }
 
-      // Responsable de secteur : colonne texte directe
-      site._am = site.responsable_secteur || '—';
+      // Responsable de secteur : auto-remplir avec Olivier JAMET si vide
+      if (!site.responsable_secteur) {
+        await sb.from('sites').update({ responsable_secteur: 'Olivier JAMET' }).eq('id', siteId);
+        site.responsable_secteur = 'Olivier JAMET';
+      }
+      site._am = site.responsable_secteur;
 
       const pc = document.getElementById('pageContent');
       pc.style.display='flex';
@@ -660,7 +664,38 @@
       document.getElementById('iFrequence').textContent= site.frequence||site.frequence_passage||'—';
       document.getElementById('iNotes').textContent    = site.notes||site.commentaire||'—';
 
-      // Charger équipe directement (onglet par défaut = fiche, mais équipe se charge à 1er clic)
+      // Mise en rouge des champs vides critiques
+      const champsVides = [];
+      function marquerVide(elId, valeur, label) {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const vide = !valeur || valeur === '—' || valeur === 'Non renseigné';
+        if (vide) {
+          el.style.color = '#dc2626';
+          el.style.fontWeight = '700';
+          el.textContent = '⚠ À renseigner';
+          champsVides.push(label);
+        }
+      }
+      marquerVide('cContact', contact, 'Nom du contact');
+      if (!email) {
+        document.getElementById('cEmail').innerHTML = '<span style="color:#dc2626;font-weight:700;">⚠ À renseigner</span>';
+        champsVides.push('Email client');
+      }
+      if (tel === '—') {
+        document.getElementById('cTel').innerHTML = '<span style="color:#dc2626;font-weight:700;">⚠ À renseigner</span>';
+        champsVides.push('Téléphone');
+      }
+      marquerVide('iSurface', site.surface_m2, 'Surface totale');
+      marquerVide('iFrequence', site.frequence||site.frequence_passage, 'Fréquence de passage');
+
+      // Badge alerte en haut si données manquantes
+      if (champsVides.length > 0) {
+        const alerteBar = document.createElement('div');
+        alerteBar.style.cssText = 'background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:10px 16px;margin:0 20px 12px;font-size:13px;color:#dc2626;display:flex;align-items:center;gap:8px;';
+        alerteBar.innerHTML = `<span style="font-size:16px;">⚠️</span><span><strong>Données manquantes :</strong> ${champsVides.join(' · ')}</span>`;
+        document.getElementById('tab-fiche').prepend(alerteBar);
+      }
     }
 
     // ── Équipe ──

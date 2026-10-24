@@ -622,7 +622,7 @@
       // Sites
       const { data: sites } = await supabaseClient
         .from('sites')
-        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut')
+        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,nom_contact,telephone,tel,email')
         .eq('tenant_id', TENANT);
 
       const sitesActifs = (sites||[]).filter(s => s.statut_contrat !== 'resilie' && s.statut_contrat !== 'inactif');
@@ -708,6 +708,20 @@
           alertes.push({ couleur: 'orange',
             texte: `Fin période d'essai — ${s.nom}`,
             meta: `Le ${finEssai.toLocaleDateString('fr-FR')}` });
+        }
+      });
+
+      // Données manquantes sur les sites
+      sitesActifs.forEach(s => {
+        const manquants = [];
+        if (!s.contact_nom && !s.nom_contact) manquants.push('contact');
+        if (!s.telephone && !s.tel) manquants.push('téléphone');
+        if (!s.email) manquants.push('email');
+        if (!s.ca_mensuel) manquants.push('CA mensuel');
+        if (manquants.length > 0) {
+          alertes.push({ couleur: 'orange',
+            texte: `Données manquantes — ${s.nom}`,
+            meta: manquants.join(', ') + ' à renseigner' });
         }
       });
 
