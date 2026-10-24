@@ -464,6 +464,7 @@
               <div class="info-item"><label>Surface totale (m²)</label><p id="iSurface">—</p></div>
               <div class="info-item"><label>Secteur / Type</label><p id="iSecteur">—</p></div>
               <div class="info-item"><label>Fréquence de passage</label><p id="iFrequence">—</p></div>
+              <div class="info-item"><label>SIREN / RCS client</label><p id="iSiren">—</p></div>
               <div class="info-item full"><label>Notes</label><p id="iNotes">—</p></div>
             </div>
           </div>
@@ -1183,6 +1184,7 @@
       document.getElementById('iSurface').textContent  = site.surface_m2 ? `${site.surface_m2} m²` : '—';
       document.getElementById('iSecteur').textContent  = secteur;
       document.getElementById('iFrequence').textContent= site.frequence||site.frequence_passage||'—';
+      document.getElementById('iSiren').textContent    = site.siren || '—';
       document.getElementById('iNotes').textContent    = site.notes||site.commentaire||'—';
 
       // Mise en rouge des champs vides critiques
@@ -1576,6 +1578,18 @@
           }
         }
       } catch(e) { console.warn('Chiffrage non récupéré', e); }
+      // ── Vérification des champs obligatoires ──
+      const manquants = [];
+      if (!site.nom && !site.raison_sociale)           manquants.push('Nom du client');
+      if (!site.adresse)                               manquants.push('Adresse du site');
+      if (!site.siren && !site.siret)                  manquants.push('SIREN / RCS client');
+      if (!site.ca_mensuel)                            manquants.push('Prix mensuel HT');
+      if (!tachesChiffrage)                            manquants.push('Détail des prestations (chiffrage)');
+      if (manquants.length > 0) {
+        alert(`Impossible de générer le contrat.\n\nÉléments manquants :\n• ${manquants.join('\n• ')}\n\nVeuillez compléter la fiche client puis réessayer.`);
+        return;
+      }
+
       const freq      = site.frequence || site.frequence_passage || '';
       const duree     = site.duree_passage || '';
       const jours     = site.jours_intervention || '';
