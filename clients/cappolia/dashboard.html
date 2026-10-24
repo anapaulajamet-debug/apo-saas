@@ -398,6 +398,67 @@
     .puce-orange { background: var(--or); }
     .puce-vert   { background: var(--vert); }
 
+    /* ── Projection CA ── */
+    .projection-bande {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .proj-col {
+      background: var(--blanc);
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      padding: 16px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .proj-col::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--teal-light);
+    }
+    .proj-col.actuel::before { background: var(--teal); }
+    .proj-mois {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gris-doux);
+      margin-bottom: 10px;
+    }
+    .proj-ca {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gris-texte);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .proj-marge {
+      font-size: 13px;
+      color: var(--vert);
+      font-weight: 600;
+    }
+    .proj-sites {
+      font-size: 11px;
+      color: var(--gris-doux);
+      margin-top: 4px;
+    }
+    .proj-nouveau {
+      font-size: 11px;
+      color: var(--teal);
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    @media (max-width: 900px) {
+      .projection-bande { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .projection-bande { grid-template-columns: 1fr 1fr; }
+    }
+
     .alerte-texte {
       font-size: 13px;
       color: var(--gris-texte);
@@ -535,6 +596,14 @@
         </div>
       </div>
 
+      <!-- Projection CA & Marge sur 4 mois -->
+      <div class="projection-bande" id="projectionBande">
+        <div class="proj-col actuel"><div class="proj-mois">Chargement…</div><div class="proj-ca">—</div></div>
+        <div class="proj-col"><div class="proj-mois">Chargement…</div><div class="proj-ca">—</div></div>
+        <div class="proj-col"><div class="proj-mois">Chargement…</div><div class="proj-ca">—</div></div>
+        <div class="proj-col"><div class="proj-mois">Chargement…</div><div class="proj-ca">—</div></div>
+      </div>
+
       <!-- Grille basse -->
       <div class="bottom-grid">
 
@@ -625,13 +694,43 @@
         .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email')
         .eq('tenant_id', TENANT);
 
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0,10);
       const sitesActifs = (sites||[]).filter(s => s.statut_contrat !== 'resilie' && s.statut_contrat !== 'inactif');
       document.getElementById('kpiSitesActifs').textContent = sitesActifs.length;
       document.getElementById('kpiSitesSous').textContent = `sur ${(sites||[]).length} contrats`;
 
-      // CA mensuel total
-      const caTotal = sitesActifs.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
+      // CA mensuel = seulement les sites dont le contrat a démarré
+      const sitesDemar = sitesActifs.filter(s => s.date_debut && s.date_debut <= todayStr);
+      const caTotal = sitesDemar.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
       document.getElementById('kpiCA').textContent = euro(caTotal);
+      document.getElementById('kpiCASous').textContent = `${sitesDemar.length} contrat${sitesDemar.length>1?'s':''} démarré${sitesDemar.length>1?'s':''}`;
+
+      // ── Projection sur 4 mois ──
+      const nomMois = ['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
+      const cols = document.querySelectorAll('#projectionBande .proj-col');
+      for (let i = 0; i < 4; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const finMois = new Date(d.getFullYear(), d.getMonth()+1, 0);
+        const finMoisStr = finMois.toISOString().slice(0,10);
+        // Sites actifs dont le contrat a démarré avant la fin de ce mois
+        const sitesM = sitesActifs.filter(s => s.date_debut && s.date_debut <= finMoisStr);
+        const caM = sitesM.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
+        const moM = sitesM.reduce((s, x) => s + (parseFloat(x.cout_main_oeuvre)||0), 0);
+        const margeM = caM > 0 ? Math.round((caM - moM) / caM * 100) : 0;
+        const margeEuro = caM - moM;
+        // Nouveaux contrats qui démarrent ce mois-ci
+        const debutMoisStr = d.toISOString().slice(0,10);
+        const nouveaux = sitesActifs.filter(s => s.date_debut && s.date_debut >= debutMoisStr && s.date_debut <= finMoisStr);
+        const label = i === 0 ? 'Mois en cours' : `${nomMois[d.getMonth()]} ${d.getFullYear()}`;
+        cols[i].innerHTML = `
+          <div class="proj-mois">${label}</div>
+          <div class="proj-ca">${euro(caM)}</div>
+          <div class="proj-marge">Marge : ${euro(margeEuro)} (${margeM} %)</div>
+          <div class="proj-sites">${sitesM.length} site${sitesM.length>1?'s':''} actif${sitesM.length>1?'s':''}</div>
+          ${nouveaux.length ? `<div class="proj-nouveau">+ ${nouveaux.length} nouveau${nouveaux.length>1?'x':''} ce mois</div>` : ''}
+        `;
+      }
 
       // Marges
       const sitesAvecMarge = sitesActifs
