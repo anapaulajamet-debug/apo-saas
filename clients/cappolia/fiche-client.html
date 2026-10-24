@@ -1227,7 +1227,7 @@
 
       // Agents affectés à ce site (avec photo)
       const { data:agents } = await sb.from('agents')
-        .select('id, nom, prenom, telephone, email, photo_url, volume_horaire, jours_travailles, heures_par_jour')
+        .select('id, nom, prenom, telephone, email, photo_url, volume_horaire, jours_travailles, heures_par_jour, compte_cree, contrat_signe, demande_affiliation')
         .eq('site_principal_id', siteId)
         .order('nom');
 
@@ -1317,14 +1317,28 @@
           horaireHtml = `<div class="agent-horaire">📋 ${esc(String(a.volume_horaire))} h/semaine</div>`;
         }
 
+        // Bouton contrat / compte
+        let btnCompte = '';
+        if (a.compte_cree) {
+          btnCompte = `<span style="font-size:11px;padding:3px 8px;border-radius:5px;background:#e6f4ec;color:var(--teal);font-weight:700;">✅ Compte actif</span>`;
+        } else {
+          btnCompte = `<button onclick="ouvrirCreationCompte('${esc(a.id)}','${esc(a.prenom||'')}','${esc(a.nom||'')}','${esc(a.email||'')}')"
+            style="font-size:11px;padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-weight:700;cursor:pointer;">
+            📋 Contrat signé → Créer le compte
+          </button>`;
+        }
+
         return `<div class="agent-card">
           ${avatarHtml}
-          <div class="agent-info">
-            <div class="agent-nom">${esc(a.prenom||'')} ${esc(a.nom||'')}
+          <div class="agent-info" style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="agent-nom">${esc(a.prenom||'')} ${esc(a.nom||'')}</span>
               <span class="agent-tag">ASP</span>
+              ${a.demande_affiliation ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:#fffbea;color:#b7791f;border:1px solid #f6e05e;">⚡ Affiliation CPAM</span>` : ''}
             </div>
             ${a.telephone ? `<div class="agent-tel">📞 <a href="tel:${esc(a.telephone.replace(/\s/g,''))}">${esc(a.telephone)}</a></div>` : ''}
             ${horaireHtml}
+            <div style="margin-top:8px;">${btnCompte}</div>
           </div>
         </div>`;
       }).join('');
@@ -2165,24 +2179,91 @@
 
       if(!nom||!prenom){ alert('Nom et prénom obligatoires'); return; }
 
+      const affiliation = document.getElementById('demandeAffiliation')?.checked || false;
+
       const { data, error } = await sb.from('agents').insert({
-        tenant_id:         TENANT,
+        tenant_id:           TENANT,
         nom, prenom,
-        date_naissance:    ddn || null,
-        telephone:         tel || null,
-        email:             email || null,
-        site_principal_id: siteId,
-        jours_travailles:  jours,
-        heures_par_jour:   hj || null,
-        num_ss:            numSS,
+        date_naissance:      ddn || null,
+        telephone:           tel || null,
+        email:               email || null,
+        site_principal_id:   siteId,
+        jours_travailles:    jours,
+        heures_par_jour:     hj || null,
+        num_ss:              numSS,
         iban,
         bic,
+        demande_affiliation: affiliation,
       }).select().single();
 
       if(error){ alert('Erreur création : ' + error.message); return; }
       fermerModalAgent();
       chargerEquipe();
       toast(`✅ ${prenom} ${nom} créé(e) et affecté(e) au site`);
+    }
+
+    // ── Création compte agent ──────────────────────────────────────────────
+    async function ouvrirCreationCompte(agentId, prenom, nom, email) {
+      if (!email) {
+        alert(`${prenom} ${nom} n'a pas d'adresse email.\nAjoutez-la dans la fiche agent avant de créer le compte.`);
+        return;
+      }
+      if (!confirm(`Confirmer que le contrat de travail de ${prenom} ${nom} a bien été signé ?\n\nUn compte de connexion sera créé avec l'identifiant :\n${email}`)) return;
+
+      const modal = document.getElementById('modalCompteAgent');
+      const corps = document.getElementById('compteAgentCorps');
+      corps.innerHTML = '<div style="text-align:center;padding:30px;color:var(--gris-doux);">⏳ Création du compte en cours…</div>';
+      modal.style.display = 'flex';
+
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const resp = await fetch(
+          'https://zqehxwggzyepiftjrkxq.supabase.co/functions/v1/creer-compte-agent',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token || ''}`,
+            },
+            body: JSON.stringify({ agent_id: agentId }),
+          }
+        );
+        const result = await resp.json();
+
+        if (!resp.ok || result.error) {
+          corps.innerHTML = `<div style="padding:20px;color:#c53030;background:#fff5f5;border-radius:8px;">⚠️ ${result.error || 'Erreur inconnue'}</div>`;
+          return;
+        }
+
+        const msgWA = `Bonjour ${result.prenom},\n\nVotre compte Cappolia est créé ✅\n\n🔗 Application : https://apo-saas.vercel.app\n📧 Identifiant : ${result.email}\n🔑 Mot de passe : ${result.mot_de_passe}\n\nConnectez-vous et changez votre mot de passe dès la première connexion.\n\nÀ bientôt,\nCappolia Propreté`;
+
+        corps.innerHTML = `
+          <div style="background:#e6f4ec;border-radius:10px;padding:16px;margin-bottom:16px;text-align:center;">
+            <div style="font-size:24px;margin-bottom:6px;">✅</div>
+            <div style="font-weight:700;font-size:15px;color:var(--teal);">Compte créé pour ${esc(result.prenom)} ${esc(result.nom)}</div>
+          </div>
+          <div style="background:var(--gris-fond);border-radius:8px;padding:14px;font-size:13px;margin-bottom:14px;">
+            <div style="margin-bottom:6px;"><strong>Identifiant :</strong> <span style="font-family:monospace;">${esc(result.email)}</span></div>
+            <div><strong>Mot de passe :</strong> <span style="font-family:monospace;font-size:15px;letter-spacing:2px;">${esc(result.mot_de_passe)}</span></div>
+          </div>
+          <div style="background:#fffbea;border-radius:8px;padding:12px;font-size:12px;color:#744210;margin-bottom:14px;">
+            💡 Copiez le message ci-dessous et envoyez-le à l'agent par WhatsApp
+          </div>
+          <textarea id="msgWhatsApp" readonly style="width:100%;height:160px;padding:10px;border:1.5px solid var(--bordure);border-radius:8px;font-size:12px;line-height:1.6;resize:none;box-sizing:border-box;font-family:Arial,sans-serif;">${msgWA}</textarea>
+          <button onclick="copierMsgWA()" style="width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">
+            📋 Copier le message WhatsApp
+          </button>`;
+
+        chargerEquipe();
+      } catch(err) {
+        corps.innerHTML = `<div style="padding:20px;color:#c53030;">Erreur réseau : ${err.message}</div>`;
+      }
+    }
+
+    function copierMsgWA() {
+      const txt = document.getElementById('msgWhatsApp')?.value;
+      if (!txt) return;
+      navigator.clipboard.writeText(txt).then(() => toast('✅ Message copié — collez-le dans WhatsApp'));
     }
 
     // ── OCR documents agent ────────────────────────────────────────────────
@@ -2516,5 +2597,18 @@
       if(input.files[0]) el.textContent = '✓ ' + input.files[0].name.slice(0,20);
     }
   </script>
+
+  <!-- ═══ MODAL COMPTE AGENT ═══ -->
+  <div id="modalCompteAgent" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:var(--blanc);border-radius:14px;width:min(480px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--bordure);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:16px;color:var(--gris-texte);">🔐 Création du compte agent</h3>
+        <button onclick="document.getElementById('modalCompteAgent').style.display='none'"
+          style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--gris-doux);">✕</button>
+      </div>
+      <div id="compteAgentCorps" style="padding:20px 22px;"></div>
+    </div>
+  </div>
+
 </body>
 </html>
