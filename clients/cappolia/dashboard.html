@@ -705,46 +705,52 @@
     async function chargerDashboard() {
       const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
       const euro = v => Number(v||0).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
+      const fmtH = v => v > 0 ? Number(v).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' h' : '—';
 
-      // Sites
-      const { data: sites } = await supabaseClient
-        .from('sites')
-        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email')
-        .eq('tenant_id', TENANT);
+      // ── Sites ──
+      let sites = [];
+      try {
+        const { data, error } = await supabaseClient
+          .from('sites')
+          .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email')
+          .eq('tenant_id', TENANT);
+        if (!error) sites = data || [];
+      } catch(e) { console.error('sites', e); }
 
-      const today = new Date();
+      const today    = new Date();
       const todayStr = today.toISOString().slice(0,10);
-      const sitesActifs = (sites||[]).filter(s => s.statut_contrat !== 'resilie' && s.statut_contrat !== 'inactif');
+      const sitesActifs = sites.filter(s => s.statut_contrat !== 'resilie' && s.statut_contrat !== 'inactif');
       document.getElementById('kpiSitesActifs').textContent = sitesActifs.length;
-      document.getElementById('kpiSitesSous').textContent = `sur ${(sites||[]).length} contrats`;
+      document.getElementById('kpiSitesSous').textContent   = `sur ${sites.length} contrats`;
 
-      // CA mensuel = seulement les sites dont le contrat a démarré
+      // CA + marge
       const sitesDemar = sitesActifs.filter(s => s.date_debut && s.date_debut <= todayStr);
-      const caTotal = sitesDemar.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
-      const moTotal = sitesDemar.reduce((s, x) => s + (parseFloat(x.cout_main_oeuvre)||0), 0);
+      const caTotal    = sitesDemar.reduce((s, x) => s + (parseFloat(x.ca_mensuel)||0), 0);
+      const moTotal    = sitesDemar.reduce((s, x) => s + (parseFloat(x.cout_main_oeuvre)||0), 0);
       const margeTotal = caTotal - moTotal;
       const margePct   = caTotal > 0 ? Math.round(margeTotal / caTotal * 100) : 0;
-
-      document.getElementById('kpiCA').textContent = euro(caTotal);
-      document.getElementById('kpiCASous').textContent = `${sitesDemar.length} contrat${sitesDemar.length>1?'s':''} démarré${sitesDemar.length>1?'s':''}`;
+      document.getElementById('kpiCA').textContent      = euro(caTotal);
+      document.getElementById('kpiCASous').textContent  = `${sitesDemar.length} contrat${sitesDemar.length>1?'s':''} démarré${sitesDemar.length>1?'s':''}`;
       document.getElementById('kpiMargeSous').textContent = caTotal > 0 ? `Marge : ${euro(margeTotal)} (${margePct} %)` : '';
 
-      // ── Volume d'heures — calculé depuis les agents affectés ──
-      const { data: agentsH } = await supabaseClient
-        .from('agents')
-        .select('heures_par_jour, jours_travailles')
-        .eq('tenant_id', TENANT);
-
-      let heuresSem = 0;
-      (agentsH||[]).forEach(a => {
-        const hj    = parseFloat(a.heures_par_jour) || 0;
-        const jours = Array.isArray(a.jours_travailles) ? a.jours_travailles.length : 0;
-        heuresSem += hj * jours;
-      });
-      const heuresMois = Math.round(heuresSem * 4.33);
-      const fmtH = v => v > 0 ? v.toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' h' : '—';
-      document.getElementById('kpiHeuresSem').textContent  = fmtH(heuresSem);
-      document.getElementById('kpiHeuresMois').textContent = fmtH(heuresMois);
+      // ── Volume d'heures (requête indépendante) ──
+      let heuresSemGlobal = 0;
+      try {
+        const { data: agentsH } = await supabaseClient
+          .from('agents')
+          .select('heures_par_jour, jours_travailles')
+          .eq('tenant_id', TENANT);
+        (agentsH||[]).forEach(a => {
+          const hj    = parseFloat(a.heures_par_jour) || 0;
+          const jours = Array.isArray(a.jours_travailles) ? a.jours_travailles.length : 0;
+          heuresSemGlobal += hj * jours;
+        });
+        document.getElementById('kpiHeuresSem').textContent  = fmtH(heuresSemGlobal);
+        document.getElementById('kpiHeuresMois').textContent = fmtH(Math.round(heuresSemGlobal * 4.33));
+      } catch(e) {
+        document.getElementById('kpiHeuresSem').textContent  = '—';
+        document.getElementById('kpiHeuresMois').textContent = '—';
+      }
 
       // ── Projection sur 4 mois ──
       const nomMois = ['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
@@ -763,11 +769,14 @@
         const debutMoisStr = d.toISOString().slice(0,10);
         const nouveaux = sitesActifs.filter(s => s.date_debut && s.date_debut >= debutMoisStr && s.date_debut <= finMoisStr);
         const label = i === 0 ? 'Mois en cours' : `${nomMois[d.getMonth()]} ${d.getFullYear()}`;
+        // Volume heures ce mois (semaines × 4.33 déjà calculé — on prend heuresSem globale)
+        const hMois = typeof heuresSemGlobal !== 'undefined' ? Math.round(heuresSemGlobal * 4.33) : null;
         cols[i].innerHTML = `
           <div class="proj-mois">${label}</div>
           <div class="proj-ca">${euro(caM)}</div>
           <div class="proj-marge">Marge : ${euro(margeEuro)} (${margeM} %)</div>
           <div class="proj-sites">${sitesM.length} site${sitesM.length>1?'s':''} actif${sitesM.length>1?'s':''}</div>
+          ${hMois ? `<div class="proj-sites" style="color:var(--teal);">🕐 ${hMois} h / mois</div>` : ''}
           ${nouveaux.length ? `<div class="proj-nouveau">+ ${nouveaux.length} nouveau${nouveaux.length>1?'x':''} ce mois</div>` : ''}
         `;
       }
