@@ -296,6 +296,36 @@
     </div>
   </div>
 
+  <!-- ══ MODAL GÉNÉRATION CONTRAT ══ -->
+  <div id="modalGenContrat" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:10001;overflow-y:auto;padding:20px 0;">
+    <div style="max-width:760px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+
+      <!-- Barre actions -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid #e8e8e8;position:sticky;top:0;background:#fff;z-index:2;border-radius:14px 14px 0 0;">
+        <div style="font-size:16px;font-weight:700;color:#1a1a1a;">📑 Contrat de prestation de service</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-action" onclick="imprimerContrat()" title="Imprimer / Enregistrer en PDF">🖨️ Imprimer</button>
+          <button class="btn-action" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:#888;" onclick="document.getElementById('modalGenContrat').style.display='none'" title="Fermer">✕</button>
+        </div>
+      </div>
+
+      <!-- Bandeau vérification -->
+      <div style="background:#fff8e1;border-bottom:1px solid #ffe082;padding:12px 28px;font-size:13px;color:#856404;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">👁️</span>
+        <span>Vérifiez les informations ci-dessous. Les champs en <span style="border-bottom:2px dashed #2d6a4f;color:#2d6a4f;font-weight:600;">vert souligné</span> sont modifiables directement. Cliquez <strong>Valider le contrat</strong> quand tout est correct.</span>
+      </div>
+
+      <!-- Corps du contrat -->
+      <div id="contratCorps" style="padding:40px 50px;font-family:'Georgia',serif;font-size:14px;line-height:1.8;color:#1a1a1a;"></div>
+
+      <!-- Pied de page actions -->
+      <div style="padding:24px 28px;border-top:2px solid #e8e8e8;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8f9fa;border-radius:0 0 14px 14px;">
+        <button class="btn-action" onclick="document.getElementById('modalGenContrat').style.display='none'">Annuler</button>
+        <button class="btn-action primary" style="font-size:15px;padding:13px 28px;" id="btnValiderContrat" onclick="validerContrat()">✅ Valider le contrat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -515,6 +545,9 @@
 
         <!-- ══ CONTRAT ══ -->
         <div class="tab-panel" id="tab-contrat">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button class="btn-action primary" onclick="ouvrirGenerationContrat()">📑 Générer le contrat</button>
+          </div>
           <div class="card">
             <div class="card-title">DÉTAIL PRESTATION</div>
             <div class="info-grid">
@@ -1482,19 +1515,298 @@
 
     // ── Upload document ──
     function propositionContrat_generer() {
-      document.getElementById('modalPropositionContrat').style.display = 'none';
-      // Basculer sur l'onglet Contrat
-      const btnContrat = document.querySelector('.tab-btn[onclick*="contrat"]');
-      if (btnContrat) btnContrat.click();
-      // Ouvrir la modale de saisie du contrat après un court délai
-      setTimeout(() => {
-        document.getElementById('btnModif')?.click();
-      }, 300);
+      ouvrirGenerationContrat();
     }
 
     function propositionContrat_dejaFait() {
       document.getElementById('modalPropositionContrat').style.display = 'none';
-      // Basculer sur l'onglet Documents pour confirmer visuellement
+    }
+
+    // ── Génération contrat ──────────────────────────────────────────────────
+
+    function champ(id, valeur, placeholder='À compléter') {
+      // Champ éditable inline dans le contrat
+      return `<span contenteditable="true" data-champ="${id}" style="border-bottom:2px dashed #2d6a4f;color:#2d6a4f;min-width:60px;display:inline-block;padding:0 2px;outline:none;" title="Cliquez pour modifier">${valeur || placeholder}</span>`;
+    }
+
+    function champFige(valeur, fallback='—') {
+      return `<strong>${valeur || fallback}</strong>`;
+    }
+
+    async function ouvrirGenerationContrat() {
+      document.getElementById('modalPropositionContrat').style.display = 'none';
+
+      // Récupérer données fraîches du site
+      const { data: site } = await sb.from('sites').select('*').eq('id', siteId).single();
+      if (!site) { alert('Impossible de charger les données du site.'); return; }
+
+      const nom       = site.nom || site.raison_sociale || '—';
+      const adr       = [site.adresse, site.code_postal, site.ville].filter(Boolean).join(', ') || '—';
+      const contact   = site.contact_nom || site.nom_contact || '—';
+      const tel       = site.telephone || site.tel || '—';
+      const email     = site.email || '—';
+      const siret     = site.siret || '';
+      const ca        = site.ca_mensuel ? `${parseFloat(site.ca_mensuel).toFixed(2).replace('.', ',')} € HT/mois` : '';
+      const freq      = site.frequence || site.frequence_passage || '';
+      const duree     = site.duree_passage || '';
+      const jours     = site.jours_intervention || '';
+      const hDeb      = site.heure_debut || '';
+      const hFin      = site.heure_fin || '';
+      const surface   = site.surface_m2 ? `${site.surface_m2} m²` : '';
+      const typeSite  = site.type_site || '';
+      const dateDeb   = site.date_debut ? new Date(site.date_debut).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'}) : '';
+      const periodeEs = site.periode_essai || '3 mois';
+      const am        = site.responsable_secteur || 'Olivier JAMET';
+      const today     = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+      const annee     = new Date().getFullYear();
+
+      const caTTC = site.ca_mensuel ? (parseFloat(site.ca_mensuel) * 1.2).toFixed(2).replace('.', ',') + ' € TTC/mois' : '';
+
+      const html = `
+        <!-- En-tête -->
+        <div style="text-align:center;margin-bottom:36px;padding-bottom:24px;border-bottom:3px double #1a1a1a;">
+          <div style="font-size:22px;font-weight:900;letter-spacing:2px;text-transform:uppercase;">CAPPOLIA PROPRETÉ</div>
+          <div style="font-size:11px;color:#666;margin-top:4px;">EURL au capital de 1 000 € — SIRET 108 464 652 00016 — APE 81.21Z — TVA FR96108464652</div>
+          <div style="font-size:11px;color:#666;">Bât. C3, Résidence Les Bartavelles, 13190 Allauch — 09 55 23 64 84 — o.jamet@cappolia-proprete.fr</div>
+          <div style="font-size:17px;font-weight:700;margin-top:18px;text-transform:uppercase;letter-spacing:1px;">CONTRAT DE PRESTATIONS DE PROPRETÉ</div>
+          <div style="font-size:12px;color:#666;margin-top:6px;">
+            Réf. ${champ('numContrat', site.num_contrat || `CP-${annee}-${siteId.slice(0,6).toUpperCase()}`)} &nbsp;|&nbsp;
+            Client : <strong>${nom}</strong> &nbsp;|&nbsp;
+            Date : ${champ('dateContrat', today)}
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#888;font-style:italic;">
+            Conditions particulières · Annexe 1 : CGV FEP édition 2026 · Annexe 2 : Révision des prix
+          </div>
+        </div>
+
+        <!-- Parties -->
+        <p style="margin-bottom:16px;font-weight:700;">ENTRE LES SOUSSIGNÉS</p>
+
+        <div style="background:#f0faf4;border-left:4px solid #2d6a4f;padding:14px 18px;margin-bottom:16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.9;">
+          <strong>Le Prestataire</strong><br>
+          Société CAPPOLIA PROPRETÉ, EURL au capital de 1 000 €<br>
+          Siège social : Bâtiment C3, Résidence Les Bartavelles, 13190 Allauch<br>
+          Immatriculation : RCS Marseille 108 464 652 — SIRET 108 464 652 00016 — APE 81.21Z<br>
+          TVA intracommunautaire : FR96108464652<br>
+          Représentée par Monsieur Olivier Jamet, Gérant<br>
+          Contact : o.jamet@cappolia-proprete.fr — 09 55 23 64 84 — www.cappolia-proprete.fr<br>
+          ci-après le <em>« Prestataire »</em>
+        </div>
+
+        <div style="background:#eff6ff;border-left:4px solid #1e40af;padding:14px 18px;margin-bottom:28px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.9;">
+          <strong>Le Client</strong><br>
+          Raison sociale / Nom : ${champFige(nom)}<br>
+          Forme juridique et capital : ${champ('clientForme', '', 'SAS / SARL / EURL…')}<br>
+          SIREN / RCS : ${champ('clientSiren', siret, 'À renseigner')}<br>
+          N° TVA intracommunautaire : ${champ('clientTVA', '', 'FR…')}<br>
+          Adresse de facturation : ${champFige(adr)}<br>
+          Représenté par : ${champ('clientRepresentant', contact)}, ${champ('clientQualite', '', 'Fonction')}<br>
+          Email et téléphone : ${champFige(email !== '—' ? email : '')} — ${champFige(tel !== '—' ? tel : '')}<br>
+          Responsable des réclamations : ${champ('clientReclamations', contact)}<br>
+          ci-après le <em>« Client »</em>
+        </div>
+
+        <p style="text-align:justify;margin-bottom:28px;font-size:13px;color:#444;">
+          Le Prestataire et le Client sont ci-après désignés ensemble les « Parties » et individuellement une « Partie ».
+        </p>
+
+        <!-- Art. 1 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 1 — Documents contractuels</h3>
+        <p style="text-align:justify;margin-bottom:24px;font-size:13px;line-height:1.8;">
+          Le présent contrat est constitué des documents suivants, par ordre de priorité décroissant en cas de contradiction :
+          les présentes Conditions particulières ; l'Annexe 2 — Explication de la révision des prix ;
+          l'Annexe 1 — Conditions générales de vente applicables aux prestations de propreté (FEP, édition 2026).
+          Le Client reconnaît avoir reçu, lu et accepté ces documents.
+          Les conditions générales d'achat du Client sont inopposables au Prestataire.
+        </p>
+
+        <!-- Art. 2 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 2 — Site et prestations</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;">
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Adresse du site</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('adresseSite', adr)}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Nature des locaux et surface</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('natureLocaux', [typeSite, surface].filter(Boolean).join(' — '), 'Bureaux — surface à préciser')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Prestations confiées</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('prestationsTypes', 'Nettoyage des bureaux / parties communes, sanitaires', 'Nettoyage bureaux, sanitaires…')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Détail des tâches</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('tachesDetail', '', 'Balayage, lavage sols, dépoussiérage, vidage corbeilles…')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Fréquences et horaires</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('freqHoraires', [freq, jours, hDeb && hFin ? `de ${hDeb} à ${hFin}` : '', duree ? `(${duree})` : ''].filter(Boolean).join(' — '), 'À préciser')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Accès, clés, local technique</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('acces', '', 'Clés confiées / badge / local fourni')}</td></tr>
+        </table>
+        <p style="font-size:12px;color:#666;margin-bottom:24px;font-style:italic;">Toute modification des prestations fait l'objet d'un écrit et d'un ajustement éventuel du prix (article 2.2 des CGV).</p>
+
+        <!-- Art. 3 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 3 — Prix</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Prix forfaitaire mensuel HT</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('caHT', ca, 'Montant € HT/mois')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">TVA 20 %</td><td style="padding:6px 10px;border:1px solid #ddd;">Taux en vigueur, en sus du prix</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Prix forfaitaire mensuel TTC</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('caTTC', caTTC, 'Montant € TTC/mois')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Facturation</td><td style="padding:6px 10px;border:1px solid #ddd;">Mensuelle, sur 52 semaines par an (article 4.4 des CGV)</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Prestations hors forfait</td><td style="padding:6px 10px;border:1px solid #ddd;">Selon devis préalable accepté par écrit</td></tr>
+        </table>
+        <p style="font-size:12px;color:#666;margin-bottom:24px;font-style:italic;">Les travaux de nuit (21h–6h), du dimanche et des jours fériés sont majorés conformément à la convention collective applicable (article 4.1 des CGV).</p>
+
+        <!-- Art. 4 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 4 — Révision des prix</h3>
+        <p style="text-align:justify;margin-bottom:12px;font-size:13px;line-height:1.8;">
+          Les prix sont révisés une fois par an, à la date anniversaire de prise d'effet du contrat, selon la formule <strong>Pr = P0 × (It / I0)</strong> fondée sur l'Index Propreté (article 5 des CGV et Annexe 2).
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;">
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Date de prise d'effet</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('dateEffet', dateDeb, 'JJ/MM/AAAA')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Trimestre de l'offre (I0)</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('trimestreI0', '', 'ex : 2e trimestre 2026')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Valeur I0 de l'Index Propreté</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('valeurI0', '', 'ex : 114,82')}</td></tr>
+        </table>
+
+        <!-- Art. 5 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 5 — Paiement</h3>
+        <p style="text-align:justify;margin-bottom:24px;font-size:13px;line-height:1.8;">
+          Les factures sont émises mensuellement et payables à trente (30) jours date de facture.
+          Les modes de paiement acceptés sont le virement bancaire, la carte bancaire et le chèque à l'ordre de Cappolia Propreté.
+          Tout retard entraîne de plein droit des pénalités égales à trois fois le taux d'intérêt légal
+          ainsi qu'une indemnité forfaitaire de recouvrement de 40 € (article 6.3 des CGV).<br><br>
+          Virement bancaire — IBAN : ${champ('iban', '', 'À compléter')} — BIC : ${champ('bic', '', 'À compléter')}
+        </p>
+
+        <!-- Art. 6 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 6 — Durée et préavis</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Date de prise d'effet</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('datePriseEffet', dateDeb, 'JJ/MM/AAAA')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Durée initiale</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('dureeContrat', '1 an', 'ex : 1 an')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Préavis de non-reconduction</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('preavisNonReconduction', '3 mois', 'ex : 3 mois')}</td></tr>
+        </table>
+        <p style="font-size:12px;color:#666;margin-bottom:24px;font-style:italic;">À l'issue de la durée initiale, le contrat est renouvelé par tacite reconduction pour des périodes successives de même durée, sauf dénonciation par lettre recommandée avec avis de réception respectant le préavis ci-dessus (article 7 des CGV).</p>
+
+        <!-- Art. 7 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 7 — Assurance</h3>
+        <p style="text-align:justify;margin-bottom:12px;font-size:13px;">Le Prestataire déclare être couvert en responsabilité civile (article 11.2 des CGV).</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;">
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Assureur</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('assureur', '', 'À compléter')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">N° de contrat</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('numAssurance', '', 'À compléter')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Plafonds de garantie</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('plafondGarantie', '', 'À compléter')}</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Période de validité</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('validiteAssurance', '', 'À compléter')}</td></tr>
+        </table>
+
+        <!-- Art. 8 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 8 — Interlocuteurs et réclamations</h3>
+        <p style="text-align:justify;margin-bottom:12px;font-size:13px;line-height:1.8;">
+          Les réclamations sont adressées par écrit dans un délai de quarante-huit (48) heures à compter de la réalisation des prestations (article 3.4 des CGV).
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;">
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;width:38%;font-weight:600;">Prestataire</td><td style="padding:6px 10px;border:1px solid #ddd;">Olivier Jamet, Gérant — o.jamet@cappolia-proprete.fr — 09 55 23 64 84</td></tr>
+          <tr><td style="padding:6px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;">Client</td><td style="padding:6px 10px;border:1px solid #ddd;">${champ('interlocuteurClient', contact, 'Nom, email, téléphone')}</td></tr>
+        </table>
+
+        <!-- Art. 9 -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:12px;">Article 9 — Droit applicable et juridiction</h3>
+        <p style="text-align:justify;margin-bottom:36px;font-size:13px;line-height:1.8;">
+          Le contrat est soumis au droit français. À défaut de règlement amiable (article 15 des CGV),
+          tout litige relève de la compétence exclusive du Tribunal de commerce de Marseille.
+        </p>
+
+        <!-- Signatures -->
+        <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:20px;">Signatures</h3>
+        <p style="text-align:center;font-size:13px;margin-bottom:36px;">
+          Fait en deux exemplaires originaux, à ${champ('lieuSignature', 'Allauch')}, le ${champ('dateSignature', today)}.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:10px;">
+          <div style="text-align:center;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:6px;">Pour le Prestataire — Cappolia Propreté</div>
+            <div style="font-size:12px;color:#555;margin-bottom:4px;">Olivier Jamet, Gérant</div>
+            <div style="font-size:11px;color:#999;margin-bottom:70px;font-style:italic;">Mention manuscrite « Lu et approuvé »</div>
+            <div style="border-top:1px solid #999;padding-top:8px;font-size:11px;color:#999;">Signature et cachet</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:6px;">Pour le Client — ${nom}</div>
+            <div style="font-size:12px;color:#555;margin-bottom:4px;">${champ('signataireCLient', contact)}</div>
+            <div style="font-size:11px;color:#999;margin-bottom:70px;font-style:italic;">Mention manuscrite « Lu et approuvé »</div>
+            <div style="border-top:1px solid #999;padding-top:8px;font-size:11px;color:#999;">Signature et cachet</div>
+          </div>
+        </div>
+
+        <div style="margin-top:40px;padding:12px 16px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:11px;color:#856404;text-align:center;">
+          Ce contrat inclut l'Annexe 1 (CGV FEP édition 2026) et l'Annexe 2 (révision des prix), remises séparément au Client.
+        </div>
+      `;
+
+      document.getElementById('contratCorps').innerHTML = html;
+      document.getElementById('modalGenContrat').style.display = 'block';
+      document.getElementById('btnValiderContrat').disabled = false;
+      document.getElementById('btnValiderContrat').textContent = '✅ Valider le contrat';
+    }
+
+    async function validerContrat() {
+      const btn = document.getElementById('btnValiderContrat');
+      btn.disabled = true;
+      btn.textContent = '⏳ Validation…';
+
+      // Lire les champs éditables modifiés par l'utilisateur
+      const champsMod = {};
+      document.querySelectorAll('#contratCorps [data-champ]').forEach(el => {
+        champsMod[el.dataset.champ] = el.textContent.trim();
+      });
+
+      // Extraire numéro de contrat pour le nom du document
+      const numContrat = champsMod['numContrat'] || `CP-${new Date().getFullYear()}-${siteId.slice(0,6).toUpperCase()}`;
+
+      // Enregistrer la validation dans Supabase
+      const { error: sErr } = await sb.from('sites').update({
+        statut_contrat: 'actif',
+        num_contrat: numContrat,
+        contrat_valide: true,
+      }).eq('id', siteId);
+
+      if (sErr) {
+        // num_contrat ou contrat_valide peut ne pas exister encore — ignorer l'erreur silencieusement
+        console.warn('sites update partiel:', sErr.message);
+      }
+
+      // Sauvegarder le contrat comme document HTML dans site_documents
+      const htmlContrat = document.getElementById('contratCorps').innerHTML;
+      const blob = new Blob([`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Contrat ${numContrat}</title>
+        <style>body{font-family:Georgia,serif;font-size:14px;line-height:1.8;color:#1a1a1a;padding:40px 60px;max-width:800px;margin:0 auto;}
+        [contenteditable]{border-bottom:none!important;color:inherit!important;}</style></head>
+        <body>${htmlContrat}</body></html>`], { type: 'text/html' });
+      const path = `${siteId}/contrat_${numContrat}_${Date.now()}.html`;
+
+      const { error: upErr } = await sb.storage.from('documents').upload(path, blob, { upsert: true, contentType: 'text/html' });
+      let urlContrat = null;
+      if (!upErr) {
+        const { data: pub } = sb.storage.from('documents').getPublicUrl(path);
+        urlContrat = pub.publicUrl;
+      }
+
+      // Créer l'entrée dans site_documents
+      await sb.from('site_documents').insert({
+        site_id: siteId,
+        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+        nom: `Contrat ${numContrat}`,
+        type: 'contrat',
+        statut: 'en_attente_signature',
+        url: urlContrat,
+      });
+
+      btn.textContent = '✅ Contrat validé !';
+      btn.style.background = '#2d6a4f';
+
+      setTimeout(() => {
+        document.getElementById('modalGenContrat').style.display = 'none';
+        _loadedDocuments = false;
+        chargerDocuments();
+        // Basculer sur l'onglet Documents pour voir le contrat
+        document.querySelector('.tab-btn[onclick*="documents"]')?.click();
+      }, 1800);
+    }
+
+    function imprimerContrat() {
+      const corps = document.getElementById('contratCorps').innerHTML;
+      const w = window.open('', '_blank');
+      w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+        <title>Contrat CAPPOLIA</title>
+        <style>
+          body { font-family: Georgia, serif; font-size: 13px; line-height: 1.8; color: #1a1a1a; padding: 30px 50px; max-width: 800px; margin: 0 auto; }
+          [contenteditable] { border-bottom: none !important; color: inherit !important; }
+          @media print { body { padding: 0; } }
+        </style></head><body>${corps}</body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 500);
     }
 
     function ouvrirModalDoc(){
