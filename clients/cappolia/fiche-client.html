@@ -883,8 +883,17 @@
         ? `${site.surface_m2} m²`
         : (chiffrage?.surface_totale || fc.surface) ? `${chiffrage?.surface_totale || fc.surface} m²` : '—';
       document.getElementById('cTypeSite').textContent   = site.type_site || site.secteur || fc.typeSite || '—';
-      document.getElementById('cCA').textContent         = euro(site.ca_mensuel || chiffrage?.prix_ht);
-      document.getElementById('cMO').textContent         = euro(site.cout_main_oeuvre || chiffrage?.masse_salariale);
+      const caAffiche = site.ca_mensuel || chiffrage?.prix_ht;
+      const moAffiche = site.cout_main_oeuvre || chiffrage?.masse_salariale;
+      document.getElementById('cCA').textContent = euro(caAffiche);
+      document.getElementById('cMO').textContent = euro(moAffiche);
+      // Synchronise ca_mensuel et cout_main_oeuvre dans sites si null mais connu via chiffrage
+      if ((!site.ca_mensuel && chiffrage?.prix_ht) || (!site.cout_main_oeuvre && chiffrage?.masse_salariale)) {
+        const sync = {};
+        if (!site.ca_mensuel && chiffrage?.prix_ht) sync.ca_mensuel = parseFloat(chiffrage.prix_ht);
+        if (!site.cout_main_oeuvre && chiffrage?.masse_salariale) sync.cout_main_oeuvre = parseFloat(chiffrage.masse_salariale);
+        await sb.from('sites').update(sync).eq('id', siteId);
+      }
       document.getElementById('cMarge').textContent      = pv.marge ? `${parseFloat(pv.marge).toFixed(1)} %` : '—';
       document.getElementById('cDateDebut').textContent  = site.date_debut
         ? new Date(site.date_debut).toLocaleDateString('fr-FR') : '—';
