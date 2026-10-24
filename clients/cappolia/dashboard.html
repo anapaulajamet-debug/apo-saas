@@ -709,7 +709,7 @@
       // Sites
       const { data: sites } = await supabaseClient
         .from('sites')
-        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email,heures_par_semaine,nb_heures_semaine')
+        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email')
         .eq('tenant_id', TENANT);
 
       const today = new Date();
@@ -729,11 +729,18 @@
       document.getElementById('kpiCASous').textContent = `${sitesDemar.length} contrat${sitesDemar.length>1?'s':''} démarré${sitesDemar.length>1?'s':''}`;
       document.getElementById('kpiMargeSous').textContent = caTotal > 0 ? `Marge : ${euro(margeTotal)} (${margePct} %)` : '';
 
-      // ── Volume d'heures ──
-      const heuresSem = sitesDemar.reduce((s, x) => {
-        const h = parseFloat(x.heures_par_semaine || x.nb_heures_semaine) || 0;
-        return s + h;
-      }, 0);
+      // ── Volume d'heures — calculé depuis les agents affectés ──
+      const { data: agentsH } = await supabaseClient
+        .from('agents')
+        .select('heures_par_jour, jours_travailles')
+        .eq('tenant_id', TENANT);
+
+      let heuresSem = 0;
+      (agentsH||[]).forEach(a => {
+        const hj    = parseFloat(a.heures_par_jour) || 0;
+        const jours = Array.isArray(a.jours_travailles) ? a.jours_travailles.length : 0;
+        heuresSem += hj * jours;
+      });
       const heuresMois = Math.round(heuresSem * 4.33);
       const fmtH = v => v > 0 ? v.toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' h' : '—';
       document.getElementById('kpiHeuresSem').textContent  = fmtH(heuresSem);
