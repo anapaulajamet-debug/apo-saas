@@ -161,16 +161,16 @@
     .empty p { font-size: 13px; }
 
     /* Modal Modifier Contrat */
-    #modalContrat { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+    #modalContrat { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); z-index:9999; align-items:center; justify-content:center; }
     #modalContrat.open { display:flex; }
-    #modalContrat .modal-box { background:var(--fond-card); border-radius:12px; padding:28px; width:min(520px,92vw); max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,.2); }
-    #modalContrat h3 { margin:0 0 20px; font-size:16px; }
+    #modalContrat .modal-box { background:#fff; border-radius:14px; padding:32px; width:min(500px,90vw); max-height:85vh; overflow-y:auto; box-shadow:0 16px 48px rgba(0,0,0,.35); position:relative; }
+    #modalContrat h3 { margin:0 0 22px; font-size:17px; font-weight:700; color:#1a1a1a; }
     #modalContrat .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     #modalContrat .form-full { grid-column:1/-1; }
-    #modalContrat label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--gris-doux); margin-bottom:4px; }
-    #modalContrat input { width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid var(--bordure); border-radius:8px; font-size:13px; background:var(--fond); color:var(--texte); }
-    #modalContrat input:focus { outline:none; border-color:var(--accent); }
-    #modalContrat .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    #modalContrat label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#888; margin-bottom:5px; }
+    #modalContrat input { width:100%; box-sizing:border-box; padding:10px 13px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px; background:#fafafa; color:#1a1a1a; }
+    #modalContrat input:focus { outline:none; border-color:#2d6a4f; background:#fff; }
+    #modalContrat .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:24px; border-top:1px solid #eee; padding-top:18px; }
   </style>
 </head>
 <body>
