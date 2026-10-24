@@ -675,17 +675,18 @@
         .eq('statut', 'actif');
       document.getElementById('kpiAgents').textContent = nbCollab ?? '—';
 
-      // Audits à faire ce mois
+      // Audits à faire : sites actifs sans audit réalisé ce mois-ci
       const debut = new Date(); debut.setDate(1);
       const fin = new Date(debut.getFullYear(), debut.getMonth()+1, 0);
-      const { count: nbAudits } = await supabaseClient
-        .from('controles')
-        .select('id', { count: 'exact', head: true })
+      const { data: auditsRealises } = await supabaseClient
+        .from('audits_qualite')
+        .select('site_id')
         .eq('tenant_id', TENANT)
-        .eq('statut', 'planifie')
-        .gte('date', debut.toISOString().slice(0,10))
-        .lte('date', fin.toISOString().slice(0,10));
-      document.getElementById('kpiAudits').textContent = nbAudits ?? 0;
+        .gte('date_audit', debut.toISOString().slice(0,10))
+        .lte('date_audit', fin.toISOString().slice(0,10));
+      const sitesCoverts = new Set((auditsRealises||[]).map(a => a.site_id));
+      const sitesSansAudit = sitesActifs.filter(s => !sitesCoverts.has(s.id));
+      document.getElementById('kpiAudits').textContent = sitesSansAudit.length;
 
       // Alertes panel
       const alertes = [];
@@ -710,20 +711,11 @@
         }
       });
 
-      // Audits planifiés dans les 7 jours
-      const dans7 = new Date(); dans7.setDate(dans7.getDate()+7);
-      const { data: auditsProches } = await supabaseClient
-        .from('controles')
-        .select('date,sites(nom)')
-        .eq('tenant_id', TENANT)
-        .eq('statut', 'planifie')
-        .gte('date', new Date().toISOString().slice(0,10))
-        .lte('date', dans7.toISOString().slice(0,10))
-        .limit(3);
-      (auditsProches||[]).forEach(a => {
+      // Sites sans audit ce mois → alerte
+      sitesSansAudit.slice(0,3).forEach(s => {
         alertes.push({ couleur: 'orange',
-          texte: `Audit à faire — ${a.sites?.nom||'Site'}`,
-          meta: `Planifié le ${new Date(a.date).toLocaleDateString('fr-FR')}` });
+          texte: `Audit qualité manquant — ${s.nom}`,
+          meta: `Aucun audit réalisé en ${new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}` });
       });
 
       const puceClass = { rouge:'puce-rouge', orange:'puce-orange', vert:'puce-vert' };
