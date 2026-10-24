@@ -181,7 +181,10 @@
       <h3>✏️ Modifier le contrat</h3>
       <div class="form-grid">
         <div><label>Fréquence de passage</label><input id="mFrequence" placeholder="ex: 1 passage / mois"></div>
-        <div><label>Durée par passage</label><input id="mDuree" placeholder="ex: 2h00"></div>
+        <div><label>Durée par passage</label><input id="mDuree" placeholder="ex: 1h00"></div>
+        <div class="form-full"><label>Jours d'intervention</label><input id="mJours" placeholder="ex: tous les 3ème vendredis du mois"></div>
+        <div><label>Heure début</label><input id="mHeureDebut" type="time"></div>
+        <div><label>Heure fin</label><input id="mHeureFin" type="time"></div>
         <div><label>Surface totale (m²)</label><input id="mSurface" type="number" placeholder="60"></div>
         <div><label>Type de site</label><input id="mTypeSite" placeholder="ex: Bureaux"></div>
         <div><label>CA mensuel HT (€)</label><input id="mCA" type="number" step="0.01" placeholder="0.00"></div>
@@ -418,6 +421,9 @@
             <div class="info-grid">
               <div class="info-item"><label>Fréquence de passage</label><p id="cFrequence">—</p></div>
               <div class="info-item"><label>Durée par passage</label><p id="cDuree">—</p></div>
+              <div class="info-item" style="grid-column:1/-1"><label>Jours d'intervention</label><p id="cJours">—</p></div>
+              <div class="info-item"><label>Heure début</label><p id="cHeureDebut">—</p></div>
+              <div class="info-item"><label>Heure fin</label><p id="cHeureFin">—</p></div>
               <div class="info-item"><label>Surface totale (m²)</label><p id="cSurface">—</p></div>
               <div class="info-item"><label>Type de site</label><p id="cTypeSite">—</p></div>
               <div class="info-item"><label>CA mensuel HT</label><p id="cCA">—</p></div>
@@ -471,16 +477,19 @@
     document.getElementById('btnModif').addEventListener('click', async () => {
       // Pré-remplir le modal avec les données actuelles
       const { data: site } = await sb.from('sites')
-        .select('frequence,duree_passage,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre')
+        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre')
         .eq('id', siteId).single();
       if (site) {
-        document.getElementById('mFrequence').value = site.frequence || '';
-        document.getElementById('mDuree').value      = site.duree_passage || '';
-        document.getElementById('mSurface').value    = site.surface_m2 || '';
-        document.getElementById('mTypeSite').value   = site.type_site || '';
-        document.getElementById('mCA').value         = site.ca_mensuel || '';
-        document.getElementById('mMO').value         = site.cout_main_oeuvre || '';
-        document.getElementById('mDateDebut').value  = site.date_debut || '';
+        document.getElementById('mFrequence').value   = site.frequence || '';
+        document.getElementById('mDuree').value        = site.duree_passage || '';
+        document.getElementById('mJours').value        = site.jours_intervention || '';
+        document.getElementById('mHeureDebut').value   = site.heure_debut || '';
+        document.getElementById('mHeureFin').value     = site.heure_fin || '';
+        document.getElementById('mSurface').value      = site.surface_m2 || '';
+        document.getElementById('mTypeSite').value     = site.type_site || '';
+        document.getElementById('mCA').value           = site.ca_mensuel || '';
+        document.getElementById('mMO').value           = site.cout_main_oeuvre || '';
+        document.getElementById('mDateDebut').value    = site.date_debut || '';
       }
       document.getElementById('modalContrat').classList.add('open');
     });
@@ -489,13 +498,16 @@
       const btn = document.getElementById('btnSauveContrat');
       btn.disabled = true; btn.textContent = '⏳ Enregistrement…';
       const payload = {
-        frequence:         document.getElementById('mFrequence').value.trim() || null,
-        duree_passage:     document.getElementById('mDuree').value.trim() || null,
-        surface_m2:        parseFloat(document.getElementById('mSurface').value) || null,
-        type_site:         document.getElementById('mTypeSite').value.trim() || null,
-        ca_mensuel:        parseFloat(document.getElementById('mCA').value) || null,
-        cout_main_oeuvre:  parseFloat(document.getElementById('mMO').value) || null,
-        date_debut:        document.getElementById('mDateDebut').value || null,
+        frequence:            document.getElementById('mFrequence').value.trim() || null,
+        duree_passage:        document.getElementById('mDuree').value.trim() || null,
+        jours_intervention:   document.getElementById('mJours').value.trim() || null,
+        heure_debut:          document.getElementById('mHeureDebut').value || null,
+        heure_fin:            document.getElementById('mHeureFin').value || null,
+        surface_m2:           parseFloat(document.getElementById('mSurface').value) || null,
+        type_site:            document.getElementById('mTypeSite').value.trim() || null,
+        ca_mensuel:           parseFloat(document.getElementById('mCA').value) || null,
+        cout_main_oeuvre:     parseFloat(document.getElementById('mMO').value) || null,
+        date_debut:           document.getElementById('mDateDebut').value || null,
       };
       const { error } = await sb.from('sites').update(payload).eq('id', siteId);
       btn.disabled = false; btn.textContent = '💾 Enregistrer';
@@ -761,7 +773,7 @@
     async function chargerContrat(){
       _loadedContrat = true;
       const { data: site } = await sb.from('sites')
-        .select('nom,frequence,duree_passage,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre')
+        .select('nom,frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,secteur,date_debut,ca_mensuel,cout_main_oeuvre')
         .eq('id', siteId).single();
       if (!site) return;
 
@@ -784,6 +796,10 @@
 
       document.getElementById('cFrequence').textContent  = site.frequence || fc.frequenceAutres || '—';
       document.getElementById('cDuree').textContent      = site.duree_passage || '—';
+      document.getElementById('cJours').textContent      = site.jours_intervention || '—';
+      const hd = site.heure_debut, hf = site.heure_fin;
+      document.getElementById('cHeureDebut').textContent = hd ? hd.slice(0,5) : '—';
+      document.getElementById('cHeureFin').textContent   = hf ? hf.slice(0,5) : '—';
       document.getElementById('cSurface').textContent    = site.surface_m2
         ? `${site.surface_m2} m²`
         : (chiffrage?.surface_totale || fc.surface) ? `${chiffrage?.surface_totale || fc.surface} m²` : '—';
