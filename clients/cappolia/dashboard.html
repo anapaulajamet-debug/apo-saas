@@ -706,6 +706,16 @@
       const TENANT = 'aaaaaaaa-0000-0000-0000-000000000001';
       const euro = v => Number(v||0).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
       const fmtH = v => v > 0 ? Number(v).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' h' : '—';
+      // Convertit "1 passage / semaine" ou "2 fois/mois" → heures/mois
+      const hParMois = (dureeStr, freqStr) => {
+        const duree = parseFloat(dureeStr) || 0;
+        const n     = parseFloat(freqStr)  || 0;
+        if (!duree || !n) return 0;
+        const f = (freqStr||'').toLowerCase();
+        if (f.includes('sem') || f.includes('week')) return duree * n * 4.33;
+        if (f.includes('jour') || f.includes('day'))  return duree * n * 30;
+        return duree * n; // par défaut : passages/mois
+      };
 
       // ── Sites ──
       let sites = [];
@@ -736,13 +746,8 @@
       // ── Volume d'heures (depuis sites actifs démarrés) ──
       let heuresSemGlobal = 0;
       try {
-        // frequence = passages/mois → h/mois = duree × frequence → h/sem = h/mois / 4.33
         let hMoisGlobal = 0;
-        sitesDemar.forEach(s => {
-          const duree = parseFloat(s.duree_passage) || 0;
-          const freq  = parseFloat(s.frequence)     || 0;
-          hMoisGlobal += duree * freq;
-        });
+        sitesDemar.forEach(s => { hMoisGlobal += hParMois(s.duree_passage, s.frequence); });
         heuresSemGlobal = hMoisGlobal / 4.33;
         document.getElementById('kpiHeuresSem').textContent  = fmtH(Math.round(heuresSemGlobal * 10) / 10);
         document.getElementById('kpiHeuresMois').textContent = fmtH(Math.round(hMoisGlobal * 10) / 10);
@@ -768,8 +773,7 @@
         const debutMoisStr = d.toISOString().slice(0,10);
         const nouveaux = sitesActifs.filter(s => s.date_debut && s.date_debut >= debutMoisStr && s.date_debut <= finMoisStr);
         const label = i === 0 ? 'Mois en cours' : `${nomMois[d.getMonth()]} ${d.getFullYear()}`;
-        // frequence = passages/mois → h/mois = duree × frequence → h/sem = h/mois / 4.33
-        const hMoisM    = sitesM.reduce((s, x) => s + (parseFloat(x.duree_passage)||0) * (parseFloat(x.frequence)||0), 0);
+        const hMoisM    = sitesM.reduce((s, x) => s + hParMois(x.duree_passage, x.frequence), 0);
         const hMoisVal  = Math.round(hMoisM * 10) / 10;
         const hMoisStr  = hMoisVal > 0 ? `${hMoisVal} h` : '—';
         const hSemVal   = Math.round(hMoisM / 4.33 * 10) / 10;
