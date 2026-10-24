@@ -2065,6 +2065,9 @@
       const email  = document.getElementById('agEmail').value.trim();
       const jours  = [...document.querySelectorAll('.ag-jour:checked')].map(cb => cb.value);
       const hj     = parseFloat(document.getElementById('agHJ').value)||0;
+      const numSS  = document.getElementById('agNumSS').value.trim().replace(/\s/g,'') || null;
+      const iban   = document.getElementById('agIBAN').value.trim().replace(/\s/g,'') || null;
+      const bic    = document.getElementById('agBIC').value.trim() || null;
 
       if(!nom||!prenom){ alert('Nom et prénom obligatoires'); return; }
 
@@ -2077,12 +2080,117 @@
         site_principal_id: siteId,
         jours_travailles:  jours,
         heures_par_jour:   hj || null,
+        num_ss:            numSS,
+        iban,
+        bic,
       }).select().single();
 
       if(error){ alert('Erreur création : ' + error.message); return; }
       fermerModalAgent();
       chargerEquipe();
       toast(`✅ ${prenom} ${nom} créé(e) et affecté(e) au site`);
+    }
+
+    // ── OCR documents agent ────────────────────────────────────────────────
+    async function lireDocumentOCR(input, type) {
+      const file = input.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById(input.id + 'Status');
+      statusEl.textContent = '⏳ Lecture en cours…';
+      statusEl.style.color = 'var(--or)';
+
+      // Charger Tesseract.js si besoin
+      if (!window.Tesseract) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js';
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(file, 'fra+eng', { logger: () => {} });
+        const extrait = extraireChamps(text, type);
+        appliquerChamps(extrait, type, statusEl);
+      } catch(err) {
+        statusEl.textContent = '⚠️ Lecture échouée — saisie manuelle';
+        statusEl.style.color = 'var(--rouge)';
+        console.warn('OCR error', err);
+      }
+    }
+
+    function extraireChamps(text, type) {
+      const t = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+      const res = {};
+
+      if (type === 'cni' || type === 'permis') {
+        // MRZ : ligne de type ID<<NOM<<PRENOM ou P<FRA...
+        const mrzNom = t.match(/ID[A-Z<]{2}([A-Z<]{25,})/);
+        if (mrzNom) {
+          const parts = mrzNom[1].split('<<');
+          if (parts[0]) res.nom = parts[0].replace(/</g,' ').trim();
+          if (parts[1]) res.prenom = parts[1].split('<')[0].replace(/</g,' ').trim();
+        }
+        // Date de naissance AAMMJJ dans MRZ
+        const mrzDDN = t.match(/(\d{6})[MF<]/);
+        if (mrzDDN) {
+          const raw = mrzDDN[1];
+          const aa = parseInt(raw.slice(0,2));
+          const mm = raw.slice(2,4);
+          const jj = raw.slice(4,6);
+          const annee = aa > 30 ? `19${String(aa).padStart(2,'0')}` : `20${String(aa).padStart(2,'0')}`;
+          res.ddn = `${annee}-${mm}-${jj}`;
+        }
+        if (type === 'permis') {
+          const numP = t.match(/\b([A-Z0-9]{8,14})\b/);
+          if (numP) res.num_permis = numP[1];
+        } else {
+          const numCNI = t.match(/\b(\d{9})\b/);
+          if (numCNI) res.num_cni = numCNI[1];
+        }
+      }
+
+      if (type === 'vitale') {
+        // N° SS : 15 chiffres parfois séparés par espaces
+        const ss = t.replace(/\s/g,'').match(/[12]\d{14}/);
+        if (ss) res.num_ss = ss[0];
+      }
+
+      if (type === 'rib') {
+        // IBAN France : FR + 25 chiffres/lettres
+        const iban = t.replace(/\s/g,'').match(/FR\d{2}\d{23}/i);
+        if (iban) res.iban = iban[0];
+        // BIC : 8-11 caractères majuscules
+        const bic = t.match(/\b([A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)\b/);
+        if (bic) res.bic = bic[1];
+        // Titulaire (ligne avant "IBAN" ou "Titulaire")
+        const tit = t.match(/Titulaire\s*[:\-]?\s*([A-ZÀ-Ü][A-Za-zÀ-ü\- ]{3,40})/i);
+        if (tit) { const parts = tit[1].trim().split(' '); res.nom = parts[0]; res.prenom = parts.slice(1).join(' '); }
+      }
+
+      return res;
+    }
+
+    function appliquerChamps(champs, type, statusEl) {
+      const remplis = [];
+      if (champs.nom)    { document.getElementById('agNom').value    = champs.nom;    remplis.push('Nom'); }
+      if (champs.prenom) { document.getElementById('agPrenom').value = champs.prenom; remplis.push('Prénom'); }
+      if (champs.ddn)    { document.getElementById('agDDN').value    = champs.ddn;    remplis.push('Date de naissance'); }
+      if (champs.num_ss) { document.getElementById('agNumSS').value  = champs.num_ss; remplis.push('N° SS'); }
+      if (champs.iban)   { document.getElementById('agIBAN').value   = champs.iban;   remplis.push('IBAN'); }
+      if (champs.bic)    { document.getElementById('agBIC').value    = champs.bic;    remplis.push('BIC'); }
+
+      if (remplis.length > 0) {
+        statusEl.textContent = `✅ Extrait : ${remplis.join(', ')}`;
+        statusEl.style.color = 'var(--vert)';
+      } else {
+        statusEl.textContent = '⚠️ Aucune donnée extraite — vérifiez la qualité de l\'image';
+        statusEl.style.color = 'var(--or)';
+      }
+      // Nom du fichier
+      const fname = document.getElementById(statusEl.id.replace('Status',''))?.files[0]?.name || '';
+      if (fname) statusEl.textContent += ` · ${fname}`;
     }
 
     // Tabs du modal
@@ -2156,19 +2264,47 @@
               style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;">
           </div>
 
-          <!-- Documents (upload futur) -->
-          <div style="margin-top:18px;padding:14px;background:var(--gris-fond);border-radius:10px;border:1.5px dashed var(--bordure);">
-            <div style="font-size:12px;font-weight:700;color:var(--gris-doux);margin-bottom:10px;">📎 DOCUMENTS D'IDENTITÉ <span style="font-weight:400;font-style:italic;">(optionnel — à compléter ultérieurement)</span></div>
+          <!-- Champs données personnelles -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+            <div style="grid-column:1/-1;">
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">N° SÉCURITÉ SOCIALE</label>
+              <input id="agNumSS" type="text" placeholder="1 85 06 75 115 025 48" maxlength="21"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">IBAN</label>
+              <input id="agIBAN" type="text" placeholder="FR76 …"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--gris-doux);">BIC</label>
+              <input id="agBIC" type="text" placeholder="XXXXXXXX"
+                style="width:100%;margin-top:4px;padding:9px 12px;border:1.5px solid var(--bordure);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
+            </div>
+          </div>
+
+          <!-- Documents avec lecture OCR -->
+          <div style="margin-top:18px;">
+            <div style="font-size:12px;font-weight:700;color:var(--gris-doux);margin-bottom:10px;">📎 PIÈCES JUSTIFICATIVES <span style="font-weight:400;font-style:italic;">(optionnel — lecture automatique des données)</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              ${[['docCNI','🪪 Carte d\'identité'],['docVitale','💳 Carte Vitale'],['docRIB','🏦 RIB'],['docPermis','🚗 Permis de conduire'],['docDomicile','📄 Justificatif domicile']].map(([id,label])=>`
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-                  <input type="file" id="${id}" accept="image/*,.pdf" style="display:none;" onchange="aperçuDoc(this,'${id}Prev')">
-                  <span onclick="document.getElementById('${id}').click()"
-                    style="padding:7px 12px;border:1.5px solid var(--bordure);border-radius:7px;background:var(--blanc);cursor:pointer;font-size:12px;">
-                    ${label}
-                  </span>
-                  <span id="${id}Prev" style="font-size:11px;color:var(--teal);"></span>
-                </label>`).join('')}
+              ${[
+                {id:'docCNI',    label:'🪪 Carte d\'identité',      type:'cni'},
+                {id:'docVitale', label:'💳 Carte Vitale',            type:'vitale'},
+                {id:'docRIB',    label:'🏦 RIB',                     type:'rib'},
+                {id:'docPermis', label:'🚗 Permis de conduire',      type:'permis'},
+                {id:'docDomicile',label:'📄 Justificatif domicile',  type:'domicile'}
+              ].map(d=>`
+                <div style="border:1.5px solid var(--bordure);border-radius:8px;padding:10px;background:var(--blanc);">
+                  <input type="file" id="${d.id}" accept="image/*,.pdf" style="display:none;" onchange="lireDocumentOCR(this,'${d.type}')">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <span style="font-size:12px;font-weight:700;">${d.label}</span>
+                    <button type="button" onclick="document.getElementById('${d.id}').click()"
+                      style="padding:4px 10px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;">
+                      + Ajouter
+                    </button>
+                  </div>
+                  <div id="${d.id}Status" style="font-size:11px;color:var(--gris-doux);margin-top:5px;min-height:16px;"></div>
+                </div>`).join('')}
             </div>
           </div>
 
