@@ -622,7 +622,7 @@
       // Sites
       const { data: sites } = await supabaseClient
         .from('sites')
-        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,nom_contact,telephone,tel,email')
+        .select('id,nom,secteur,ca_mensuel,cout_main_oeuvre,statut_contrat,date_debut,contact_nom,telephone,email')
         .eq('tenant_id', TENANT);
 
       const sitesActifs = (sites||[]).filter(s => s.statut_contrat !== 'resilie' && s.statut_contrat !== 'inactif');
@@ -714,8 +714,8 @@
       // Données manquantes sur les sites
       sitesActifs.forEach(s => {
         const manquants = [];
-        if (!s.contact_nom && !s.nom_contact) manquants.push('contact');
-        if (!s.telephone && !s.tel) manquants.push('téléphone');
+        if (!s.contact_nom) manquants.push('contact');
+        if (!s.telephone) manquants.push('téléphone');
         if (!s.email) manquants.push('email');
         if (!s.ca_mensuel) manquants.push('CA mensuel');
         if (manquants.length > 0) {
