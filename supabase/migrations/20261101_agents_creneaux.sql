@@ -1,0 +1,5 @@
+ALTER TABLE agents
+  ADD COLUMN IF NOT EXISTS jour_passage  TEXT,
+  ADD COLUMN IF NOT EXISTS heure_debut   TIME,
+  ADD COLUMN IF NOT EXISTS heure_fin     TIME,
+  ADD COLUMN IF NOT EXISTS duree_agent   NUMERIC(4,1);

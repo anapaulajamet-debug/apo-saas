@@ -199,6 +199,9 @@
     select.form-input { cursor:pointer; }
     .form-sep { grid-column:1/-1; border:none; border-top:1px solid var(--bordure); margin:4px 0; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    .btn-creneau { padding:5px 10px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:11px; cursor:pointer; white-space:nowrap; }
+    .btn-creneau:hover { border-color:var(--teal); color:var(--teal); }
+    .btn-creneau.active { background:var(--teal); color:#fff; border-color:var(--teal); }
     .btn-annuler { padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-sauver { padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
 
@@ -487,9 +490,23 @@
       <div class="form-item"><label class="form-label">Solde CP (jours)</label><input class="form-input" type="number" id="fSoldeCp" placeholder="0" step="0.5" /></div>
       <div class="form-item full">
         <label class="form-label">📍 Site client affecté</label>
-        <select class="form-input" id="fSitePrincipal">
+        <select class="form-input" id="fSitePrincipal" onchange="onSiteSelect(this.value)">
           <option value="">— Aucun site —</option>
         </select>
+      </div>
+      <div class="form-item full" id="zoneCreneaux" style="display:none">
+        <label class="form-label">🕐 Créneau de passage</label>
+        <div id="creneauxSuggeres" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <select class="form-input" id="fJourPassage" style="flex:1">
+            <option value="">— Jour —</option>
+            <option>Lundi</option><option>Mardi</option><option>Mercredi</option>
+            <option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option>
+          </select>
+          <input class="form-input" type="time" id="fHeureDebut" style="flex:1" placeholder="Début" />
+          <input class="form-input" type="time" id="fHeureFin" style="flex:1" placeholder="Fin" />
+          <input class="form-input" type="number" id="fDureeAgent" style="width:80px" step="0.5" min="0.5" placeholder="Durée (h)" title="Durée personnelle (binôme)" />
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -848,6 +865,31 @@ async function chargerSitesSelect() {
   if (selApres) selApres.innerHTML = opts.replace('— Aucun site —', '— Sélectionner un site (optionnel) —');
   const selForm = document.getElementById('fSitePrincipal');
   if (selForm) selForm.innerHTML = opts;
+}
+
+const CRENEAUX_TYPES = ['06:00','07:00','17:00','18:00'];
+function onSiteSelect(siteId) {
+  const zone = document.getElementById('zoneCreneaux');
+  if (!siteId) { zone.style.display = 'none'; return; }
+  zone.style.display = '';
+  const site = _sitesActifs.find(s => s.id === siteId);
+  const duree = parseFloat(site?.duree_passage) || 2;
+  const box = document.getElementById('creneauxSuggeres');
+  box.innerHTML = CRENEAUX_TYPES.map(h => {
+    const [hh, mm] = h.split(':').map(Number);
+    const fin = String(hh + Math.floor(duree)).padStart(2,'0') + ':' + String(mm + Math.round((duree % 1)*60)).padStart(2,'0');
+    const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+    return jours.map(j =>
+      `<button type="button" class="btn-creneau" onclick="appliquerCreneau('${j}','${h}','${fin}')">${j} ${h}–${fin}</button>`
+    ).join('');
+  }).join('');
+}
+function appliquerCreneau(jour, debut, fin) {
+  document.getElementById('fJourPassage').value = jour;
+  document.getElementById('fHeureDebut').value = debut;
+  document.getElementById('fHeureFin').value = fin;
+  document.querySelectorAll('.btn-creneau').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
 }
 
 function onQualifSelect(qualif) {
@@ -1563,6 +1605,13 @@ function ouvrirModalEdition() {
   document.getElementById('fNumeroSS').value = c.numero_ss || '';
   document.getElementById('fSoldeCp').value = c.solde_cp ?? '';
   document.getElementById('fSitePrincipal').value = c.site_principal_id || '';
+  if (c.site_principal_id) {
+    onSiteSelect(c.site_principal_id);
+    document.getElementById('fJourPassage').value = c.jour_passage || '';
+    document.getElementById('fHeureDebut').value  = c.heure_debut  ? c.heure_debut.slice(0,5) : '';
+    document.getElementById('fHeureFin').value    = c.heure_fin    ? c.heure_fin.slice(0,5)   : '';
+    document.getElementById('fDureeAgent').value  = c.duree_agent  ?? '';
+  }
   document.getElementById('modalCollabOverlay').classList.add('visible');
 }
 
@@ -1591,6 +1640,10 @@ async function sauverCollab() {
     numero_ss:       document.getElementById('fNumeroSS').value.trim() || null,
     solde_cp:          parseFloat(document.getElementById('fSoldeCp').value) || null,
     site_principal_id: document.getElementById('fSitePrincipal').value || null,
+    jour_passage:      document.getElementById('fJourPassage').value || null,
+    heure_debut:       document.getElementById('fHeureDebut').value || null,
+    heure_fin:         document.getElementById('fHeureFin').value || null,
+    duree_agent:       parseFloat(document.getElementById('fDureeAgent').value) || null,
   };
 
   let error;
