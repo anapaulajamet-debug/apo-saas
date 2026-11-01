@@ -187,7 +187,7 @@
     /* Modal */
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 0; }
     .modal-overlay.visible { display:flex; }
-    .modal-box { background:#fff; border-radius:16px; padding:26px; width:560px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); margin:auto; }
+    .modal-box { background:#fff; border-radius:16px; padding:26px; width:560px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); margin:auto; max-height:90vh; overflow-y:auto; }
     .modal-titre { font-size:16px; font-weight:800; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; }
     .modal-fermer { background:none; border:none; font-size:20px; cursor:pointer; color:var(--gris-doux); }
     .form-grille { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -1529,7 +1529,14 @@ function ouvrirModalEdition() {
   const c = _collabActif;
   document.getElementById('fPrenom').value = c.prenom || '';
   document.getElementById('fNom').value = c.nom || '';
-  document.getElementById('fQualification').value = c.qualification || '';
+  // Pré-sélectionner la qualification (ajoute l'option si absente de la grille)
+  const selQ = document.getElementById('fQualification');
+  if (c.qualification && !Array.from(selQ.options).some(o => o.value === c.qualification)) {
+    const opt = document.createElement('option');
+    opt.value = c.qualification; opt.textContent = c.qualification;
+    selQ.appendChild(opt);
+  }
+  selQ.value = c.qualification || '';
   document.getElementById('fTelephone').value = c.telephone || '';
   document.getElementById('fEmail').value = c.email || '';
   document.getElementById('fAdresse').value = c.adresse || '';
