@@ -444,7 +444,7 @@
       <div class="form-item"><label class="form-label">Prénom *</label><input class="form-input" id="fPrenom" placeholder="Marie" /></div>
       <div class="form-item"><label class="form-label">Nom *</label><input class="form-input" id="fNom" placeholder="DUPONT" /></div>
       <div class="form-item"><label class="form-label">Qualification / Poste</label>
-        <select class="form-input" id="fQualification">
+        <select class="form-input" id="fQualification" onchange="onQualifSelect(this.value)">
           <option value="">— Chargement… —</option>
         </select>
       </div>
@@ -726,6 +726,15 @@ async function chargerGrilleQualif() {
   if (!sel) return;
   sel.innerHTML = '<option value="">— Sélectionner —</option>'
     + _grilleCCN.map(g => `<option value="${g.qualification}">${g.qualification}${g.taux_horaire ? ' (' + g.taux_horaire + ' €/h)' : ''}</option>`).join('');
+}
+
+function onQualifSelect(qualif) {
+  if (!qualif) return;
+  const g = _grilleCCN.find(x => x.qualification === qualif);
+  if (g && g.taux_horaire) {
+    const champ = document.getElementById('fTauxHoraire');
+    if (champ && !champ.dataset.modifié) champ.value = g.taux_horaire;
+  }
 }
 
 // ── LISTE ──
