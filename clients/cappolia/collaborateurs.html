@@ -1128,27 +1128,25 @@ async function ouvrirFiche(id) {
 async function chargerClientsCollab(agentId) {
   const el = document.getElementById('ficheClients');
 
-  // 1. Sites depuis le planning
-  const { data: plannings } = await sb.from('planning')
+  const { data: agentSites } = await sb.from('agents_sites')
     .select('sites(id, nom, adresse)')
-    .eq('agent_id', agentId)
-    .limit(50);
+    .eq('agent_id', agentId);
 
   const sitesVus = {};
-  (plannings||[]).forEach(p => { if (p.sites) sitesVus[p.sites.id] = p.sites; });
+  (agentSites||[]).forEach(as => { if (as.sites) sitesVus[as.sites.id] = as.sites; });
 
-  // 2. Fallback : site_principal_id de l'agent
-  if(!Object.keys(sitesVus).length) {
+  // Fallback : site_principal_id si agents_sites vide
+  if (!Object.keys(sitesVus).length) {
     const { data: agent } = await sb.from('agents')
       .select('site_principal_id, sites(id, nom, adresse)')
       .eq('id', agentId).single();
-    if(agent?.sites) sitesVus[agent.sites.id] = agent.sites;
+    if (agent?.sites) sitesVus[agent.sites.id] = agent.sites;
   }
 
   const sites = Object.values(sitesVus);
 
   if (!sites.length) {
-    el.innerHTML = '<div style="color:var(--gris-doux); font-size:12px; font-style:italic;">Aucun client affecté via le planning.</div>';
+    el.innerHTML = '<div style="color:var(--gris-doux); font-size:12px; font-style:italic;">Aucun client affecté.</div>';
     return;
   }
   el.innerHTML = sites.map(s => `
