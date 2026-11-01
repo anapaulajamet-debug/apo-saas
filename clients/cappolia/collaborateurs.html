@@ -503,6 +503,15 @@
     <div style="padding:20px 22px;">
       <p style="font-size:13px;color:var(--gris-texte);margin:0 0 18px;">Le dossier de <strong id="apresNomCollab"></strong> a été créé. Souhaitez-vous :</p>
 
+      <!-- Affectation site -->
+      <div style="border:1.5px solid var(--teal);border-radius:10px;padding:14px 16px;margin-bottom:14px;background:#f0faf8;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--teal);">📍 Affectation au site client</div>
+        <select class="form-input" id="apresSite" style="width:100%;margin-bottom:6px;">
+          <option value="">— Sélectionner un site (optionnel) —</option>
+        </select>
+        <p style="font-size:11px;color:var(--gris-doux);margin:0;">Vous pourrez modifier l'affectation depuis la fiche du collaborateur.</p>
+      </div>
+
       <!-- Pièces justificatives -->
       <div style="border:1.5px solid var(--bordure);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📎 Pièces justificatives</div>
@@ -809,6 +818,19 @@ async function chargerGrilleQualif() {
   if (!sel) return;
   sel.innerHTML = '<option value="">— Sélectionner —</option>'
     + _grilleCCN.map(g => `<option value="${g.qualification}">${g.qualification}${g.taux_horaire ? ' (' + g.taux_horaire + ' €/h)' : ''}</option>`).join('');
+}
+
+// ── SITES ACTIFS → select affectation ──
+async function chargerSitesSelect() {
+  const { data } = await sb.from('sites')
+    .select('id,nom,adresse')
+    .eq('tenant_id', TENANT)
+    .not('statut_contrat', 'in', '("resilie","inactif")')
+    .order('nom');
+  const sel = document.getElementById('apresSite');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Sélectionner un site (optionnel) —</option>'
+    + (data||[]).map(s => `<option value="${s.id}">${s.nom}${s.adresse ? ' — ' + s.adresse : ''}</option>`).join('');
 }
 
 function onQualifSelect(qualif) {
@@ -1608,7 +1630,13 @@ function apresTerminer() {
     err.style.display = 'block';
     return;
   }
+  // Affecter au site si sélectionné
+  const siteId = document.getElementById('apresSite').value;
+  if (siteId && _apresAgentId) {
+    sb.from('agents').update({ site_principal_id: siteId }).eq('id', _apresAgentId);
+  }
   document.getElementById('modalApresCreation').style.display = 'none';
+  chargerListe();
   if (_apresAgentId) ouvrirFiche(_apresAgentId);
 }
 
@@ -1868,7 +1896,7 @@ async function enregistrerAbsenceJour() {
 // ── INIT ──
 (async () => {
   await initProfil();
-  await Promise.all([chargerListe(), chargerGrilleQualif()]);
+  await Promise.all([chargerListe(), chargerGrilleQualif(), chargerSitesSelect()]);
 })();
 </script>
 </body>
