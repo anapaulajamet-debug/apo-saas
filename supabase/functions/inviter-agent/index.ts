@@ -34,6 +34,13 @@ Deno.serve(async (req) => {
 
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders })
 
+    // Chercher l'auth user nouvellement créé pour lier auth_user_id
+    const { data: usersData } = await supabase.auth.admin.listUsers()
+    const invited = usersData?.users?.find((u: { email?: string }) => u.email === agent.email)
+    if (invited?.id) {
+      await supabase.from('agents').update({ auth_user_id: invited.id }).eq('id', agent_id)
+    }
+
     return new Response(JSON.stringify({ success: true, email: agent.email }), { headers: corsHeaders })
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: corsHeaders })

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mon pointage — Cappolia Propreté</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --teal: #0d9488;
+      --teal-light: #f0fdfa;
+      --bordure: #e2e8f0;
+      --texte: #1e293b;
+      --gris: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: var(--texte); min-height: 100vh; }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--bordure);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo { font-size: 22px; }
+    .header-title { font-size: 16px; font-weight: 700; color: var(--teal); }
+    .header-sub { font-size: 12px; color: var(--gris); }
+
+    .content { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+
+    .agent-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--bordure);
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .agent-avatar { font-size: 48px; margin-bottom: 8px; }
+    .agent-name { font-size: 20px; font-weight: 700; }
+    .agent-role { font-size: 12px; color: var(--gris); margin-top: 4px; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gris);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .site-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--bordure);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .site-nom { font-weight: 600; font-size: 14px; }
+    .site-detail { font-size: 12px; color: var(--gris); margin-top: 4px; }
+    .site-creneau { font-size: 12px; color: var(--teal); margin-top: 6px; font-weight: 600; }
+
+    .btn-pointage {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: opacity 0.2s;
+    }
+    .btn-pointage:hover { opacity: 0.9; }
+    .btn-entree { background: var(--teal); color: white; }
+    .btn-sortie { background: #ef4444; color: white; }
+    .btn-disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+    .pointages-list { margin-top: 20px; }
+    .pointage-item {
+      background: white;
+      border-radius: 10px;
+      border: 1px solid var(--bordure);
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pointage-site { font-weight: 600; font-size: 13px; }
+    .pointage-heures { font-size: 12px; color: var(--gris); }
+    .pointage-duree { font-size: 13px; font-weight: 700; color: var(--teal); }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-encours { background: #fef3c7; color: #d97706; }
+    .badge-termine { background: #dcfce7; color: #16a34a; }
+
+    .loader { text-align: center; padding: 40px; color: var(--gris); }
+
+    .login-box {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--bordure);
+      padding: 32px 24px;
+      text-align: center;
+      max-width: 380px;
+      margin: 60px auto;
+    }
+    .login-box h2 { font-size: 20px; margin-bottom: 8px; }
+    .login-box p { color: var(--gris); font-size: 13px; margin-bottom: 24px; }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--bordure);
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--teal); }
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: var(--teal);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🧹</div>
+  <div>
+    <div class="header-title">Cappolia Propreté</div>
+    <div class="header-sub">Application agent</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="loader">Chargement…</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://zqehxwggzyepiftjrkxq.supabase.co'
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZWh4d2dnenllcGlmdGpya3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkwMDQ1NjQsImV4cCI6MjA0NDU4MDU2NH0.dRaJPVxNYsipJdFjuUPKuZpX0rA8Jf-UHoE5X2gXH08'
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+  function toast(msg) {
+    const el = document.getElementById('toast')
+    el.textContent = msg
+    el.classList.add('show')
+    setTimeout(() => el.classList.remove('show'), 3000)
+  }
+
+  function formatHeure(ts) {
+    if (!ts) return '—'
+    return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  function formatDate(ts) {
+    return new Date(ts).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  }
+
+  function dureeMinutes(debut, fin) {
+    const d = (new Date(fin) - new Date(debut)) / 60000
+    const h = Math.floor(d / 60), m = Math.round(d % 60)
+    return h > 0 ? `${h}h${m > 0 ? m.toString().padStart(2,'0') : ''}` : `${m}min`
+  }
+
+  async function renderLogin() {
+    document.getElementById('app').innerHTML = `
+      <div class="login-box">
+        <div style="font-size:40px;margin-bottom:16px">🔐</div>
+        <h2>Connexion agent</h2>
+        <p>Entrez votre email et votre mot de passe pour accéder à votre espace de pointage.</p>
+        <input class="form-input" type="email" id="loginEmail" placeholder="Votre email" />
+        <input class="form-input" type="password" id="loginMdp" placeholder="Votre mot de passe" />
+        <button class="btn-login" onclick="doLogin()">Se connecter</button>
+        <div id="loginErr" style="color:#ef4444;font-size:12px;margin-top:10px"></div>
+      </div>
+    `
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim()
+    const mdp = document.getElementById('loginMdp').value
+    const { error } = await sb.auth.signInWithPassword({ email, password: mdp })
+    if (error) {
+      document.getElementById('loginErr').textContent = 'Email ou mot de passe incorrect'
+    }
+  }
+
+  async function renderApp(user) {
+    const userId = user.id
+
+    // Charger le profil agent
+    const { data: agent } = await sb.from('agents')
+      .select('id, prenom, nom, email')
+      .eq('auth_user_id', userId)
+      .single()
+
+    if (!agent) {
+      document.getElementById('app').innerHTML = `<div class="loader">⚠️ Profil agent introuvable. Contactez votre responsable.</div>`
+      return
+    }
+
+    // Charger les sites affectés
+    const { data: sitesAgent } = await sb.from('agents_sites')
+      .select('*, sites(nom, adresse, duree_passage, frequence)')
+      .eq('agent_id', agent.id)
+      .order('created_at')
+
+    // Charger les pointages du jour
+    const today = new Date().toISOString().split('T')[0]
+    const { data: pointagesJour } = await sb.from('pointages')
+      .select('*')
+      .eq('agent_id', agent.id)
+      .gte('heure_entree', today + 'T00:00:00')
+      .order('heure_entree', { ascending: false })
+
+    renderMainUI(agent, sitesAgent || [], pointagesJour || [])
+  }
+
+  function renderMainUI(agent, sitesAgent, pointages) {
+    let sitesHtml = ''
+    if (sitesAgent.length === 0) {
+      sitesHtml = '<p style="color:var(--gris);font-size:13px;text-align:center;padding:20px">Aucun site affecté pour le moment.</p>'
+    } else {
+      sitesAgent.forEach(sa => {
+        const s = sa.sites
+        const enCours = pointages.find(p => p.site_id === sa.site_id && !p.heure_sortie)
+        const dejaSorti = pointages.find(p => p.site_id === sa.site_id && p.heure_sortie)
+
+        let creneauTxt = ''
+        if (sa.jour_passage) creneauTxt += sa.jour_passage
+        if (sa.heure_debut && sa.heure_fin) creneauTxt += (creneauTxt ? ' ' : '') + sa.heure_debut.slice(0,5) + '–' + sa.heure_fin.slice(0,5)
+        if (sa.duree_agent) creneauTxt += ` (${sa.duree_agent}h)`
+
+        let btnHtml = ''
+        if (enCours) {
+          btnHtml = `
+            <div style="font-size:12px;color:#d97706;font-weight:600;margin-top:8px">⏱ En cours depuis ${formatHeure(enCours.heure_entree)}</div>
+            <button class="btn-pointage btn-sortie" onclick="pointer('${sa.site_id}','sortie','${enCours.id}')">⏹ Pointer la sortie</button>
+          `
+        } else if (dejaSorti) {
+          btnHtml = `<div style="margin-top:8px"><span class="badge badge-termine">✅ Terminé — ${formatHeure(dejaSorti.heure_entree)} → ${formatHeure(dejaSorti.heure_sortie)}</span></div>`
+        } else {
+          btnHtml = `<button class="btn-pointage btn-entree" onclick="pointer('${sa.site_id}','entree')">▶ Pointer l'entrée</button>`
+        }
+
+        sitesHtml += `
+          <div class="site-card">
+            <div class="site-nom">📍 ${s?.nom || 'Site inconnu'}</div>
+            ${s?.adresse ? `<div class="site-detail">${s.adresse}</div>` : ''}
+            ${creneauTxt ? `<div class="site-creneau">🕐 ${creneauTxt}</div>` : ''}
+            ${btnHtml}
+          </div>
+        `
+      })
+    }
+
+    // Historique du jour
+    let histoHtml = ''
+    pointages.filter(p => p.heure_sortie).forEach(p => {
+      const site = sitesAgent.find(sa => sa.site_id === p.site_id)
+      const nomSite = site?.sites?.nom || p.site_id
+      histoHtml += `
+        <div class="pointage-item">
+          <div>
+            <div class="pointage-site">${nomSite}</div>
+            <div class="pointage-heures">${formatHeure(p.heure_entree)} → ${formatHeure(p.heure_sortie)}</div>
+          </div>
+          <div class="pointage-duree">${dureeMinutes(p.heure_entree, p.heure_sortie)}</div>
+        </div>
+      `
+    })
+
+    document.getElementById('app').innerHTML = `
+      <div class="content">
+        <div class="agent-card">
+          <div class="agent-avatar">👷</div>
+          <div class="agent-name">${agent.prenom} ${agent.nom}</div>
+          <div class="agent-role">Agent de propreté · ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+        </div>
+
+        <div class="section-title">Mes sites aujourd'hui</div>
+        ${sitesHtml}
+
+        ${histoHtml ? `
+          <div class="section-title" style="margin-top:24px">Pointages du jour</div>
+          <div class="pointages-list">${histoHtml}</div>
+        ` : ''}
+
+        <div style="text-align:center;margin-top:32px">
+          <button onclick="deconnecter()" style="background:none;border:none;color:var(--gris);font-size:12px;cursor:pointer;text-decoration:underline">Se déconnecter</button>
+        </div>
+      </div>
+    `
+
+    window._agentId = agent.id
+    window._sitesAgent = sitesAgent
+  }
+
+  async function pointer(siteId, type, pointageId) {
+    const agentId = window._agentId
+    if (type === 'entree') {
+      const { error } = await sb.from('pointages').insert({
+        agent_id: agentId,
+        site_id: siteId,
+        heure_entree: new Date().toISOString(),
+        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001'
+      })
+      if (error) { toast('❌ Erreur : ' + error.message); return }
+      toast('✅ Entrée pointée !')
+    } else {
+      const { error } = await sb.from('pointages').update({
+        heure_sortie: new Date().toISOString()
+      }).eq('id', pointageId)
+      if (error) { toast('❌ Erreur : ' + error.message); return }
+      toast('✅ Sortie pointée !')
+    }
+    // Recharger
+    const { data: { user } } = await sb.auth.getUser()
+    await renderApp(user)
+  }
+
+  async function deconnecter() {
+    await sb.auth.signOut()
+    renderLogin()
+  }
+
+  // Init
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      renderApp(session.user)
+    } else {
+      renderLogin()
+    }
+  })
+</script>
+</body>
+</html>
