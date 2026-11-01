@@ -893,11 +893,14 @@ function ajouterLigneSite(data) {
         ${siteOptsHtml(data?.site_id)}
       </select>
       <div id="ls${idx}_creneaux" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">${creneaux}</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <select class="form-input" id="ls${idx}_jour" style="flex:1">${joursOpts}</select>
-        <input class="form-input" type="time" id="ls${idx}_debut" style="flex:1" value="${data?.heure_debut?.slice(0,5)||''}" />
-        <input class="form-input" type="time" id="ls${idx}_fin" style="flex:1" value="${data?.heure_fin?.slice(0,5)||''}" />
-        <input class="form-input" type="number" id="ls${idx}_duree" style="width:80px" step="0.5" min="0.5" placeholder="Durée(h)" value="${data?.duree_agent||''}" title="Durée personnelle" />
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="form-input" id="ls${idx}_jour" style="flex:1;min-width:100px">${joursOpts}</select>
+        <input class="form-input" type="time" id="ls${idx}_debut" style="flex:1;min-width:90px" value="${data?.heure_debut?.slice(0,5)||''}" onchange="calcDureeAuto(${idx})" />
+        <input class="form-input" type="time" id="ls${idx}_fin" style="flex:1;min-width:90px" value="${data?.heure_fin?.slice(0,5)||''}" onchange="calcDureeAuto(${idx})" />
+        <div style="display:flex;align-items:center;gap:4px;min-width:110px">
+          <input class="form-input" type="number" id="ls${idx}_duree" style="width:70px" step="0.5" min="0.5" placeholder="h" value="${data?.duree_agent||''}" title="Durée de cet agent (binôme)" />
+          <span style="font-size:11px;color:var(--gris);white-space:nowrap">h agent</span>
+        </div>
       </div>
       <input type="hidden" id="ls${idx}_id" value="${data?.id||''}" />
     </div>`;
@@ -923,8 +926,7 @@ function onLigneSiteChange(idx) {
       `<button type="button" class="btn-creneau" onclick="appliquerCreneauLigne(${idx},'${j}','${h}','${fin}')">${j} ${h}–${fin}</button>`
     ).join('');
   }).join('');
-  const inputDuree = document.getElementById('ls'+idx+'_duree');
-  if (inputDuree && !inputDuree.value && site?.duree_passage) inputDuree.value = site.duree_passage;
+  // duree_agent calculé automatiquement via calcDureeAuto — on ne pré-remplit pas ici
 }
 
 function appliquerCreneauLigne(idx, jour, debut, fin) {
@@ -933,6 +935,19 @@ function appliquerCreneauLigne(idx, jour, debut, fin) {
   document.getElementById('ls'+idx+'_fin').value = fin;
   document.querySelectorAll('#ls'+idx+' .btn-creneau').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
+  calcDureeAuto(idx);
+}
+
+function calcDureeAuto(idx) {
+  const debut = document.getElementById('ls'+idx+'_debut')?.value;
+  const fin   = document.getElementById('ls'+idx+'_fin')?.value;
+  if (!debut || !fin) return;
+  const [hd, md] = debut.split(':').map(Number);
+  const [hf, mf] = fin.split(':').map(Number);
+  const totalMin = (hf * 60 + mf) - (hd * 60 + md);
+  if (totalMin <= 0) return;
+  const heures = Math.round(totalMin / 30) * 0.5; // arrondi au demi-heure
+  document.getElementById('ls'+idx+'_duree').value = heures;
 }
 
 function onQualifSelect(qualif) {
@@ -1751,13 +1766,14 @@ async function sauverCollab() {
 
 async function sauverSitesAgent(agentId) {
   const lignes = document.querySelectorAll('#listeSitesForm .ligne-site');
-  // Supprimer toutes les affectations existantes
   await sb.from('agents_sites').delete().eq('agent_id', agentId);
   const rows = [];
+  const sitesVus = new Set();
   lignes.forEach(lg => {
     const idx = lg.id.replace('ls','');
     const siteId = document.getElementById('ls'+idx+'_site')?.value;
-    if (!siteId) return;
+    if (!siteId || sitesVus.has(siteId)) return; // skip vide ou doublon
+    sitesVus.add(siteId);
     rows.push({
       agent_id:     agentId,
       site_id:      siteId,
@@ -1767,7 +1783,10 @@ async function sauverSitesAgent(agentId) {
       duree_agent:  parseFloat(document.getElementById('ls'+idx+'_duree')?.value) || null,
     });
   });
-  if (rows.length) await sb.from('agents_sites').insert(rows);
+  if (rows.length) {
+    const { error } = await sb.from('agents_sites').insert(rows);
+    if (error) { console.error('sauverSitesAgent:', error); toast('⚠️ Erreur sites : ' + error.message); }
+  }
 }
 
 let _apresAgentId = null;
