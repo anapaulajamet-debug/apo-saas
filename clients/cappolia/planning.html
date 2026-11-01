@@ -276,7 +276,7 @@ let _offset = 0; // semaines ou mois
 let _agents = [];
 let _sites  = {};
 let _plans  = [];
-let _agentSites = {};
+let _agentSites = {}; // agent_id → [{site_id, jour_passage, heure_debut, heure_fin, duree_agent}]
 
 const COULEURS = ['c0','c1','c2','c3','c4','c5','c6','c7'];
 const COULEURS_AVATAR = [
@@ -345,31 +345,21 @@ async function deconnexion() { await sb.auth.signOut(); window.location.href = '
 
 // ── CHARGEMENT ────────────────────────────────────────────────────────────────
 async function charger() {
-  const { debut, fin } = periodeActive();
-  const [{ data: agents }, { data: plans }, { data: sites }, { data: allPlans }] = await Promise.all([
-    sb.from('agents').select('id,nom,prenom,photo_url,jours_travailles,heures_par_jour,volume_horaire,site_principal_id').eq('tenant_id', TENANT).order('nom'),
-    sb.from('planning').select('id,agent_id,date,heure_debut,heure_fin,site_id').eq('tenant_id', TENANT).gte('date', debut).lte('date', fin).order('date'),
+  const [{ data: agents }, { data: sites }, { data: agentsSitesRaw }] = await Promise.all([
+    sb.from('agents').select('id,nom,prenom,photo_url,date_entree,volume_horaire').eq('tenant_id', TENANT).order('nom'),
     sb.from('sites').select('id,nom,adresse').eq('tenant_id', TENANT),
-    sb.from('planning').select('agent_id,site_id').eq('tenant_id', TENANT).not('site_id', 'is', null),
+    sb.from('agents_sites').select('agent_id,site_id,jour_passage,heure_debut,heure_fin,duree_agent'),
   ]);
   _agents = agents || [];
-  _plans  = plans  || [];
+  _plans  = []; // plus utilisée — on passe par agents_sites
   _sites  = {};
   (sites||[]).forEach(s => _sites[s.id] = s);
 
-  // Sites par agent (depuis tout l'historique planning)
+  // Sites par agent depuis agents_sites
   _agentSites = {};
-  (allPlans||[]).forEach(p => {
-    if (!p.site_id) return;
-    if (!_agentSites[p.agent_id]) _agentSites[p.agent_id] = new Set();
-    _agentSites[p.agent_id].add(p.site_id);
-  });
-  // Ajouter site_principal_id si pas déjà présent
-  (_agents||[]).forEach(a => {
-    if (a.site_principal_id) {
-      if (!_agentSites[a.id]) _agentSites[a.id] = new Set();
-      _agentSites[a.id].add(a.site_principal_id);
-    }
+  (agentsSitesRaw||[]).forEach(as => {
+    if (!_agentSites[as.agent_id]) _agentSites[as.agent_id] = [];
+    _agentSites[as.agent_id].push(as);
   });
 
   // Filtres agents — multi-select
@@ -480,18 +470,13 @@ function afficher() {
 }
 
 // ── VUE SEMAINE ───────────────────────────────────────────────────────────────
+const JOUR_TO_NUM = {'Lundi':1,'Mardi':2,'Mercredi':3,'Jeudi':4,'Vendredi':5,'Samedi':6,'Dimanche':0};
+
 function afficherSemaine(agents, plans, lundi) {
   const today = dateStr(new Date());
   const jours = Array.from({length:7}, (_,i) => {
     const d = new Date(lundi); d.setDate(d.getDate()+i);
     return { d, str: dateStr(d) };
-  });
-
-  const planParAgent = {};
-  plans.forEach(p => {
-    if (!planParAgent[p.agent_id]) planParAgent[p.agent_id] = {};
-    if (!planParAgent[p.agent_id][p.date]) planParAgent[p.agent_id][p.date] = [];
-    planParAgent[p.agent_id][p.date].push(p);
   });
 
   let html = `<div class="planning-grid">
@@ -513,43 +498,45 @@ function afficherSemaine(agents, plans, lundi) {
       const couleur = COULEURS[idx % COULEURS.length];
       const avatarC = COULEURS_AVATAR[idx % COULEURS_AVATAR.length];
       const initiales = ((a.prenom?.[0]||'')+(a.nom?.[0]||'')).toUpperCase();
-      const nom = `${a.prenom||''} ${a.nom||''}`.trim();
+      const sitesAgent = _agentSites[a.id] || [];
+
+      // Map jour → sites affectés
+      const siteParJour = {};
+      sitesAgent.forEach(sa => {
+        const num = JOUR_TO_NUM[sa.jour_passage];
+        if (num === undefined) return;
+        if (!siteParJour[num]) siteParJour[num] = [];
+        siteParJour[num].push(sa);
+      });
+
       html += `<div class="grid-row cols8">
         <div class="grid-cell-agent">
           <div class="agent-avatar-sm" style="background:${avatarC.bg};color:${avatarC.txt};">${initiales}</div>
           <div class="agent-name-txt"><span style="font-size:12px;font-weight:700;color:var(--teal-dark);">${a.prenom||''}</span><br><span style="font-size:11px;font-weight:500;color:#6B7280;">${a.nom||''}</span></div>
         </div>`;
+
       jours.forEach((j, ji) => {
         const isWE = ji >= 5;
         const isToday = j.str === today;
-        const crens = planParAgent[a.id]?.[j.str] || [];
+        const avantEmbauche = a.date_entree && j.str < a.date_entree;
+        const jourSem = j.d.getDay();
+        const sitesJour = siteParJour[jourSem] || [];
+
         html += `<div class="grid-cell${isWE?' we':''}${isToday?' today-col':''}">`;
-        if (crens.length) {
-          crens.forEach(p => {
-            const siteNom = _sites[p.site_id]?.nom || '—';
-            const h1 = (p.heure_debut||'').slice(0,5);
-            const h2 = (p.heure_fin||'').slice(0,5);
-            html += `<div class="creneau ${couleur}" title="${siteNom}">
-              <span class="cr-heure">${h1}${h2?'–'+h2:''}</span>
+        if (avantEmbauche) {
+          html += `<div style="font-size:9px;color:#cbd5e1;font-style:italic;padding:4px;">avant contrat</div>`;
+        } else if (sitesJour.length) {
+          sitesJour.forEach(sa => {
+            const siteNom = _sites[sa.site_id]?.nom || '—';
+            const h1 = (sa.heure_debut||'').slice(0,5);
+            const h2 = (sa.heure_fin||'').slice(0,5);
+            const duree = sa.duree_agent ? ` · ${sa.duree_agent}h` : '';
+            html += `<div class="creneau ${couleur}" style="opacity:.85;" title="${siteNom}">
+              <span class="cr-heure">📋 Contrat${duree}</span>
               <span class="cr-site">🏢 ${esc(siteNom)}</span>
+              ${h1 ? `<span class="cr-heure" style="font-size:9px;opacity:.8;">${h1}${h2?'–'+h2:''}</span>` : ''}
             </div>`;
           });
-        } else {
-          // Contrat : afficher indicateur si jour travaillé
-          const JOUR_MAP = {'Lun':1,'Mar':2,'Mer':3,'Jeu':4,'Ven':5,'Sam':6,'Dim':0};
-          const joursRaw = Array.isArray(a.jours_travailles) ? a.jours_travailles : (a.jours_travailles ? a.jours_travailles.split(',') : []);
-          const joursTravailles = joursRaw.map(s => JOUR_MAP[String(s).trim()]).filter(x => x !== undefined);
-          const jourSem = j.d.getDay();
-          const isTravaille = joursTravailles.includes(jourSem);
-          const hContrat = a.heures_par_jour ? parseFloat(a.heures_par_jour) : (parseFloat(a.volume_horaire) && joursTravailles.length ? parseFloat(a.volume_horaire)/joursTravailles.length : 0);
-          if (isTravaille) {
-            const siteIds = _agentSites[a.id] ? [..._agentSites[a.id]] : [];
-            const sitesNoms = siteIds.map(sid => _sites[sid]?.nom).filter(Boolean);
-            html += `<div class="creneau ${couleur}" style="opacity:.8;">
-              <span class="cr-heure">📋 Contrat${hContrat ? ' · '+hContrat.toFixed(1)+'h' : ''}</span>
-              ${sitesNoms.map(n => `<span class="cr-site">🏢 ${n}</span>`).join('')}
-            </div>`;
-          }
         }
         html += '</div>';
       });
@@ -570,16 +557,20 @@ function afficherMois(agents, plans, debut) {
   const premierJourSem = debutDate.getDay();
   const decalage = premierJourSem === 0 ? 6 : premierJourSem - 1;
 
-  const planParDate = {};
-  plans.forEach(p => {
-    if (!planParDate[p.date]) planParDate[p.date] = [];
-    planParDate[p.date].push(p);
-  });
-
   const agentCouleur = {};
   agents.forEach((a,i) => { agentCouleur[a.id] = COULEURS[i % COULEURS.length]; });
-  const agentNom = {};
-  agents.forEach(a => { agentNom[a.id] = `${a.prenom?.[0]||''}. ${a.nom||''}`; });
+
+  // Pour chaque agent : quels jours de semaine travaille-t-il ?
+  const agentJours = {}; // agent_id → Map<jourSem, [sa, ...]>
+  agents.forEach(a => {
+    agentJours[a.id] = {};
+    (_agentSites[a.id]||[]).forEach(sa => {
+      const num = JOUR_TO_NUM[sa.jour_passage];
+      if (num === undefined) return;
+      if (!agentJours[a.id][num]) agentJours[a.id][num] = [];
+      agentJours[a.id][num].push(sa);
+    });
+  });
 
   let html = '<div class="month-grid">';
   JOURS_COURTS.forEach((j,i) => {
@@ -591,17 +582,24 @@ function afficherMois(agents, plans, debut) {
     const jourSem = new Date(ds+'T00:00:00').getDay();
     const isWE = jourSem === 0 || jourSem === 6;
     const isToday = ds === today;
-    const crens = planParDate[ds] || [];
+
+    // Agents travaillant ce jour (avec filtre date_entree)
+    const agentsJour = agents.filter(a => {
+      if (a.date_entree && ds < a.date_entree) return false;
+      return (agentJours[a.id]?.[jourSem]||[]).length > 0;
+    });
+
     html += `<div class="month-cell${isWE?' we-cell':''}">
       <div class="month-num${isToday?' today-num':''}">${d}</div>`;
     const max = 3;
-    crens.slice(0, max).forEach(p => {
-      const nom = agentNom[p.agent_id] || '?';
-      const site = _sites[p.site_id]?.nom || '—';
-      const cls = agentCouleur[p.agent_id] || 'c0';
-      html += `<div class="month-chip ${cls}" title="${esc(nom)} — ${esc(site)}">${esc(nom)}</div>`;
+    agentsJour.slice(0, max).forEach(a => {
+      const sitesJour = agentJours[a.id][jourSem] || [];
+      const siteNom = _sites[sitesJour[0]?.site_id]?.nom || '';
+      const cls = agentCouleur[a.id] || 'c0';
+      const nomCourt = `${a.prenom?.[0]||''}. ${a.nom||''}`;
+      html += `<div class="month-chip ${cls}" title="${esc(nomCourt)}${siteNom?' — '+siteNom:''}">${esc(nomCourt)}</div>`;
     });
-    if (crens.length > max) html += `<div class="more-chips">+${crens.length-max} autres</div>`;
+    if (agentsJour.length > max) html += `<div class="more-chips">+${agentsJour.length-max} autres</div>`;
     html += '</div>';
   }
   html += '</div>';
