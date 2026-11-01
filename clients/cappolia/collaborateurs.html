@@ -202,6 +202,11 @@
     .btn-creneau { padding:5px 10px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:11px; cursor:pointer; white-space:nowrap; }
     .btn-creneau:hover { border-color:var(--teal); color:var(--teal); }
     .btn-creneau.active { background:var(--teal); color:#fff; border-color:var(--teal); }
+    .btn-ajouter-site { margin-top:8px; padding:6px 14px; border:1.5px dashed var(--teal); background:transparent; color:var(--teal); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+    .ligne-site { background:#f8f9fa; border-radius:10px; padding:12px; margin-bottom:10px; position:relative; }
+    .ligne-site .suppr-site { position:absolute; top:8px; right:10px; background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; line-height:1; }
+    .ligne-site .suppr-site:hover { color:#e53e3e; }
+    .ligne-site select, .ligne-site input { margin-bottom:6px; }
     .btn-annuler { padding:9px 18px; border:1.5px solid var(--bordure); background:#fff; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-sauver { padding:9px 18px; background:var(--teal); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
 
@@ -489,24 +494,9 @@
       <div class="form-item"><label class="form-label">N° Sécurité sociale</label><input class="form-input" id="fNumeroSS" placeholder="1 85 06 …" /></div>
       <div class="form-item"><label class="form-label">Solde CP (jours)</label><input class="form-input" type="number" id="fSoldeCp" placeholder="0" step="0.5" /></div>
       <div class="form-item full">
-        <label class="form-label">📍 Site client affecté</label>
-        <select class="form-input" id="fSitePrincipal" onchange="onSiteSelect(this.value)">
-          <option value="">— Aucun site —</option>
-        </select>
-      </div>
-      <div class="form-item full" id="zoneCreneaux" style="display:none">
-        <label class="form-label">🕐 Créneau de passage</label>
-        <div id="creneauxSuggeres" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <select class="form-input" id="fJourPassage" style="flex:1">
-            <option value="">— Jour —</option>
-            <option>Lundi</option><option>Mardi</option><option>Mercredi</option>
-            <option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option>
-          </select>
-          <input class="form-input" type="time" id="fHeureDebut" style="flex:1" placeholder="Début" />
-          <input class="form-input" type="time" id="fHeureFin" style="flex:1" placeholder="Fin" />
-          <input class="form-input" type="number" id="fDureeAgent" style="width:80px" step="0.5" min="0.5" placeholder="Durée (h)" title="Durée personnelle (binôme)" />
-        </div>
+        <label class="form-label">📍 Sites clients affectés</label>
+        <div id="listeSitesForm"></div>
+        <button type="button" class="btn-ajouter-site" onclick="ajouterLigneSite()">+ Ajouter un site</button>
       </div>
     </div>
     <div class="modal-actions">
@@ -863,32 +853,84 @@ async function chargerSitesSelect() {
     + _sitesActifs.map(s => `<option value="${s.id}">${siteLabel(s)}</option>`).join('');
   const selApres = document.getElementById('apresSite');
   if (selApres) selApres.innerHTML = opts.replace('— Aucun site —', '— Sélectionner un site (optionnel) —');
-  const selForm = document.getElementById('fSitePrincipal');
-  if (selForm) selForm.innerHTML = opts;
+  // selForm n'existe plus (remplacé par liste dynamique)
 }
 
-const CRENEAUX_TYPES = ['06:00','07:00','17:00','18:00'];
-function onSiteSelect(siteId) {
-  const zone = document.getElementById('zoneCreneaux');
-  if (!siteId) { zone.style.display = 'none'; return; }
-  zone.style.display = '';
-  const site = _sitesActifs.find(s => s.id === siteId);
-  const duree = parseFloat(site?.duree_passage) || 2;
-  const box = document.getElementById('creneauxSuggeres');
-  box.innerHTML = CRENEAUX_TYPES.map(h => {
-    const [hh, mm] = h.split(':').map(Number);
-    const fin = String(hh + Math.floor(duree)).padStart(2,'0') + ':' + String(mm + Math.round((duree % 1)*60)).padStart(2,'0');
-    const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
-    return jours.map(j =>
-      `<button type="button" class="btn-creneau" onclick="appliquerCreneau('${j}','${h}','${fin}')">${j} ${h}–${fin}</button>`
+// ── MULTI-SITES ──
+let _lignesSiteIdx = 0;
+
+function siteOptsHtml(selectedId) {
+  return '<option value="">— Aucun site —</option>'
+    + _sitesActifs.map(s => {
+        const sel = s.id === selectedId ? ' selected' : '';
+        let label = s.nom;
+        if (s.adresse) label += ' — ' + s.adresse;
+        const det = [s.duree_passage ? s.duree_passage+'h' : null, s.frequence||null].filter(Boolean).join(' · ');
+        if (det) label += ' (' + det + ')';
+        return `<option value="${s.id}"${sel}>${label}</option>`;
+      }).join('');
+}
+
+function ajouterLigneSite(data) {
+  const idx = _lignesSiteIdx++;
+  const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const joursOpts = '<option value="">— Jour —</option>' + jours.map(j =>
+    `<option${data?.jour_passage===j?' selected':''}>${j}</option>`).join('');
+  const creneaux = ['06:00','07:00','17:00','18:00'].map(h => {
+    const site = data?.site_id ? _sitesActifs.find(s=>s.id===data.site_id) : null;
+    const duree = parseFloat(site?.duree_passage)||2;
+    const [hh,mm] = h.split(':').map(Number);
+    const fin = String(hh+Math.floor(duree)).padStart(2,'0')+':'+String(mm+Math.round((duree%1)*60)).padStart(2,'0');
+    return jours.slice(0,5).map(j =>
+      `<button type="button" class="btn-creneau" onclick="appliquerCreneauLigne(${idx},'${j}','${h}','${fin}')">${j} ${h}–${fin}</button>`
     ).join('');
   }).join('');
+  const html = `
+    <div class="ligne-site" id="ls${idx}">
+      <button type="button" class="suppr-site" onclick="supprimerLigneSite(${idx})">×</button>
+      <select class="form-input" id="ls${idx}_site" onchange="onLigneSiteChange(${idx})">
+        ${siteOptsHtml(data?.site_id)}
+      </select>
+      <div id="ls${idx}_creneaux" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">${creneaux}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="form-input" id="ls${idx}_jour" style="flex:1">${joursOpts}</select>
+        <input class="form-input" type="time" id="ls${idx}_debut" style="flex:1" value="${data?.heure_debut?.slice(0,5)||''}" />
+        <input class="form-input" type="time" id="ls${idx}_fin" style="flex:1" value="${data?.heure_fin?.slice(0,5)||''}" />
+        <input class="form-input" type="number" id="ls${idx}_duree" style="width:80px" step="0.5" min="0.5" placeholder="Durée(h)" value="${data?.duree_agent||''}" title="Durée personnelle" />
+      </div>
+      <input type="hidden" id="ls${idx}_id" value="${data?.id||''}" />
+    </div>`;
+  document.getElementById('listeSitesForm').insertAdjacentHTML('beforeend', html);
+  if (data?.site_id) onLigneSiteChange(idx);
 }
-function appliquerCreneau(jour, debut, fin) {
-  document.getElementById('fJourPassage').value = jour;
-  document.getElementById('fHeureDebut').value = debut;
-  document.getElementById('fHeureFin').value = fin;
-  document.querySelectorAll('.btn-creneau').forEach(b => b.classList.remove('active'));
+
+function supprimerLigneSite(idx) {
+  document.getElementById('ls'+idx)?.remove();
+}
+
+function onLigneSiteChange(idx) {
+  const siteId = document.getElementById('ls'+idx+'_site').value;
+  const site = _sitesActifs.find(s=>s.id===siteId);
+  const duree = parseFloat(site?.duree_passage)||2;
+  const box = document.getElementById('ls'+idx+'_creneaux');
+  if (!siteId) { box.innerHTML=''; return; }
+  const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+  box.innerHTML = ['06:00','07:00','17:00','18:00'].map(h => {
+    const [hh,mm] = h.split(':').map(Number);
+    const fin = String(hh+Math.floor(duree)).padStart(2,'0')+':'+String(mm+Math.round((duree%1)*60)).padStart(2,'0');
+    return jours.map(j =>
+      `<button type="button" class="btn-creneau" onclick="appliquerCreneauLigne(${idx},'${j}','${h}','${fin}')">${j} ${h}–${fin}</button>`
+    ).join('');
+  }).join('');
+  const inputDuree = document.getElementById('ls'+idx+'_duree');
+  if (inputDuree && !inputDuree.value && site?.duree_passage) inputDuree.value = site.duree_passage;
+}
+
+function appliquerCreneauLigne(idx, jour, debut, fin) {
+  document.getElementById('ls'+idx+'_jour').value = jour;
+  document.getElementById('ls'+idx+'_debut').value = debut;
+  document.getElementById('ls'+idx+'_fin').value = fin;
+  document.querySelectorAll('#ls'+idx+' .btn-creneau').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
 }
 
@@ -1568,6 +1610,8 @@ function ouvrirModalNouveau() {
   document.getElementById('fTypeContrat').value = '';
   document.getElementById('fDateNaissance').value = '';
   document.getElementById('fDateEntree').value = '';
+  document.getElementById('listeSitesForm').innerHTML = '';
+  _lignesSiteIdx = 0;
   document.getElementById('modalCollabOverlay').classList.add('visible');
 }
 
@@ -1604,13 +1648,17 @@ function ouvrirModalEdition() {
   document.getElementById('fCoefficient').value = c.coefficient || '';
   document.getElementById('fNumeroSS').value = c.numero_ss || '';
   document.getElementById('fSoldeCp').value = c.solde_cp ?? '';
-  document.getElementById('fSitePrincipal').value = c.site_principal_id || '';
-  if (c.site_principal_id) {
-    onSiteSelect(c.site_principal_id);
-    document.getElementById('fJourPassage').value = c.jour_passage || '';
-    document.getElementById('fHeureDebut').value  = c.heure_debut  ? c.heure_debut.slice(0,5) : '';
-    document.getElementById('fHeureFin').value    = c.heure_fin    ? c.heure_fin.slice(0,5)   : '';
-    document.getElementById('fDureeAgent').value  = c.duree_agent  ?? '';
+  // Charger les sites affectés
+  document.getElementById('listeSitesForm').innerHTML = '';
+  _lignesSiteIdx = 0;
+  const { data: sitesAgent } = await sb.from('agents_sites')
+    .select('*').eq('agent_id', c.id).order('created_at');
+  if (sitesAgent?.length) {
+    sitesAgent.forEach(s => ajouterLigneSite(s));
+  } else if (c.site_principal_id) {
+    // Compat ancien champ unique
+    ajouterLigneSite({ site_id: c.site_principal_id, jour_passage: c.jour_passage,
+      heure_debut: c.heure_debut, heure_fin: c.heure_fin, duree_agent: c.duree_agent });
   }
   document.getElementById('modalCollabOverlay').classList.add('visible');
 }
@@ -1639,14 +1687,9 @@ async function sauverCollab() {
     coefficient:     document.getElementById('fCoefficient').value.trim() || null,
     numero_ss:       document.getElementById('fNumeroSS').value.trim() || null,
     solde_cp:          parseFloat(document.getElementById('fSoldeCp').value) || null,
-    site_principal_id: document.getElementById('fSitePrincipal').value || null,
-    jour_passage:      document.getElementById('fJourPassage').value || null,
-    heure_debut:       document.getElementById('fHeureDebut').value || null,
-    heure_fin:         document.getElementById('fHeureFin').value || null,
-    duree_agent:       parseFloat(document.getElementById('fDureeAgent').value) || null,
   };
 
-  let error;
+  let error, agentId = _editId;
   if (_editMode && _editId) {
     ({ error } = await sb.from('agents').update(payload).eq('id', _editId));
   } else {
@@ -1656,15 +1699,17 @@ async function sauverCollab() {
 
   if (error) { toast('❌ ' + error.message); return; }
 
+  // Sauvegarder les affectations sites
   if (!_editMode) {
-    // Récupérer l'id du nouvel agent
     const { data: inserted } = await sb.from('agents')
       .select('id').eq('tenant_id', TENANT).eq('nom', nom).eq('prenom', prenom)
       .order('created_at', { ascending: false }).limit(1).single();
+    agentId = inserted?.id || null;
+    if (agentId) await sauverSitesAgent(agentId);
     fermerModalCollab();
     await chargerListe();
     // Ouvrir le modal après-création
-    _apresAgentId = inserted?.id || null;
+    _apresAgentId = agentId;
     document.getElementById('apresNomCollab').textContent = prenom + ' ' + nom;
     ['CNI','RIB','Vitale','Permis'].forEach(d => {
       document.getElementById('ap'+d+'Ok').style.display = 'none';
@@ -1674,11 +1719,33 @@ async function sauverCollab() {
     document.getElementById('apresDocErr').style.display = 'none';
     document.getElementById('modalApresCreation').style.display = 'flex';
   } else {
+    if (agentId) await sauverSitesAgent(agentId);
     toast('✅ Fiche mise à jour !');
     fermerModalCollab();
     await chargerListe();
     if (_editId) await ouvrirFiche(_editId);
   }
+}
+
+async function sauverSitesAgent(agentId) {
+  const lignes = document.querySelectorAll('#listeSitesForm .ligne-site');
+  // Supprimer toutes les affectations existantes
+  await sb.from('agents_sites').delete().eq('agent_id', agentId);
+  const rows = [];
+  lignes.forEach(lg => {
+    const idx = lg.id.replace('ls','');
+    const siteId = document.getElementById('ls'+idx+'_site')?.value;
+    if (!siteId) return;
+    rows.push({
+      agent_id:     agentId,
+      site_id:      siteId,
+      jour_passage: document.getElementById('ls'+idx+'_jour')?.value  || null,
+      heure_debut:  document.getElementById('ls'+idx+'_debut')?.value || null,
+      heure_fin:    document.getElementById('ls'+idx+'_fin')?.value   || null,
+      duree_agent:  parseFloat(document.getElementById('ls'+idx+'_duree')?.value) || null,
+    });
+  });
+  if (rows.length) await sb.from('agents_sites').insert(rows);
 }
 
 let _apresAgentId = null;
