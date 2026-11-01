@@ -485,6 +485,12 @@
       <div class="form-item"><label class="form-label">Coefficient</label><input class="form-input" id="fCoefficient" placeholder="150" /></div>
       <div class="form-item"><label class="form-label">N° Sécurité sociale</label><input class="form-input" id="fNumeroSS" placeholder="1 85 06 …" /></div>
       <div class="form-item"><label class="form-label">Solde CP (jours)</label><input class="form-input" type="number" id="fSoldeCp" placeholder="0" step="0.5" /></div>
+      <div class="form-item full">
+        <label class="form-label">📍 Site client affecté</label>
+        <select class="form-input" id="fSitePrincipal">
+          <option value="">— Aucun site —</option>
+        </select>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-annuler" onclick="fermerModalCollab()">Annuler</button>
@@ -821,16 +827,20 @@ async function chargerGrilleQualif() {
 }
 
 // ── SITES ACTIFS → select affectation ──
+let _sitesActifs = [];
 async function chargerSitesSelect() {
   const { data } = await sb.from('sites')
     .select('id,nom,adresse')
     .eq('tenant_id', TENANT)
     .not('statut_contrat', 'in', '("resilie","inactif")')
     .order('nom');
-  const sel = document.getElementById('apresSite');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Sélectionner un site (optionnel) —</option>'
-    + (data||[]).map(s => `<option value="${s.id}">${s.nom}${s.adresse ? ' — ' + s.adresse : ''}</option>`).join('');
+  _sitesActifs = data || [];
+  const opts = '<option value="">— Aucun site —</option>'
+    + _sitesActifs.map(s => `<option value="${s.id}">${s.nom}${s.adresse ? ' — ' + s.adresse : ''}</option>`).join('');
+  const selApres = document.getElementById('apresSite');
+  if (selApres) selApres.innerHTML = opts.replace('— Aucun site —', '— Sélectionner un site (optionnel) —');
+  const selForm = document.getElementById('fSitePrincipal');
+  if (selForm) selForm.innerHTML = opts;
 }
 
 function onQualifSelect(qualif) {
@@ -1538,6 +1548,7 @@ function ouvrirModalEdition() {
   document.getElementById('fCoefficient').value = c.coefficient || '';
   document.getElementById('fNumeroSS').value = c.numero_ss || '';
   document.getElementById('fSoldeCp').value = c.solde_cp ?? '';
+  document.getElementById('fSitePrincipal').value = c.site_principal_id || '';
   document.getElementById('modalCollabOverlay').classList.add('visible');
 }
 
@@ -1564,7 +1575,8 @@ async function sauverCollab() {
     filiere_ccn:      document.getElementById('fFiliereCcn').value.trim() || null,
     coefficient:     document.getElementById('fCoefficient').value.trim() || null,
     numero_ss:       document.getElementById('fNumeroSS').value.trim() || null,
-    solde_cp:        parseFloat(document.getElementById('fSoldeCp').value) || null,
+    solde_cp:          parseFloat(document.getElementById('fSoldeCp').value) || null,
+    site_principal_id: document.getElementById('fSitePrincipal').value || null,
   };
 
   let error;
