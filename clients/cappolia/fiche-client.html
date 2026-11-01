@@ -234,6 +234,7 @@
         <div><label>CA mensuel HT (€)</label><input id="mCA" type="number" step="0.01" placeholder="0.00"></div>
         <div><label>Coût main d'œuvre (€)</label><input id="mMO" type="number" step="0.01" placeholder="0.00"></div>
         <div class="form-full"><label>Date de début</label><input id="mDateDebut" type="date"></div>
+        <div class="form-full"><label>Nom du contact client</label><input id="mContactNom" placeholder="ex: Sophie Guillemaux"></div>
         <div class="form-full"><label>SIREN / RCS du client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
       </div>
       <div class="modal-actions">
@@ -707,10 +708,10 @@
     document.getElementById('btnModif').addEventListener('click', async () => {
       // Pré-remplir le modal avec les données actuelles
       const { data: site } = await sb.from('sites')
-        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre')
+        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre,contact_nom,siren')
         .eq('id', siteId).single();
       if (site) {
-        document.getElementById('mFrequence').value   = site.frequence || '';
+        document.getElementById('mFrequence').value    = site.frequence || '';
         document.getElementById('mDuree').value        = site.duree_passage || '';
         document.getElementById('mJours').value        = site.jours_intervention || '';
         document.getElementById('mHeureDebut').value   = site.heure_debut || '';
@@ -720,6 +721,7 @@
         document.getElementById('mCA').value           = site.ca_mensuel || '';
         document.getElementById('mMO').value           = site.cout_main_oeuvre || '';
         document.getElementById('mDateDebut').value    = site.date_debut || '';
+        document.getElementById('mContactNom').value   = site.contact_nom || '';
         document.getElementById('mSiren').value        = site.siren || '';
       }
       document.getElementById('modalContrat').classList.add('open');
@@ -739,6 +741,7 @@
         ca_mensuel:           parseFloat(document.getElementById('mCA').value) || null,
         cout_main_oeuvre:     parseFloat(document.getElementById('mMO').value) || null,
         date_debut:           document.getElementById('mDateDebut').value || null,
+        contact_nom:          document.getElementById('mContactNom').value.trim() || null,
         siren:                document.getElementById('mSiren').value.trim() || null,
       };
       const { error } = await sb.from('sites').update(payload).eq('id', siteId);
