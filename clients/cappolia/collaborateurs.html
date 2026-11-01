@@ -493,6 +493,89 @@
   </div>
 </div>
 
+<!-- ═══ MODAL APRÈS-CRÉATION ═══ -->
+<div class="modal-overlay" id="modalApresCreation" style="display:none;">
+  <div class="modal-box" style="width:460px;">
+    <div class="modal-header">
+      <span>✅ Collaborateur créé — Étapes suivantes</span>
+      <button class="modal-fermer" onclick="document.getElementById('modalApresCreation').style.display='none'">×</button>
+    </div>
+    <div style="padding:20px 22px;">
+      <p style="font-size:13px;color:var(--gris-texte);margin:0 0 18px;">Le dossier de <strong id="apresNomCollab"></strong> a été créé. Souhaitez-vous :</p>
+
+      <!-- Pièces justificatives -->
+      <div style="border:1.5px solid var(--bordure);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📎 Pièces justificatives</div>
+        <div style="display:flex;flex-direction:column;gap:10px;" id="apresDocsListe">
+          <!-- CNI -->
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;">🪪 Carte d'identité <span style="color:var(--rouge);font-size:10px;">obligatoire</span></span>
+            <div style="display:flex;gap:6px;">
+              <input type="file" id="apCNI" accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="apresUploadDoc(this,'CNI')">
+              <input type="file" id="apCNICam" accept="image/*" capture="environment" style="display:none;" onchange="apresUploadDoc(this,'CNI')">
+              <button type="button" onclick="document.getElementById('apCNI').click()" class="btn-doc-import">📁</button>
+              <button type="button" onclick="document.getElementById('apCNICam').click()" class="btn-doc-photo">📷</button>
+              <span id="apCNIOk" style="display:none;color:var(--teal);font-size:18px;">✓</span>
+            </div>
+          </div>
+          <!-- RIB -->
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;">🏦 RIB <span style="color:var(--rouge);font-size:10px;">obligatoire</span></span>
+            <div style="display:flex;gap:6px;">
+              <input type="file" id="apRIB" accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="apresUploadDoc(this,'RIB')">
+              <input type="file" id="apRIBCam" accept="image/*" capture="environment" style="display:none;" onchange="apresUploadDoc(this,'RIB')">
+              <button type="button" onclick="document.getElementById('apRIB').click()" class="btn-doc-import">📁</button>
+              <button type="button" onclick="document.getElementById('apRIBCam').click()" class="btn-doc-photo">📷</button>
+              <span id="apRIBOk" style="display:none;color:var(--teal);font-size:18px;">✓</span>
+            </div>
+          </div>
+          <!-- Vitale -->
+          <div style="display:flex;align-items:center;justify-content:space-between;" id="apVitaleRow">
+            <span style="font-size:12px;">💳 Carte Vitale <span style="color:var(--rouge);font-size:10px;">obligatoire</span></span>
+            <div style="display:flex;gap:6px;">
+              <input type="file" id="apVitale" accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="apresUploadDoc(this,'Vitale')">
+              <input type="file" id="apVitaleCam" accept="image/*" capture="environment" style="display:none;" onchange="apresUploadDoc(this,'Vitale')">
+              <button type="button" onclick="document.getElementById('apVitale').click()" class="btn-doc-import">📁</button>
+              <button type="button" onclick="document.getElementById('apVitaleCam').click()" class="btn-doc-photo">📷</button>
+              <span id="apVitaleOk" style="display:none;color:var(--teal);font-size:18px;">✓</span>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--gris-doux);">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="apAffiliation" onchange="toggleApAffiliation(this.checked)">
+              Demande d'affiliation CPAM (agent étranger — Vitale non requise)
+            </label>
+          </div>
+          <!-- Permis -->
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;">🚗 Permis de conduire <span style="color:var(--gris-doux);font-size:10px;">optionnel</span></span>
+            <div style="display:flex;gap:6px;">
+              <input type="file" id="apPermis" accept="image/*,application/pdf,.heic,.heif" style="display:none;" onchange="apresUploadDoc(this,'Permis')">
+              <input type="file" id="apPermisCam" accept="image/*" capture="environment" style="display:none;" onchange="apresUploadDoc(this,'Permis')">
+              <button type="button" onclick="document.getElementById('apPermis').click()" class="btn-doc-import">📁</button>
+              <button type="button" onclick="document.getElementById('apPermisCam').click()" class="btn-doc-photo">📷</button>
+              <span id="apPermisOk" style="display:none;color:var(--teal);font-size:18px;">✓</span>
+            </div>
+          </div>
+        </div>
+        <div id="apresDocErr" style="display:none;color:var(--rouge);font-size:12px;margin-top:10px;"></div>
+      </div>
+
+      <!-- Contrat -->
+      <div style="border:1.5px solid var(--bordure);border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📑 Contrat de travail</div>
+        <p style="font-size:12px;color:var(--gris-doux);margin:0 0 10px;">Générer et envoyer le contrat à la signature ?</p>
+        <div style="display:flex;gap:8px;">
+          <button onclick="apresGenererContrat()" style="flex:1;padding:8px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📑 Générer le contrat</button>
+          <button onclick="apresIgnorerContrat()" style="flex:1;padding:8px;background:#f3f4f6;color:var(--gris-texte);border:1.5px solid var(--bordure);border-radius:8px;font-size:12px;cursor:pointer;">Plus tard</button>
+        </div>
+      </div>
+
+      <button onclick="apresTerminer()" style="width:100%;padding:10px;background:var(--gris-fond);border:1.5px solid var(--bordure);border-radius:8px;font-size:13px;cursor:pointer;">Terminer sans joindre de pièces</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ MODAL UPLOAD DOCUMENT ═══ -->
 <div class="modal-overlay" id="modalDocOverlay">
   <div class="modal-box" style="width:440px;">
@@ -1471,10 +1554,77 @@ async function sauverCollab() {
   }
 
   if (error) { toast('❌ ' + error.message); return; }
-  toast(_editMode ? '✅ Fiche mise à jour !' : '✅ Collaborateur créé !');
-  fermerModalCollab();
-  await chargerListe();
-  if (_editMode && _editId) await ouvrirFiche(_editId);
+
+  if (!_editMode) {
+    // Récupérer l'id du nouvel agent
+    const { data: inserted } = await sb.from('agents')
+      .select('id').eq('tenant_id', TENANT).eq('nom', nom).eq('prenom', prenom)
+      .order('created_at', { ascending: false }).limit(1).single();
+    fermerModalCollab();
+    await chargerListe();
+    // Ouvrir le modal après-création
+    _apresAgentId = inserted?.id || null;
+    document.getElementById('apresNomCollab').textContent = prenom + ' ' + nom;
+    ['CNI','RIB','Vitale','Permis'].forEach(d => {
+      document.getElementById('ap'+d+'Ok').style.display = 'none';
+    });
+    document.getElementById('apAffiliation').checked = false;
+    document.getElementById('apVitaleRow').style.opacity = '1';
+    document.getElementById('apresDocErr').style.display = 'none';
+    document.getElementById('modalApresCreation').style.display = 'flex';
+  } else {
+    toast('✅ Fiche mise à jour !');
+    fermerModalCollab();
+    await chargerListe();
+    if (_editId) await ouvrirFiche(_editId);
+  }
+}
+
+let _apresAgentId = null;
+const _apresDocsOk = { CNI: false, RIB: false, Vitale: false, Permis: false };
+
+function apresUploadDoc(input, nom) {
+  if (!input.files?.length) return;
+  _apresDocsOk[nom] = true;
+  document.getElementById('ap'+nom+'Ok').style.display = 'inline';
+}
+
+function toggleApAffiliation(checked) {
+  const row = document.getElementById('apVitaleRow');
+  row.style.opacity = checked ? '0.4' : '1';
+  if (checked) _apresDocsOk.Vitale = true;
+  else { _apresDocsOk.Vitale = false; document.getElementById('apVitaleOk').style.display = 'none'; }
+}
+
+function apresTerminer() {
+  const affiliation = document.getElementById('apAffiliation').checked;
+  const manquants = [];
+  if (!_apresDocsOk.CNI)    manquants.push('Carte d\'identité');
+  if (!_apresDocsOk.RIB)    manquants.push('RIB');
+  if (!affiliation && !_apresDocsOk.Vitale) manquants.push('Carte Vitale');
+  const err = document.getElementById('apresDocErr');
+  if (manquants.length) {
+    err.textContent = '⚠️ Pièces obligatoires manquantes : ' + manquants.join(', ');
+    err.style.display = 'block';
+    return;
+  }
+  document.getElementById('modalApresCreation').style.display = 'none';
+  if (_apresAgentId) ouvrirFiche(_apresAgentId);
+}
+
+function apresGenererContrat() {
+  document.getElementById('modalApresCreation').style.display = 'none';
+  if (_apresAgentId) {
+    // Redirige vers la fiche avec paramètre pour déclencher la génération contrat
+    ouvrirFiche(_apresAgentId).then(() => {
+      setTimeout(() => document.querySelector('[onclick*="genererContrat"]')?.click(), 500);
+    });
+  }
+}
+
+function apresIgnorerContrat() {
+  // On reste dans le modal pour que l'utilisateur puisse quand même joindre les pièces
+  document.querySelector('#modalApresCreation .modal-box div[style*="Contrat"]')?.remove();
 }
 
 // ── MODAL CONGÉ ──
