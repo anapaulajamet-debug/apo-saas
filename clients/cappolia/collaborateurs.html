@@ -830,13 +830,20 @@ async function chargerGrilleQualif() {
 let _sitesActifs = [];
 async function chargerSitesSelect() {
   const { data } = await sb.from('sites')
-    .select('id,nom,adresse')
+    .select('id,nom,adresse,duree_passage,frequence')
     .eq('tenant_id', TENANT)
     .not('statut_contrat', 'in', '("resilie","inactif")')
     .order('nom');
   _sitesActifs = data || [];
+  const siteLabel = s => {
+    let label = s.nom;
+    if (s.adresse) label += ' — ' + s.adresse;
+    const details = [s.duree_passage ? s.duree_passage + 'h' : null, s.frequence || null].filter(Boolean).join(' · ');
+    if (details) label += ' (' + details + ')';
+    return label;
+  };
   const opts = '<option value="">— Aucun site —</option>'
-    + _sitesActifs.map(s => `<option value="${s.id}">${s.nom}${s.adresse ? ' — ' + s.adresse : ''}</option>`).join('');
+    + _sitesActifs.map(s => `<option value="${s.id}">${siteLabel(s)}</option>`).join('');
   const selApres = document.getElementById('apresSite');
   if (selApres) selApres.innerHTML = opts.replace('— Aucun site —', '— Sélectionner un site (optionnel) —');
   const selForm = document.getElementById('fSitePrincipal');
