@@ -1228,6 +1228,7 @@ async function chargerPlanning(c) {
   // KPI
   let kpiPresent = 0, kpiHeures = 0, kpiRetard = 0, kpiAbs = 0;
   const today = new Date().toISOString().split('T')[0];
+  const dateEmbauche = c.date_entree || null; // avant cette date : hors contrat
 
   const JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
@@ -1240,7 +1241,8 @@ async function chargerPlanning(c) {
     const colJour = jourSem === 0 ? 6 : jourSem - 1;
     const estWE = (jourSem === 0 || jourSem === 6);
     const sitesJour = siteParJour[jourSem] || [];
-    const estTravaille = joursTravaillesFinal.includes(jourSem) || planParDate[dateStr]?.length > 0 || sitesJour.length > 0;
+    const avantEmbauche = dateEmbauche && dateStr < dateEmbauche;
+    const estTravaille = !avantEmbauche && (joursTravaillesFinal.includes(jourSem) || planParDate[dateStr]?.length > 0 || sitesJour.length > 0);
     const ptg = ptgParDate[dateStr];
     const absent = estAbsent(dateStr);
     const futur = dateStr > today;
@@ -1249,7 +1251,10 @@ async function chargerPlanning(c) {
     let heuresHtml = '', siteHtml = '', badgeHtml = '', onclick = '';
     const statut = statutParDate[dateStr];
 
-    if (absent) {
+    if (avantEmbauche) {
+      cls += ' hors-contrat';
+      heuresHtml = `<span style="font-size:9px;color:#cbd5e1;font-style:italic;">avant contrat</span>`;
+    } else if (absent) {
       // Absence enregistrée
       cls += statut?.statut === 'absence_justifiee' ? ' absent-justifie' : ' absent';
       kpiAbs++;
