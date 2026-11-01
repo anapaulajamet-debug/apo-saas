@@ -307,6 +307,7 @@
           <div class="fiche-tags" id="ficheTags"></div>
           <div class="fiche-actions">
             <button class="btn-edit" onclick="ouvrirModalEdition()">✏️ Modifier la fiche</button>
+            <button class="btn-edit" id="btnInviterAgent" onclick="inviterAgent()" style="border-color:#6366f1;color:#6366f1" title="Envoyer un email d'invitation pour créer son accès agent">📧 Inviter sur l'app</button>
           </div>
         </div>
       </div>
@@ -994,6 +995,27 @@ const DOC_CATS = [
   { key:'contrat_signe',   ico:'📄', label:'Contrat signé' },
   { key:'visite_medicale', ico:'🏥', label:'Visite médicale' },
 ];
+
+async function inviterAgent() {
+  if (!_collabActif) return;
+  if (!_collabActif.email) { toast('⚠️ Aucun email renseigné sur cette fiche'); return; }
+  const btn = document.getElementById('btnInviterAgent');
+  btn.disabled = true; btn.textContent = '⏳ Envoi…';
+  try {
+    const res = await fetch(`https://zqehxwggzyepiftjrkxq.supabase.co/functions/v1/inviter-agent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sb.supabaseKey}` },
+      body: JSON.stringify({ agent_id: _collabActif.id, redirect_url: window.location.origin + '/clients/cappolia/pointage.html' })
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    toast('✅ Invitation envoyée à ' + _collabActif.email);
+  } catch(e) {
+    toast('❌ ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '📧 Inviter sur l\'app';
+  }
+}
 
 async function ouvrirFiche(id) {
   const c = _collabs.find(x => x.id === id);
