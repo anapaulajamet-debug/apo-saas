@@ -244,6 +244,29 @@
     </div>
   </div>
 
+  <!-- ══ MODAL CONTACT ══ -->
+  <div id="modalContact" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px;width:min(440px,90vw);box-shadow:0 16px 48px rgba(0,0,0,.35);">
+      <h3 id="modalContactTitre" style="margin:0 0 20px;font-size:16px;font-weight:700;">👤 Ajouter un contact</h3>
+      <div style="display:grid;gap:12px;">
+        <input type="hidden" id="mcId">
+        <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:#888;display:block;margin-bottom:4px;">Nom *</label>
+          <input id="mcNom" placeholder="Sophie Guillemaux" style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;"></div>
+        <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:#888;display:block;margin-bottom:4px;">Rôle</label>
+          <input id="mcRole" placeholder="ex: Comptable, Responsable, Directeur..." style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;"></div>
+        <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:#888;display:block;margin-bottom:4px;">Téléphone</label>
+          <input id="mcTel" type="tel" placeholder="04 91 08 60 20" style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;"></div>
+        <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:#888;display:block;margin-bottom:4px;">Email</label>
+          <input id="mcEmail" type="email" placeholder="contact@entreprise.fr" style="width:100%;box-sizing:border-box;padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #eee;">
+        <button onclick="fermerModalContact()" style="padding:9px 18px;border:1.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;">Annuler</button>
+        <button id="mcBtnSuppr" onclick="supprimerContact()" style="padding:9px 18px;border:1.5px solid #fca5a5;border-radius:8px;background:#fff;color:#ef4444;cursor:pointer;font-size:13px;display:none;">🗑 Supprimer</button>
+        <button onclick="sauverContact()" style="padding:9px 18px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ MODAL DOCUMENT ══ -->
   <div id="modalDoc" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:14px;padding:32px;width:min(480px,90vw);max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.35);">
@@ -420,30 +443,11 @@
         <!-- ══ FICHE CLIENT ══ -->
         <div class="tab-panel active" id="tab-fiche">
           <div class="card" style="padding:0;">
-            <div class="card-title" style="padding:16px 20px 0;">CONTACT CLIENT</div>
-            <div class="contact-card" id="contactCard">
-              <div class="contact-item">
-                <div class="contact-icon">👤</div>
-                <div>
-                  <div class="contact-label">Nom du contact</div>
-                  <div class="contact-value" id="cContact">—</div>
-                </div>
-              </div>
-              <div class="contact-item">
-                <div class="contact-icon">📞</div>
-                <div>
-                  <div class="contact-label">Téléphone</div>
-                  <div class="contact-value" id="cTel">—</div>
-                </div>
-              </div>
-              <div class="contact-item">
-                <div class="contact-icon">✉️</div>
-                <div>
-                  <div class="contact-label">Email</div>
-                  <div class="contact-value" id="cEmail">—</div>
-                </div>
-              </div>
+            <div class="card-title" style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span>CONTACTS CLIENT</span>
+              <button onclick="ouvrirModalContact()" style="font-size:12px;padding:5px 12px;border:1.5px solid var(--teal);border-radius:7px;background:#fff;color:var(--teal);font-weight:700;cursor:pointer;">+ Ajouter</button>
             </div>
+            <div id="contactsListe" style="padding:0 20px 16px;"></div>
           </div>
 
           <div class="card">
@@ -1155,12 +1159,8 @@
       document.getElementById('clientIcon').style.color='var(--teal)';
       document.getElementById('clientIcon').style.fontWeight='900';
 
-      // Contact
-      document.getElementById('cContact').textContent = contact;
-      document.getElementById('cTel').innerHTML = tel!=='—'
-        ? `<a href="tel:${tel.replace(/\s/g,'')}">${esc(tel)}</a>` : '<span class="muted">Non renseigné</span>';
-      document.getElementById('cEmail').innerHTML = email
-        ? `<a href="mailto:${esc(email)}">${esc(email)}</a>` : '<span class="muted">Non renseigné</span>';
+      // Contacts multiples
+      chargerContacts();
 
       // Carte Maps
       const mapsQuery = encodeURIComponent(adr);
@@ -1203,15 +1203,7 @@
           champsVides.push(label);
         }
       }
-      marquerVide('cContact', contact, 'Nom du contact');
-      if (!email) {
-        document.getElementById('cEmail').innerHTML = '<span style="color:#dc2626;font-weight:700;">⚠ À renseigner</span>';
-        champsVides.push('Email client');
-      }
-      if (tel === '—') {
-        document.getElementById('cTel').innerHTML = '<span style="color:#dc2626;font-weight:700;">⚠ À renseigner</span>';
-        champsVides.push('Téléphone');
-      }
+      // Les contacts sont gérés par la section multi-contacts (contacts_site)
       marquerVide('iSurface', site.surface_m2, 'Surface totale');
       marquerVide('iFrequence', site.frequence||site.frequence_passage, 'Fréquence de passage');
 
@@ -1222,6 +1214,92 @@
         alerteBar.innerHTML = `<span style="font-size:16px;">⚠️</span><span><strong>Données manquantes :</strong> ${champsVides.join(' · ')}</span>`;
         document.getElementById('tab-fiche').prepend(alerteBar);
       }
+    }
+
+    // ── Contacts multiples ──
+    async function chargerContacts() {
+      const { data: contacts } = await sb.from('contacts_site')
+        .select('*').eq('site_id', siteId).order('created_at');
+      const el = document.getElementById('contactsListe');
+      if (!el) return;
+      if (!contacts?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;font-style:italic;padding:4px 0 8px;">Aucun contact renseigné — cliquez "+ Ajouter"</div>';
+        return;
+      }
+      el.innerHTML = contacts.map(c => `
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid #f1f5f9;" onclick="ouvrirModalContact(${JSON.stringify(c).replace(/"/g,'&quot;')})" style="cursor:pointer;">
+          <div style="width:38px;height:38px;border-radius:50%;background:#e0f2fe;color:#0369a1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;">
+            ${(c.nom||'?')[0].toUpperCase()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="ouvrirModalContact(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c.nom)}</div>
+            ${c.role ? `<div style="font-size:11px;color:#64748b;margin-top:1px;">${esc(c.role)}</div>` : ''}
+            <div style="display:flex;gap:16px;margin-top:5px;flex-wrap:wrap;">
+              ${c.telephone ? `<a href="tel:${c.telephone.replace(/\s/g,'')}" style="font-size:12px;color:var(--teal);text-decoration:none;" onclick="event.stopPropagation()">📞 ${esc(c.telephone)}</a>` : ''}
+              ${c.email ? `<a href="mailto:${esc(c.email)}" style="font-size:12px;color:var(--teal);text-decoration:none;" onclick="event.stopPropagation()">✉️ ${esc(c.email)}</a>` : ''}
+            </div>
+          </div>
+          <button onclick="event.stopPropagation();ouvrirModalContact(${JSON.stringify(c).replace(/"/g,'&quot;')})" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;padding:2px 6px;">✏️</button>
+        </div>
+      `).join('');
+    }
+
+    function ouvrirModalContact(contact) {
+      const m = document.getElementById('modalContact');
+      const supprBtn = document.getElementById('mcBtnSuppr');
+      if (contact && contact.id) {
+        document.getElementById('modalContactTitre').textContent = '✏️ Modifier le contact';
+        document.getElementById('mcId').value    = contact.id;
+        document.getElementById('mcNom').value   = contact.nom || '';
+        document.getElementById('mcRole').value  = contact.role || '';
+        document.getElementById('mcTel').value   = contact.telephone || '';
+        document.getElementById('mcEmail').value = contact.email || '';
+        supprBtn.style.display = '';
+      } else {
+        document.getElementById('modalContactTitre').textContent = '👤 Ajouter un contact';
+        document.getElementById('mcId').value    = '';
+        document.getElementById('mcNom').value   = '';
+        document.getElementById('mcRole').value  = '';
+        document.getElementById('mcTel').value   = '';
+        document.getElementById('mcEmail').value = '';
+        supprBtn.style.display = 'none';
+      }
+      m.style.display = 'flex';
+    }
+
+    function fermerModalContact() {
+      document.getElementById('modalContact').style.display = 'none';
+    }
+
+    async function sauverContact() {
+      const id  = document.getElementById('mcId').value;
+      const nom = document.getElementById('mcNom').value.trim();
+      if (!nom) { alert('Le nom est obligatoire'); return; }
+      const payload = {
+        site_id:   siteId,
+        tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+        nom,
+        role:      document.getElementById('mcRole').value.trim() || null,
+        telephone: document.getElementById('mcTel').value.trim() || null,
+        email:     document.getElementById('mcEmail').value.trim() || null,
+      };
+      let error;
+      if (id) {
+        ({ error } = await sb.from('contacts_site').update(payload).eq('id', id));
+      } else {
+        ({ error } = await sb.from('contacts_site').insert(payload));
+      }
+      if (error) { alert('Erreur : ' + error.message); return; }
+      fermerModalContact();
+      chargerContacts();
+    }
+
+    async function supprimerContact() {
+      const id = document.getElementById('mcId').value;
+      if (!id || !confirm('Supprimer ce contact ?')) return;
+      await sb.from('contacts_site').delete().eq('id', id);
+      fermerModalContact();
+      chargerContacts();
     }
 
     // ── Équipe ──
