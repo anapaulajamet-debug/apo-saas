@@ -1615,7 +1615,7 @@ function ouvrirModalNouveau() {
   document.getElementById('modalCollabOverlay').classList.add('visible');
 }
 
-function ouvrirModalEdition() {
+async function ouvrirModalEdition() {
   if (!_collabActif) return;
   _editMode = true; _editId = _collabActif.id;
   document.getElementById('modalCollabTitre').textContent = '✏️ Modifier la fiche';
