@@ -443,7 +443,11 @@
     <div class="form-grille">
       <div class="form-item"><label class="form-label">Prénom *</label><input class="form-input" id="fPrenom" placeholder="Marie" /></div>
       <div class="form-item"><label class="form-label">Nom *</label><input class="form-input" id="fNom" placeholder="DUPONT" /></div>
-      <div class="form-item"><label class="form-label">Qualification / Poste</label><input class="form-input" id="fQualification" placeholder="Agent de service, Chef d'équipe…" /></div>
+      <div class="form-item"><label class="form-label">Qualification / Poste</label>
+        <select class="form-input" id="fQualification">
+          <option value="">— Chargement… —</option>
+        </select>
+      </div>
       <div class="form-item"><label class="form-label">Date de naissance</label><input class="form-input" type="date" id="fDateNaissance" /></div>
       <hr class="form-sep" />
       <div class="form-item"><label class="form-label">Téléphone</label><input class="form-input" id="fTelephone" placeholder="06 xx xx xx xx" /></div>
@@ -711,6 +715,17 @@ async function initProfil() {
     document.getElementById('profilNom').textContent = (profil.prenom||'') + ' ' + (profil.nom||'');
     document.getElementById('profilRole').textContent = profil.role || 'Directeur';
   }
+}
+
+// ── GRILLE CCN → select qualification ──
+let _grilleCCN = [];
+async function chargerGrilleQualif() {
+  const { data } = await sb.from('grille_ccn').select('code_cc,qualification,taux_horaire').order('qualification');
+  _grilleCCN = data || [];
+  const sel = document.getElementById('fQualification');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Sélectionner —</option>'
+    + _grilleCCN.map(g => `<option value="${g.qualification}">${g.qualification}${g.taux_horaire ? ' (' + g.taux_horaire + ' €/h)' : ''}</option>`).join('');
 }
 
 // ── LISTE ──
@@ -1694,7 +1709,7 @@ async function enregistrerAbsenceJour() {
 // ── INIT ──
 (async () => {
   await initProfil();
-  await chargerListe();
+  await Promise.all([chargerListe(), chargerGrilleQualif()]);
 })();
 </script>
 </body>
