@@ -1612,12 +1612,12 @@ async function uploaderDocument() {
     if (fichier.size > 5 * 1024 * 1024) { toast('❌ Fichier trop volumineux (max 5 Mo)'); return; }
     const ext = fichier.name.split('.').pop();
     const chemin = `${_collabActif.id}/${categorie}_${Date.now()}.${ext}`;
-    const { data: uploadData, error: errUp } = await sb.storage.from('documents-collaborateurs').upload(chemin, fichier, { upsert:true });
+    const { data: uploadData, error: errUp } = await sb.storage.from('documents').upload(chemin, fichier, { upsert:true });
     if (errUp) {
-      // Si le bucket n'existe pas, on stocke sans URL
-      console.warn('Storage non disponible:', errUp.message);
+      console.warn('Storage erreur:', errUp.message);
+      toast('⚠️ Erreur upload : ' + errUp.message);
     } else {
-      const { data: urlData } = sb.storage.from('documents-collaborateurs').getPublicUrl(chemin);
+      const { data: urlData } = sb.storage.from('documents').getPublicUrl(chemin);
       url = urlData?.publicUrl || null;
     }
   }
@@ -1901,9 +1901,9 @@ function demanderPhoto() {
     if (file.size > 2*1024*1024) { toast('⚠️ Image trop lourde (max 2 Mo)'); return; }
     const ext = file.name.split('.').pop();
     const path = `photos/${_collabActif.id}.${ext}`;
-    const { error: errUp } = await sb.storage.from('documents-collaborateurs').upload(path, file, { upsert:true });
-    if (errUp) { toast('⚠️ Storage non configuré — photo non enregistrée'); return; }
-    const { data: { publicUrl } } = sb.storage.from('documents-collaborateurs').getPublicUrl(path);
+    const { error: errUp } = await sb.storage.from('photos-profil').upload(path, file, { upsert:true });
+    if (errUp) { toast('❌ Erreur upload photo : ' + errUp.message); return; }
+    const { data: { publicUrl } } = sb.storage.from('photos-profil').getPublicUrl(path);
     const { error } = await sb.from('agents').update({ photo_url: publicUrl }).eq('id', _collabActif.id);
     if (error) { toast('❌ ' + error.message); return; }
     _collabActif.photo_url = publicUrl;
@@ -2050,9 +2050,9 @@ async function enregistrerAbsenceJour() {
   if (fichier) {
     const ext = fichier.name.split('.').pop();
     const chemin = `absences/${_collabActif.id}_${_gestionDate}.${ext}`;
-    const { error: errUp } = await sb.storage.from('documents-collaborateurs').upload(chemin, fichier, { upsert:true });
+    const { error: errUp } = await sb.storage.from('documents').upload(chemin, fichier, { upsert:true });
     if (!errUp) {
-      const { data: urlData } = sb.storage.from('documents-collaborateurs').getPublicUrl(chemin);
+      const { data: urlData } = sb.storage.from('documents').getPublicUrl(chemin);
       justifUrl = urlData?.publicUrl || null;
     }
   }
