@@ -354,12 +354,72 @@
     renderLogin()
   }
 
+  // Gestion du lien d'invitation (token dans l'URL)
+  async function checkInvitation() {
+    const hash = window.location.hash
+    const params = new URLSearchParams(hash.replace('#', '?'))
+    const type = params.get('type')
+    const accessToken = params.get('access_token')
+
+    if ((type === 'invite' || type === 'recovery' || type === 'signup') && accessToken) {
+      // Supabase v2 : définir la session depuis le lien
+      const { data, error } = await sb.auth.setSession({
+        access_token: accessToken,
+        refresh_token: params.get('refresh_token') || ''
+      })
+      if (!error && data?.session) {
+        renderChoixMotDePasse(data.session.user)
+        return true
+      }
+    }
+    return false
+  }
+
+  function renderChoixMotDePasse(user) {
+    document.getElementById('app').innerHTML = `
+      <div class="login-box">
+        <div style="font-size:40px;margin-bottom:16px">🔑</div>
+        <h2>Créer votre mot de passe</h2>
+        <p>Bienvenue ! Choisissez un mot de passe pour accéder à votre espace de pointage.</p>
+        <input class="form-input" type="password" id="mdp1" placeholder="Nouveau mot de passe" />
+        <input class="form-input" type="password" id="mdp2" placeholder="Confirmer le mot de passe" />
+        <button class="btn-login" onclick="definirMotDePasse()">Valider</button>
+        <div id="mdpErr" style="color:#ef4444;font-size:12px;margin-top:10px"></div>
+      </div>
+    `
+  }
+
+  async function definirMotDePasse() {
+    const mdp1 = document.getElementById('mdp1').value
+    const mdp2 = document.getElementById('mdp2').value
+    if (mdp1.length < 8) {
+      document.getElementById('mdpErr').textContent = 'Le mot de passe doit faire au moins 8 caractères'
+      return
+    }
+    if (mdp1 !== mdp2) {
+      document.getElementById('mdpErr').textContent = 'Les mots de passe ne correspondent pas'
+      return
+    }
+    const { error } = await sb.auth.updateUser({ password: mdp1 })
+    if (error) {
+      document.getElementById('mdpErr').textContent = 'Erreur : ' + error.message
+      return
+    }
+    toast('✅ Mot de passe créé ! Connexion en cours…')
+    const { data: { user } } = await sb.auth.getUser()
+    if (user) renderApp(user)
+  }
+
   // Init
-  sb.auth.onAuthStateChange((event, session) => {
-    if (session?.user) {
-      renderApp(session.user)
-    } else {
-      renderLogin()
+  checkInvitation().then(wasInvite => {
+    if (!wasInvite) {
+      sb.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          renderApp(session.user)
+        } else {
+          renderLogin()
+        }
+      })
     }
   })
 </script>
