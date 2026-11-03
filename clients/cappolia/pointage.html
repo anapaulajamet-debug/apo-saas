@@ -202,8 +202,32 @@
         <input class="form-input" type="password" id="loginMdp" placeholder="Votre mot de passe" />
         <button class="btn-login" onclick="doLogin()">Se connecter</button>
         <div id="loginErr" style="color:#ef4444;font-size:12px;margin-top:10px"></div>
+        <button onclick="doResetMdp()" style="background:none;border:none;color:#64748b;font-size:12px;cursor:pointer;margin-top:12px;text-decoration:underline;">Mot de passe oublié ?</button>
+        <div id="resetMsg" style="font-size:12px;margin-top:8px;display:none;"></div>
       </div>
     `
+  }
+
+  async function doResetMdp() {
+    const email = document.getElementById('loginEmail')?.value?.trim()
+    const msgEl = document.getElementById('resetMsg')
+    if (!email) {
+      msgEl.style.display = ''
+      msgEl.style.color = '#ef4444'
+      msgEl.textContent = 'Entrez votre email ci-dessus puis cliquez ici.'
+      return
+    }
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://app.cappolia-proprete.fr/clients/cappolia/pointage.html'
+    })
+    msgEl.style.display = ''
+    if (error) {
+      msgEl.style.color = '#ef4444'
+      msgEl.textContent = 'Erreur : ' + error.message
+    } else {
+      msgEl.style.color = '#16a34a'
+      msgEl.textContent = '✅ Email envoyé ! Vérifiez votre boîte mail.'
+    }
   }
 
   async function doLogin() {
