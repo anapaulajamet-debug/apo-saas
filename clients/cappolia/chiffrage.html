@@ -2609,9 +2609,18 @@ function calculerPrix() {
   const nbDep = parseFloat(document.getElementById('reeNbDeplacement')?.value || 0);
   const coutDep = parseFloat(document.getElementById('reeCoutDeplacement')?.value || 15);
   const deplacement = nbDep * coutDep;
-  // Consommables hygiéniques (étape 8)
-  const consoText = document.getElementById('consoTotalMensuel')?.textContent || '0';
-  const consommables = parseFloat(consoText.replace(/\s/g,'').replace(',','.').replace('€','')) || 0;
+  // Consommables hygiéniques (étape 8) — calcul direct depuis le DOM ou fallback données
+  let consommables = 0;
+  document.querySelectorAll('#tbodyConsommables tr').forEach(tr => {
+    const id = tr.id;
+    const qte = parseFloat(document.getElementById(id + '_qte')?.value || 0);
+    const pu  = parseFloat(document.getElementById(id + '_pu')?.value  || 0);
+    consommables += qte * pu;
+  });
+  // Si le tableau n'est pas encore rendu, lire depuis les données sauvegardées
+  if (consommables === 0 && window._consoData) {
+    consommables = window._consoData.reduce((s, c) => s + (parseFloat(c.qte)||0) * (parseFloat(c.pu)||0), 0);
+  }
   const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement + consommables;
   const structure = coutChantier * tauxStructure;
   const coutTotal = coutChantier + structure;
@@ -2642,7 +2651,7 @@ function calculerPrix() {
   document.getElementById('cAmortissement').textContent = fmt(amortissement);
   // Consommables
   const rowConso = document.getElementById('rowConsommables');
-  if (rowConso) { rowConso.style.display = consommables > 0 ? '' : 'none'; }
+  if (rowConso) rowConso.style.display = '';
   const elConso = document.getElementById('cConsommables');
   if (elConso) elConso.textContent = fmt(consommables);
   document.getElementById('cCoutChantier').textContent = fmt(coutChantier);
@@ -3441,6 +3450,7 @@ async function chargerChiffrage(id) {
 
   // Consommables
   if (Array.isArray(d.conso) && d.conso.length > 0) {
+    window._consoData = d.conso;
     lignesConso = 0;
     document.getElementById('tbodyConsommables').innerHTML = '';
     d.conso.forEach(c => ajouterLigneConso(c.nom, c.unite, c.qte, c.pu));
