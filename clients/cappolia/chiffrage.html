@@ -1039,6 +1039,10 @@
                 <label>Amortissement matériel (€)</label>
                 <input type="number" id="pvAmortissement" value="0" min="0" step="1" onchange="calculerPrix()"/>
               </div>
+              <div class="field" id="fieldConsoMarge" style="display:none;">
+                <label>Marge consommables hygiéniques (%)</label>
+                <input type="number" id="consoMargeManuel" value="0" min="0" max="99" step="0.1" onchange="calculerPrix()"/>
+              </div>
               <div class="field">
                 <label>Frais de structure (%)</label>
                 <input type="number" id="pvStructure" value="12" min="0" max="100" step="0.1" onchange="calculerPrix()"/>
@@ -1070,7 +1074,7 @@
             <div class="calcul-row"><span class="calcul-label">Amortissement matériel</span><span class="calcul-val" id="cAmortissement">—</span></div>
             <div class="calcul-row" id="rowConsommables" style="display:none;">
               <span class="calcul-label">Consommables hygiéniques
-                <span style="font-size:10px;color:#64748B;font-weight:400;display:block;margin-top:1px;">Prix achat : <span id="cConsoAchat" style="color:#0369a1;">—</span> → marge <input id="consoMargeManuel" type="number" min="0" max="99" step="0.1" value="0" title="Marge sur consommables (%)" oninput="calculerPrix()" style="width:40px;padding:1px 4px;font-size:10px;font-weight:700;border:1.5px solid #0369a1;border-radius:4px;text-align:center;color:#0369a1;background:#EFF6FF;outline:none;"/>%</span>
+                <span style="font-size:10px;color:#64748B;font-weight:400;display:block;margin-top:1px;">Achat : <span id="cConsoAchat" style="color:#0369a1;">—</span></span>
               </span>
               <span class="calcul-val" id="cConsommables" style="color:#0369a1;">—</span>
             </div>
@@ -2660,7 +2664,9 @@ function calculerPrix() {
   document.getElementById('cAmortissement').textContent = fmt(amortissement);
   // Consommables
   const rowConso = document.getElementById('rowConsommables');
-  if (rowConso) rowConso.style.display = '';
+  if (rowConso) rowConso.style.display = consoAchat > 0 ? '' : 'none';
+  const fieldConsoMarge = document.getElementById('fieldConsoMarge');
+  if (fieldConsoMarge) fieldConsoMarge.style.display = consoAchat > 0 ? '' : 'none';
   const elConsoAchat = document.getElementById('cConsoAchat');
   if (elConsoAchat) elConsoAchat.textContent = fmt(consoAchat);
   const elConso = document.getElementById('cConsommables');
