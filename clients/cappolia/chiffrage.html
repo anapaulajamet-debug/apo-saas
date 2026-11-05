@@ -1068,10 +1068,11 @@
             <div class="calcul-row"><span class="calcul-label">Coût produits nettoyage <span class="taux-badge" id="badgeProduits">15%</span></span><input class="calcul-val-edit" id="cProduits" type="number" min="0" step="0.01" oninput="onTargetInput('produits',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">Autres fournitures <span class="taux-badge" id="badgeFournitures">5%</span></span><input class="calcul-val-edit" id="cFournitures" type="number" min="0" step="0.01" oninput="onTargetInput('fournitures',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">Amortissement matériel</span><span class="calcul-val" id="cAmortissement">—</span></div>
+            <div class="calcul-row" id="rowConsommables" style="display:none;"><span class="calcul-label">Consommables hygiéniques</span><span class="calcul-val" id="cConsommables" style="color:#0369a1;">—</span></div>
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (hors structure)</span><span class="calcul-val" id="cCoutChantier">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Frais de structure <span class="taux-badge" id="badgeStructure">12%</span></span><input class="calcul-val-edit" id="cStructure" type="number" min="0" step="0.01" oninput="onTargetInput('structure',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (avec structure)</span><span class="calcul-val" id="cCoutTotal">—</span></div>
-            <div class="calcul-row"><span class="calcul-label">Marge <span class="taux-badge" id="badgeMarge">30%</span></span><input class="calcul-val-edit" id="cMarge" type="number" min="0" step="0.01" oninput="onTargetInput('marge',this.value)" title="Saisir une valeur cible €"/></div>
+            <div class="calcul-row"><span class="calcul-label">Marge <span style="display:inline-flex;align-items:center;gap:4px;"><input id="pvMargeManuel" type="number" min="0" max="99" step="0.1" title="Saisir le % de marge souhaité" oninput="appliquerMargePct(this.value)" style="width:52px;padding:2px 5px;font-size:11px;font-weight:700;border:1.5px solid var(--green);border-radius:5px;text-align:center;color:var(--green-dark);background:#F0FDF4;outline:none;" placeholder="30"/>%</span></span><input class="calcul-val-edit" id="cMarge" type="number" min="0" step="0.01" oninput="onTargetInput('marge',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">TVA (20%)</span><span class="calcul-val" id="cTVA">—</span></div>
             <!-- PRIX DE VENTE HT — champ modifiable -->
             <div style="border-top:2px solid var(--green-dark);margin-top:8px;padding-top:14px;">
@@ -2559,6 +2560,16 @@ function modifierPrixHT(input) {
   calculerPrix();
 }
 
+function appliquerMargePct(pct) {
+  const p = parseFloat(pct);
+  if (isNaN(p) || p < 0 || p >= 100) return;
+  // Met à jour pvMarge (le champ % utilisé dans calculerPrix)
+  const pvMargeEl = document.getElementById('pvMarge');
+  if (pvMargeEl) pvMargeEl.value = p.toFixed(1);
+  prixHTManuel = null; // repasse en mode auto
+  calculerPrix();
+}
+
 function calculerPrix() {
   // Si le tableau Équipe a des lignes, on s'en sert ; sinon fallback EC+REE
   const lignesEquipe = document.querySelectorAll('#tbodyEquipe tr');
@@ -2598,7 +2609,10 @@ function calculerPrix() {
   const nbDep = parseFloat(document.getElementById('reeNbDeplacement')?.value || 0);
   const coutDep = parseFloat(document.getElementById('reeCoutDeplacement')?.value || 15);
   const deplacement = nbDep * coutDep;
-  const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement;
+  // Consommables hygiéniques (étape 8)
+  const consoText = document.getElementById('consoTotalMensuel')?.textContent || '0';
+  const consommables = parseFloat(consoText.replace(/\s/g,'').replace(',','.').replace('€','')) || 0;
+  const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement + consommables;
   const structure = coutChantier * tauxStructure;
   const coutTotal = coutChantier + structure;
   const prixHTCalc = coutTotal / (1 - Math.min(tauxMarge, 0.999));
@@ -2626,6 +2640,11 @@ function calculerPrix() {
   setCalcEdit('cProduits',    produits);
   setCalcEdit('cFournitures', fournitures);
   document.getElementById('cAmortissement').textContent = fmt(amortissement);
+  // Consommables
+  const rowConso = document.getElementById('rowConsommables');
+  if (rowConso) { rowConso.style.display = consommables > 0 ? '' : 'none'; }
+  const elConso = document.getElementById('cConsommables');
+  if (elConso) elConso.textContent = fmt(consommables);
   document.getElementById('cCoutChantier').textContent = fmt(coutChantier);
   setCalcEdit('cStructure', structure);
   document.getElementById('cCoutTotal').textContent = fmt(coutTotal);
@@ -2643,7 +2662,11 @@ function calculerPrix() {
   document.getElementById('badgeProduits').textContent = (tauxProduits * 100).toFixed(0) + '%';
   document.getElementById('badgeFournitures').textContent = (tauxFournitures * 100).toFixed(0) + '%';
   document.getElementById('badgeStructure').textContent = (tauxStructure * 100).toFixed(0) + '%';
-  document.getElementById('badgeMarge').textContent = prixHT > 0 ? (marge / prixHT * 100).toFixed(1) + '%' : '—';
+  // Synchronise le champ % marge manuel si pas en cours de frappe
+  const pvMargeManuelEl = document.getElementById('pvMargeManuel');
+  if (pvMargeManuelEl && document.activeElement !== pvMargeManuelEl) {
+    pvMargeManuelEl.value = prixHT > 0 ? (marge / prixHT * 100).toFixed(1) : (tauxMarge * 100).toFixed(1);
+  }
 
   document.getElementById('finalHT').textContent = prixHT.toFixed(2).replace('.', ',') + ' €';
   document.getElementById('finalTTC').textContent = prixTTC.toFixed(2).replace('.', ',') + ' € TTC';
