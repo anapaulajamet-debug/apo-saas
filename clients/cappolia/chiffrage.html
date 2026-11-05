@@ -1068,7 +1068,12 @@
             <div class="calcul-row"><span class="calcul-label">Coût produits nettoyage <span class="taux-badge" id="badgeProduits">15%</span></span><input class="calcul-val-edit" id="cProduits" type="number" min="0" step="0.01" oninput="onTargetInput('produits',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">Autres fournitures <span class="taux-badge" id="badgeFournitures">5%</span></span><input class="calcul-val-edit" id="cFournitures" type="number" min="0" step="0.01" oninput="onTargetInput('fournitures',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row"><span class="calcul-label">Amortissement matériel</span><span class="calcul-val" id="cAmortissement">—</span></div>
-            <div class="calcul-row" id="rowConsommables" style="display:none;"><span class="calcul-label">Consommables hygiéniques</span><span class="calcul-val" id="cConsommables" style="color:#0369a1;">—</span></div>
+            <div class="calcul-row" id="rowConsommables" style="display:none;">
+              <span class="calcul-label">Consommables hygiéniques
+                <span style="font-size:10px;color:#64748B;font-weight:400;display:block;margin-top:1px;">Prix achat : <span id="cConsoAchat" style="color:#0369a1;">—</span> → marge <input id="consoMargeManuel" type="number" min="0" max="99" step="0.1" value="0" title="Marge sur consommables (%)" oninput="calculerPrix()" style="width:40px;padding:1px 4px;font-size:10px;font-weight:700;border:1.5px solid #0369a1;border-radius:4px;text-align:center;color:#0369a1;background:#EFF6FF;outline:none;"/>%</span>
+              </span>
+              <span class="calcul-val" id="cConsommables" style="color:#0369a1;">—</span>
+            </div>
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (hors structure)</span><span class="calcul-val" id="cCoutChantier">—</span></div>
             <div class="calcul-row"><span class="calcul-label">Frais de structure <span class="taux-badge" id="badgeStructure">12%</span></span><input class="calcul-val-edit" id="cStructure" type="number" min="0" step="0.01" oninput="onTargetInput('structure',this.value)" title="Saisir une valeur cible €"/></div>
             <div class="calcul-row" style="background:#F8FAFC;padding:10px;border-radius:6px;border:none;margin:8px 0;"><span class="calcul-label" style="font-weight:700;">Coût du chantier (avec structure)</span><span class="calcul-val" id="cCoutTotal">—</span></div>
@@ -2621,7 +2626,11 @@ function calculerPrix() {
   if (consommables === 0 && window._consoData) {
     consommables = window._consoData.reduce((s, c) => s + (parseFloat(c.qte)||0) * (parseFloat(c.pu)||0), 0);
   }
-  const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement + consommables;
+  // Appliquer marge consommables
+  const consoMargePct = parseFloat(document.getElementById('consoMargeManuel')?.value || 0) / 100;
+  const consoAchat = consommables;
+  const consommablesPV = consoMargePct > 0 && consoMargePct < 1 ? consoAchat / (1 - consoMargePct) : consoAchat;
+  const coutChantier   = masseSalariale + charges + produits + fournitures + amortissement + deplacement + consommablesPV;
   const structure = coutChantier * tauxStructure;
   const coutTotal = coutChantier + structure;
   const prixHTCalc = coutTotal / (1 - Math.min(tauxMarge, 0.999));
@@ -2652,8 +2661,10 @@ function calculerPrix() {
   // Consommables
   const rowConso = document.getElementById('rowConsommables');
   if (rowConso) rowConso.style.display = '';
+  const elConsoAchat = document.getElementById('cConsoAchat');
+  if (elConsoAchat) elConsoAchat.textContent = fmt(consoAchat);
   const elConso = document.getElementById('cConsommables');
-  if (elConso) elConso.textContent = fmt(consommables);
+  if (elConso) elConso.textContent = fmt(consommablesPV);
   document.getElementById('cCoutChantier').textContent = fmt(coutChantier);
   setCalcEdit('cStructure', structure);
   document.getElementById('cCoutTotal').textContent = fmt(coutTotal);
