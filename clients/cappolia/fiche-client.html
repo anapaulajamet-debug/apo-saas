@@ -235,6 +235,23 @@
         <div><label>Coût main d'œuvre (€)</label><input id="mMO" type="number" step="0.01" placeholder="0.00"></div>
         <div class="form-full"><label>Date de début</label><input id="mDateDebut" type="date"></div>
         <div class="form-full"><label>Nom du contact client</label><input id="mContactNom" placeholder="ex: Sophie Guillemaux"></div>
+        <div><label>Nom de la société (raison sociale)</label><input id="mNomSociete" placeholder="ex: Bordas SAS"></div>
+        <div><label>Forme juridique</label>
+          <select id="mTypeSociete">
+            <option value="">— Sélectionner —</option>
+            <option value="EURL">EURL</option>
+            <option value="SARL">SARL</option>
+            <option value="SAS">SAS</option>
+            <option value="SASU">SASU</option>
+            <option value="SA">SA</option>
+            <option value="SNC">SNC</option>
+            <option value="SCI">SCI</option>
+            <option value="EI">EI (Entreprise individuelle)</option>
+            <option value="MICRO">Micro-entreprise</option>
+            <option value="ASSO">Association</option>
+            <option value="AUTRE">Autre</option>
+          </select>
+        </div>
         <div><label>SIREN / RCS client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
         <div><label>SIRET</label><input id="mSiret" placeholder="ex: 123 456 789 00012"></div>
       </div>
@@ -470,6 +487,8 @@
               <div class="info-item"><label>Surface totale (m²)</label><p id="iSurface">—</p></div>
               <div class="info-item"><label>Secteur / Type</label><p id="iSecteur">—</p></div>
               <div class="info-item"><label>Fréquence de passage</label><p id="iFrequence">—</p></div>
+              <div class="info-item"><label>Nom de la société</label><p id="iNomSociete">—</p></div>
+              <div class="info-item"><label>Forme juridique</label><p id="iTypeSociete">—</p></div>
               <div class="info-item"><label>SIREN / RCS client</label><p id="iSiren">—</p></div>
               <div class="info-item"><label>SIRET</label><p id="iSiret">—</p></div>
               <div class="info-item full"><label>Notes</label><p id="iNotes">—</p></div>
@@ -714,7 +733,7 @@
     document.getElementById('btnModif').addEventListener('click', async () => {
       // Pré-remplir le modal avec les données actuelles
       const { data: site } = await sb.from('sites')
-        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre,contact_nom,siren,siret')
+        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre,contact_nom,siren,siret,nom_societe,type_societe')
         .eq('id', siteId).single();
       if (site) {
         document.getElementById('mFrequence').value    = site.frequence || '';
@@ -728,6 +747,8 @@
         document.getElementById('mMO').value           = site.cout_main_oeuvre || '';
         document.getElementById('mDateDebut').value    = site.date_debut || '';
         document.getElementById('mContactNom').value   = site.contact_nom || '';
+        document.getElementById('mNomSociete').value     = site.nom_societe || '';
+        document.getElementById('mTypeSociete').value   = site.type_societe || '';
         document.getElementById('mSiren').value         = site.siren || '';
         document.getElementById('mSiret').value         = site.siret || '';
       }
@@ -749,6 +770,8 @@
         cout_main_oeuvre:     parseFloat(document.getElementById('mMO').value) || null,
         date_debut:           document.getElementById('mDateDebut').value || null,
         contact_nom:          document.getElementById('mContactNom').value.trim() || null,
+        nom_societe:          document.getElementById('mNomSociete').value.trim() || null,
+        type_societe:         document.getElementById('mTypeSociete').value || null,
         siren:                document.getElementById('mSiren').value.trim() || null,
         siret:                document.getElementById('mSiret').value.trim() || null,
       };
@@ -1191,8 +1214,10 @@
       document.getElementById('iSurface').textContent  = site.surface_m2 ? `${site.surface_m2} m²` : '—';
       document.getElementById('iSecteur').textContent  = secteur;
       document.getElementById('iFrequence').textContent= site.frequence||site.frequence_passage||'—';
-      document.getElementById('iSiren').textContent    = site.siren || '—';
-      document.getElementById('iSiret').textContent    = site.siret || '—';
+      document.getElementById('iNomSociete').textContent  = site.nom_societe || '—';
+      document.getElementById('iTypeSociete').textContent = site.type_societe || '—';
+      document.getElementById('iSiren').textContent       = site.siren || '—';
+      document.getElementById('iSiret').textContent       = site.siret || '—';
       document.getElementById('iNotes').textContent    = site.notes||site.commentaire||'—';
 
       // Mise en rouge des champs vides critiques
