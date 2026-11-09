@@ -787,13 +787,20 @@
       empty.style.display = 'none';
 
       tbody.innerHTML = clients.map(c => {
-        const badgeSc = c._sc === 'actif'
-          ? '<span class="tag-statut tag-actif">● Actif</span>'
-          : c._sc === 'essai'
-          ? '<span class="tag-statut tag-essai">⏳ Essai</span>'
-          : c._sc === 'en_attente_signature'
-          ? '<span class="tag-statut tag-essai">⏳ En attente signature</span>'
-          : '<span class="tag-statut tag-resilie">✕ Résilié</span>';
+        const scOpts = [
+          { v: 'actif',                label: '● Actif' },
+          { v: 'essai',                label: '⏳ Période d\'essai' },
+          { v: 'en_attente_signature', label: '⏳ En attente signature' },
+          { v: 'resilie',              label: '✕ Résilié' },
+        ];
+        const scColor = { actif: '#16a34a', essai: '#d97706', en_attente_signature: '#d97706', resilie: '#dc2626' };
+        const selectSc = `<select
+          data-site-id="${c.id}"
+          onchange="changerStatut(this)"
+          onclick="event.stopPropagation()"
+          style="border:1.5px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:${scColor[c._sc]||'#374151'};outline:none;">
+          ${scOpts.map(o => `<option value="${o.v}" ${c._sc===o.v?'selected':''} style="color:${scColor[o.v]}">${o.label}</option>`).join('')}
+        </select>`;
 
         const depuis = c.date_debut_contrat || c.date_signature || c.created_at
           ? new Date(c.date_debut_contrat || c.date_signature || c.created_at)
@@ -809,7 +816,7 @@
           <td>${escHtml(c._adresse)}</td>
           <td>${escHtml(c._tel)}</td>
           <td>${escHtml(c._am)}</td>
-          <td>${badgeSc}</td>
+          <td>${selectSc}</td>
           <td>${depuis}</td>
           <td><button class="btn-fiche" onclick="event.stopPropagation();allerFiche('${c.id}')">Voir la fiche →</button></td>
         </tr>`;
@@ -832,6 +839,26 @@
       });
 
       afficherClients(filtrés);
+    }
+
+    // ── Changement statut inline ──
+    async function changerStatut(select) {
+      const siteId = select.dataset.siteId;
+      const newStatut = select.value;
+      const scColor = { actif: '#16a34a', essai: '#d97706', en_attente_signature: '#d97706', resilie: '#dc2626' };
+      select.style.color = scColor[newStatut] || '#374151';
+      const { error } = await sb.from('sites').update({ statut_contrat: newStatut }).eq('id', siteId);
+      if (error) { alert('Erreur : ' + error.message); return; }
+      // Mettre à jour le cache local
+      const c = tousLesClients.find(x => x.id === siteId);
+      if (c) {
+        c._sc = newStatut;
+        c.statut_contrat = newStatut;
+      }
+      // Recalculer les KPI
+      document.getElementById('kpiActifs').textContent   = tousLesClients.filter(c => c._sc === 'actif').length;
+      document.getElementById('kpiEssai').textContent    = tousLesClients.filter(c => c._sc === 'essai').length;
+      document.getElementById('kpiResilies').textContent = tousLesClients.filter(c => c._sc === 'resilie').length;
     }
 
     // ── Navigation vers fiche complète ──
