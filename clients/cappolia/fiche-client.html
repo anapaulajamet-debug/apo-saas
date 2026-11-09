@@ -235,6 +235,7 @@
         <div><label>Coût main d'œuvre (€)</label><input id="mMO" type="number" step="0.01" placeholder="0.00"></div>
         <div class="form-full"><label>Date de début</label><input id="mDateDebut" type="date"></div>
         <div class="form-full"><label>Nom du contact client</label><input id="mContactNom" placeholder="ex: Sophie Guillemaux"></div>
+        <div class="form-full"><label>SIREN / RCS client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
       </div>
       <div class="modal-actions">
         <button class="btn-action" onclick="document.getElementById('modalContrat').classList.remove('open')">Annuler</button>
@@ -725,6 +726,7 @@
         document.getElementById('mMO').value           = site.cout_main_oeuvre || '';
         document.getElementById('mDateDebut').value    = site.date_debut || '';
         document.getElementById('mContactNom').value   = site.contact_nom || '';
+        document.getElementById('mSiren').value         = site.siren || '';
       }
       document.getElementById('modalContrat').classList.add('open');
     });
@@ -744,6 +746,7 @@
         cout_main_oeuvre:     parseFloat(document.getElementById('mMO').value) || null,
         date_debut:           document.getElementById('mDateDebut').value || null,
         contact_nom:          document.getElementById('mContactNom').value.trim() || null,
+        siren:                document.getElementById('mSiren').value.trim() || null,
       };
       const { error } = await sb.from('sites').update(payload).eq('id', siteId);
       btn.disabled = false; btn.textContent = '💾 Enregistrer';
