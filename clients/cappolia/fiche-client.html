@@ -239,17 +239,64 @@
         <div><label>Forme juridique</label>
           <select id="mTypeSociete">
             <option value="">— Sélectionner —</option>
-            <option value="EURL">EURL</option>
-            <option value="SARL">SARL</option>
-            <option value="SAS">SAS</option>
-            <option value="SASU">SASU</option>
-            <option value="SA">SA</option>
-            <option value="SNC">SNC</option>
-            <option value="SCI">SCI</option>
-            <option value="EI">EI (Entreprise individuelle)</option>
-            <option value="MICRO">Micro-entreprise</option>
-            <option value="ASSO">Association</option>
-            <option value="AUTRE">Autre</option>
+            <optgroup label="Sociétés à responsabilité limitée">
+              <option value="SARL">SARL — Société à responsabilité limitée</option>
+              <option value="EURL">EURL — Entreprise unipersonnelle à resp. limitée</option>
+            </optgroup>
+            <optgroup label="Sociétés par actions simplifiées">
+              <option value="SAS">SAS — Société par actions simplifiée</option>
+              <option value="SASU">SASU — SAS unipersonnelle</option>
+            </optgroup>
+            <optgroup label="Sociétés anonymes">
+              <option value="SA">SA — Société anonyme</option>
+              <option value="SCA">SCA — Société en commandite par actions</option>
+            </optgroup>
+            <optgroup label="Sociétés de personnes">
+              <option value="SNC">SNC — Société en nom collectif</option>
+              <option value="SCS">SCS — Société en commandite simple</option>
+              <option value="SCP">SCP — Société civile professionnelle</option>
+              <option value="SEP">SEP — Société en participation</option>
+            </optgroup>
+            <optgroup label="Sociétés civiles">
+              <option value="SCI">SCI — Société civile immobilière</option>
+              <option value="SC">SC — Société civile</option>
+              <option value="SCEA">SCEA — Société civile d'exploitation agricole</option>
+              <option value="SCM">SCM — Société civile de moyens</option>
+            </optgroup>
+            <optgroup label="Entreprises individuelles">
+              <option value="EI">EI — Entreprise individuelle</option>
+              <option value="MICRO">Micro-entreprise / Auto-entrepreneur</option>
+              <option value="EIRL">EIRL — Entreprise indiv. à resp. limitée</option>
+            </optgroup>
+            <optgroup label="Coopératives">
+              <option value="SCOP">SCOP — Société coopérative de production</option>
+              <option value="SCIC">SCIC — Société coopérative d'intérêt collectif</option>
+              <option value="CAE">CAE — Coopérative d'activité et d'emploi</option>
+            </optgroup>
+            <optgroup label="Secteur public / parapublic">
+              <option value="SEM">SEM — Société d'économie mixte</option>
+              <option value="SPL">SPL — Société publique locale</option>
+              <option value="EPIC">EPIC — Établissement public industriel et commercial</option>
+              <option value="EPA">EPA — Établissement public administratif</option>
+              <option value="GIP">GIP — Groupement d'intérêt public</option>
+            </optgroup>
+            <optgroup label="Associations / fondations">
+              <option value="ASSO_LOI1901">Association loi 1901</option>
+              <option value="ASSO_LOI1908">Association loi 1908 (Alsace-Moselle)</option>
+              <option value="FOND">Fondation</option>
+              <option value="FONDS_DOT">Fonds de dotation</option>
+            </optgroup>
+            <optgroup label="Groupements">
+              <option value="GIE">GIE — Groupement d'intérêt économique</option>
+              <option value="GEIE">GEIE — Groupement européen d'intérêt économique</option>
+              <option value="GCS">GCS — Groupement de coopération sanitaire</option>
+            </optgroup>
+            <optgroup label="Autres">
+              <option value="SYNDIC">Syndicat de copropriété</option>
+              <option value="SYNDICAT_PRO">Syndicat professionnel</option>
+              <option value="MUTUELLE">Mutuelle</option>
+              <option value="AUTRE">Autre</option>
+            </optgroup>
           </select>
         </div>
         <div><label>SIREN / RCS client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
