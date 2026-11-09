@@ -235,7 +235,8 @@
         <div><label>Coût main d'œuvre (€)</label><input id="mMO" type="number" step="0.01" placeholder="0.00"></div>
         <div class="form-full"><label>Date de début</label><input id="mDateDebut" type="date"></div>
         <div class="form-full"><label>Nom du contact client</label><input id="mContactNom" placeholder="ex: Sophie Guillemaux"></div>
-        <div class="form-full"><label>SIREN / RCS client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
+        <div><label>SIREN / RCS client</label><input id="mSiren" placeholder="ex: 123 456 789"></div>
+        <div><label>SIRET</label><input id="mSiret" placeholder="ex: 123 456 789 00012"></div>
       </div>
       <div class="modal-actions">
         <button class="btn-action" onclick="document.getElementById('modalContrat').classList.remove('open')">Annuler</button>
@@ -470,6 +471,7 @@
               <div class="info-item"><label>Secteur / Type</label><p id="iSecteur">—</p></div>
               <div class="info-item"><label>Fréquence de passage</label><p id="iFrequence">—</p></div>
               <div class="info-item"><label>SIREN / RCS client</label><p id="iSiren">—</p></div>
+              <div class="info-item"><label>SIRET</label><p id="iSiret">—</p></div>
               <div class="info-item full"><label>Notes</label><p id="iNotes">—</p></div>
             </div>
           </div>
@@ -712,7 +714,7 @@
     document.getElementById('btnModif').addEventListener('click', async () => {
       // Pré-remplir le modal avec les données actuelles
       const { data: site } = await sb.from('sites')
-        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre,contact_nom,siren')
+        .select('frequence,duree_passage,jours_intervention,heure_debut,heure_fin,surface_m2,type_site,date_debut,ca_mensuel,cout_main_oeuvre,contact_nom,siren,siret')
         .eq('id', siteId).single();
       if (site) {
         document.getElementById('mFrequence').value    = site.frequence || '';
@@ -727,6 +729,7 @@
         document.getElementById('mDateDebut').value    = site.date_debut || '';
         document.getElementById('mContactNom').value   = site.contact_nom || '';
         document.getElementById('mSiren').value         = site.siren || '';
+        document.getElementById('mSiret').value         = site.siret || '';
       }
       document.getElementById('modalContrat').classList.add('open');
     });
@@ -747,6 +750,7 @@
         date_debut:           document.getElementById('mDateDebut').value || null,
         contact_nom:          document.getElementById('mContactNom').value.trim() || null,
         siren:                document.getElementById('mSiren').value.trim() || null,
+        siret:                document.getElementById('mSiret').value.trim() || null,
       };
       const { error } = await sb.from('sites').update(payload).eq('id', siteId);
       btn.disabled = false; btn.textContent = '💾 Enregistrer';
@@ -1188,6 +1192,7 @@
       document.getElementById('iSecteur').textContent  = secteur;
       document.getElementById('iFrequence').textContent= site.frequence||site.frequence_passage||'—';
       document.getElementById('iSiren').textContent    = site.siren || '—';
+      document.getElementById('iSiret').textContent    = site.siret || '—';
       document.getElementById('iNotes').textContent    = site.notes||site.commentaire||'—';
 
       // Mise en rouge des champs vides critiques
