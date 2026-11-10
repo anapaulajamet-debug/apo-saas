@@ -500,6 +500,7 @@
         <button class="tab-btn" onclick="showTab('bons',this)">📄 Bons de commande</button>
         <button class="tab-btn" onclick="showTab('contrat',this)">📑 Contrat</button>
         <button class="tab-btn" onclick="showTab('documents',this)">📁 Documents</button>
+        <button class="tab-btn" onclick="showTab('chiffrages',this);chargerChiffrages()">📐 Chiffrages</button>
         <button class="tab-btn" onclick="showTab('exploitation',this);chargerExploitation()">📊 Compte d'exploitation</button>
       </div>
 
@@ -657,6 +658,15 @@
               <button class="btn-action primary" onclick="ouvrirModalDoc()">+ Ajouter un document</button>
             </div>
             <div id="documentsContainer"><div class="empty"><div class="empty-icon">📁</div><p>Chargement…</p></div></div>
+          </div>
+        </div>
+
+        <!-- ══ CHIFFRAGES ══ -->
+        <div class="tab-panel" id="tab-chiffrages">
+          <div class="card">
+            <div class="card-title">📐 HISTORIQUE DES CHIFFRAGES</div>
+            <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Lecture seule — ces chiffrages ont servi à établir les devis de ce client.</p>
+            <div id="chiffragesContainer"><div class="empty"><div class="empty-icon">📐</div><p>Chargement…</p></div></div>
           </div>
         </div>
 
@@ -838,6 +848,84 @@
       alert('✅ Fiche supprimée.');
       window.location.replace('/clients');
     });
+
+    // ── Chiffrages (historique) ──
+    let _chiffragesCharged = false;
+    async function chargerChiffrages() {
+      if (_chiffragesCharged) return;
+      _chiffragesCharged = true;
+      const container = document.getElementById('chiffragesContainer');
+      // Trouver le prospect lié à ce site (via nom)
+      const nomSite = document.getElementById('clientNom')?.textContent?.trim() || '';
+      const { data: prospect } = await sb.from('prospects')
+        .select('id').ilike('raison_sociale', '%' + nomSite + '%').maybeSingle();
+
+      let chiffrages = [];
+      if (prospect) {
+        const { data } = await sb.from('chiffrages')
+          .select('id,numero_devis,raison_sociale,prix_ht,prix_ttc,masse_salariale,surface_totale,statut,updated_at,surfaces')
+          .eq('prospect_id', prospect.id)
+          .order('updated_at', { ascending: false });
+        chiffrages = data || [];
+      }
+
+      if (!chiffrages.length) {
+        container.innerHTML = '<div class="empty"><div class="empty-icon">📐</div><p>Aucun chiffrage trouvé pour ce client.</p></div>';
+        return;
+      }
+
+      const fmt = v => v ? parseFloat(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' : '—';
+      const fmtDate = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+      const statutBadge = s => ({
+        brouillon: '<span style="background:#FEF9C3;color:#854D0E;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">Brouillon</span>',
+        valide:    '<span style="background:#DCFCE7;color:#166534;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">✓ Validé</span>',
+        envoye:    '<span style="background:#DBEAFE;color:#1D4ED8;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">Envoyé</span>',
+        signe:     '<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">✓ Signé</span>',
+        refuse:    '<span style="background:#FEE2E2;color:#991B1B;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">Refusé</span>',
+      }[s] || `<span style="background:#F1F5F9;color:#64748B;padding:2px 10px;border-radius:12px;font-size:11px;">${s||'—'}</span>`);
+
+      container.innerHTML = chiffrages.map(c => {
+        const pv = c.surfaces?.pvParams || {};
+        const marge = pv.marge || '—';
+        return `<div style="border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-bottom:12px;background:#FAFAFA;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:700;font-size:15px;color:#1a1a1a;margin-bottom:4px;">
+                ${c.numero_devis ? `<span style="color:#64748B;font-size:12px;margin-right:8px;">${c.numero_devis}</span>` : ''}
+                ${c.raison_sociale || nomSite}
+              </div>
+              <div style="font-size:12px;color:#64748B;">Dernière modif : ${fmtDate(c.updated_at)}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              ${statutBadge(c.statut)}
+              <a href="/chiffrage?chiffrage=${c.id}" style="font-size:12px;padding:4px 12px;border:1.5px solid #94a3b8;border-radius:8px;color:#475569;text-decoration:none;font-weight:600;" title="Consulter (lecture seule)">👁 Consulter</a>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px;">
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Prix HT</div>
+              <div style="font-size:15px;font-weight:800;color:#16a34a;">${fmt(c.prix_ht)}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Prix TTC</div>
+              <div style="font-size:15px;font-weight:800;color:#1a1a1a;">${fmt(c.prix_ttc)}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Masse salariale</div>
+              <div style="font-size:15px;font-weight:800;color:#374151;">${fmt(c.masse_salariale)}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Surface</div>
+              <div style="font-size:15px;font-weight:800;color:#374151;">${c.surface_totale ? c.surface_totale + ' m²' : '—'}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Marge</div>
+              <div style="font-size:15px;font-weight:800;color:#0369a1;">${marge}%</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
 
     // ── Onglets ──
     function showTab(id,btn){
