@@ -1702,7 +1702,7 @@
                 ${iaBadges}
               </div>
               <div style="margin-left:12px;display:flex;gap:8px;align-items:center;">
-                ${d.url ? `<a href="${esc(d.url)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">👁 Ouvrir</a>` : ''}
+                ${d.type === 'contrat' ? `<button onclick="ouvrirGenerationContrat()" style="padding:6px 14px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">⬇️ Télécharger PDF</button>` : (d.url ? `<a href="${esc(d.url)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">👁 Ouvrir</a>` : '')}
                 ${d.type === 'devis' && d.statut === 'signe' ? `<button onclick="ouvrirGenerationContrat()" style="padding:6px 14px;background:#1A3D28;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📑 Générer le contrat</button>` : ''}
               </div>
             </div>
@@ -2187,6 +2187,9 @@
       btn.textContent = '✅ Contrat validé !';
       btn.style.background = '#2d6a4f';
 
+      // Générer et télécharger le PDF automatiquement
+      await _genererPDFContrat(numContrat);
+
       setTimeout(() => {
         document.getElementById('modalGenContrat').style.display = 'none';
         _loadedDocuments = false;
@@ -2196,11 +2199,7 @@
       }, 1800);
     }
 
-    async function telechargerContratPDF() {
-      const btn = event.target;
-      btn.disabled = true;
-      btn.textContent = '⏳ Génération…';
-
+    async function _genererPDFContrat(numContrat) {
       // Charger html2pdf si pas encore chargé
       if (!window.html2pdf) {
         await new Promise((resolve, reject) => {
@@ -2210,7 +2209,6 @@
           document.head.appendChild(s);
         });
       }
-
       // Construire un conteneur propre sans les bordures éditables
       const corps = document.getElementById('contratCorps').cloneNode(true);
       corps.querySelectorAll('[contenteditable]').forEach(el => {
@@ -2218,23 +2216,25 @@
         el.style.borderBottom = 'none';
         el.style.color = 'inherit';
       });
-
       const container = document.createElement('div');
       container.style.cssText = 'font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#1a1a1a;padding:30px 50px;max-width:800px;';
       container.appendChild(corps);
 
-      // Nom du fichier
-      const numContrat = document.querySelector('#contratCorps [data-champ="numContrat"]')?.textContent?.trim() || 'contrat';
-      const nomFichier = `Contrat_Cappolia_${numContrat}.pdf`;
-
+      const ref = numContrat || document.querySelector('#contratCorps [data-champ="numContrat"]')?.textContent?.trim() || 'contrat';
       await html2pdf().set({
         margin: [15, 15, 15, 15],
-        filename: nomFichier,
+        filename: `Contrat_Cappolia_${ref}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(container).save();
+    }
 
+    async function telechargerContratPDF() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '⏳ Génération…';
+      await _genererPDFContrat();
       btn.disabled = false;
       btn.textContent = '⬇️ Télécharger PDF';
     }
