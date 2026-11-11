@@ -2406,7 +2406,9 @@
       try {
         const { data: siteInfo } = await sb.from('sites').select('email,contact_nom,nom,raison_sociale').eq('id', siteId).single();
         const emailClient = siteInfo?.email;
-        if (emailClient) {
+        if (!emailClient) {
+          console.warn('Pas de compte client créé : aucun email renseigné sur la fiche client.');
+        } else {
           // Générer un mot de passe sécurisé
           const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
           let pwd = '';
@@ -2414,33 +2416,32 @@
 
           const nomParts = (siteInfo.contact_nom || siteInfo.nom || siteInfo.raison_sociale || '').split(' ');
           const prenom = nomParts[0] || '';
-          const nom    = nomParts.slice(1).join(' ') || '';
+          const nomC   = nomParts.slice(1).join(' ') || '';
 
           const resp = await fetch('/api/creer-compte-client', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              email: emailClient,
-              password: pwd,
-              nom,
-              prenom,
+              email: emailClient, password: pwd,
+              nom: nomC, prenom,
               site_id: siteId,
               tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
             }),
           });
           const result = await resp.json();
           if (result.success) {
-            // Sauvegarder les identifiants en base (type acces_client)
-            await sb.from('site_documents').upsert({
+            // Supprimer l'ancien enregistrement s'il existe, puis insérer
+            await sb.from('site_documents').delete().eq('site_id', siteId).eq('type', 'acces_client');
+            await sb.from('site_documents').insert({
               site_id: siteId,
               tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
               type: 'acces_client',
               nom: JSON.stringify({ email: emailClient, pwd, created_at: new Date().toISOString() }),
               statut: 'actif',
-            }, { onConflict: 'site_id,type' });
-
-            // Afficher les identifiants dans l'onglet Contrat
-            _afficherAccesClient(emailClient, pwd);
+            });
+            _afficherAccesClient(emailClient, pwd, new Date());
+          } else {
+            console.warn('API creer-compte-client :', result.error);
           }
         }
       } catch (e) {
