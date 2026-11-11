@@ -2199,6 +2199,15 @@
       }, 1800);
     }
 
+    async function imprimerContrat() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '⏳ Génération…';
+      await _genererPDFContrat();
+      btn.disabled = false;
+      btn.textContent = '🖨️ Imprimer';
+    }
+
     async function _genererPDFContrat(numContrat) {
       // Charger html2pdf si pas encore chargé
       if (!window.html2pdf) {
