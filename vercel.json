@@ -21,6 +21,7 @@
     { "source": "/collaborateurs", "destination": "/clients/cappolia/collaborateurs.html" },
     { "source": "/login", "destination": "/clients/cappolia/login.html" },
     { "source": "/qualite-audits", "destination": "/clients/cappolia/qualite-audits.html" },
-    { "source": "/planning", "destination": "/clients/cappolia/planning.html" }
+    { "source": "/planning", "destination": "/clients/cappolia/planning.html" },
+    { "source": "/portail-client", "destination": "/clients/cappolia/portail-client.html" }
   ]
 }

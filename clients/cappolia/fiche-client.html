@@ -2326,6 +2326,49 @@
       // Générer et télécharger le PDF automatiquement
       await _genererPDFContrat(numContrat);
 
+      // Créer le compte client automatiquement
+      try {
+        const { data: siteInfo } = await sb.from('sites').select('email,contact_nom,nom,raison_sociale').eq('id', siteId).single();
+        const emailClient = siteInfo?.email;
+        if (emailClient) {
+          // Générer un mot de passe sécurisé
+          const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+          let pwd = '';
+          for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+
+          const nomParts = (siteInfo.contact_nom || siteInfo.nom || siteInfo.raison_sociale || '').split(' ');
+          const prenom = nomParts[0] || '';
+          const nom    = nomParts.slice(1).join(' ') || '';
+
+          const resp = await fetch('/api/creer-compte-client', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: emailClient,
+              password: pwd,
+              nom,
+              prenom,
+              site_id: siteId,
+              tenant_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+            }),
+          });
+          const result = await resp.json();
+          if (result.success) {
+            setTimeout(() => {
+              alert(
+                `✅ COMPTE CLIENT CRÉÉ\n\n` +
+                `📧 Identifiant : ${emailClient}\n` +
+                `🔑 Mot de passe : ${pwd}\n\n` +
+                `⚠️ IMPORTANT : Envoyez ces identifiants au client par e-mail sécurisé.\n` +
+                `Le client pourra se connecter sur : https://app.cappolia-proprete.fr`
+              );
+            }, 500);
+          }
+        }
+      } catch (e) {
+        console.warn('Création compte client échouée:', e.message);
+      }
+
       setTimeout(() => {
         document.getElementById('modalGenContrat').style.display = 'none';
         _loadedDocuments = false;
