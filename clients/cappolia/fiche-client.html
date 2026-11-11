@@ -413,6 +413,7 @@
         <button class="btn-action" onclick="document.getElementById('modalGenContrat').style.display='none'">Annuler</button>
         <div style="display:flex;gap:10px;">
           <button class="btn-action" style="font-size:14px;padding:11px 20px;" onclick="telechargerContratPDF()">⬇️ Télécharger PDF</button>
+          <span id="cdcIndicator" style="font-size:12px;color:#888;align-self:center;display:none;"></span>
           <button class="btn-action primary" style="font-size:15px;padding:13px 28px;" id="btnValiderContrat" onclick="validerContrat()">✅ Valider le contrat</button>
         </div>
       </div>
@@ -2224,6 +2225,22 @@
       document.getElementById('modalGenContrat').style.display = 'block';
       document.getElementById('btnValiderContrat').disabled = false;
       document.getElementById('btnValiderContrat').textContent = '✅ Valider le contrat';
+
+      // Vérifier si un CDC est lié au site
+      const indic = document.getElementById('cdcIndicator');
+      if (indic) {
+        const { data: cdcCheck } = await sb.from('site_documents')
+          .select('id').eq('site_id', siteId).eq('type', 'cahier_charges').limit(1);
+        if (cdcCheck?.length > 0) {
+          indic.style.display = 'inline';
+          indic.style.color = '#2D6A3F';
+          indic.textContent = '📋 CDC inclus dans le PDF';
+        } else {
+          indic.style.display = 'inline';
+          indic.style.color = '#999';
+          indic.textContent = '📋 Pas de CDC lié (upload via Documents)';
+        }
+      }
     }
 
     async function validerContrat() {
@@ -2301,16 +2318,18 @@
       btn.textContent = '🖨️ Imprimer';
     }
 
+    async function _chargerScript(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = src; s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
     async function _genererPDFContrat(numContrat) {
-      // Charger html2pdf si pas encore chargé
-      if (!window.html2pdf) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-          s.onload = resolve; s.onerror = reject;
-          document.head.appendChild(s);
-        });
-      }
+      await _chargerScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+
       // Construire un conteneur propre sans les bordures éditables
       const corps = document.getElementById('contratCorps').cloneNode(true);
       corps.querySelectorAll('[contenteditable]').forEach(el => {
@@ -2323,13 +2342,68 @@
       container.appendChild(corps);
 
       const ref = numContrat || document.querySelector('#contratCorps [data-champ="numContrat"]')?.textContent?.trim() || 'contrat';
-      await html2pdf().set({
+      const opts = {
         margin: [15, 15, 15, 15],
         filename: `Contrat_Cappolia_${ref}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(container).save();
+      };
+
+      // Chercher un cahier des charges lié à ce site
+      const { data: cdcDocs } = await sb.from('site_documents')
+        .select('url')
+        .eq('site_id', siteId)
+        .eq('type', 'cahier_charges')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const cdcUrl = cdcDocs?.[0]?.url;
+
+      if (!cdcUrl) {
+        // Pas de CDC — téléchargement simple
+        await html2pdf().set(opts).from(container).save();
+        return;
+      }
+
+      // CDC trouvé — fusionner avec pdf-lib
+      await _chargerScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
+
+      // Générer le contrat en blob
+      const contratBlob = await html2pdf().set(opts).from(container).outputPdf('blob');
+
+      // Récupérer le CDC (proxy CORS via fetch avec mode no-cors impossible — utiliser URL directe Supabase)
+      let cdcBytes;
+      try {
+        const resp = await fetch(cdcUrl);
+        if (!resp.ok) throw new Error('CDC inaccessible');
+        cdcBytes = await resp.arrayBuffer();
+      } catch(e) {
+        console.warn('CDC fetch failed, génération sans fusion:', e);
+        await html2pdf().set(opts).from(container).save();
+        return;
+      }
+
+      const { PDFDocument } = PDFLib;
+      const mergedDoc = await PDFDocument.create();
+
+      const contratDoc = await PDFDocument.load(await contratBlob.arrayBuffer());
+      const cdcDoc    = await PDFDocument.load(cdcBytes);
+
+      const contratPages = await mergedDoc.copyPages(contratDoc, contratDoc.getPageIndices());
+      contratPages.forEach(p => mergedDoc.addPage(p));
+
+      const cdcPages = await mergedDoc.copyPages(cdcDoc, cdcDoc.getPageIndices());
+      cdcPages.forEach(p => mergedDoc.addPage(p));
+
+      const mergedBytes = await mergedDoc.save();
+      const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Contrat_Cappolia_${ref}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     }
 
     async function telechargerContratPDF() {
