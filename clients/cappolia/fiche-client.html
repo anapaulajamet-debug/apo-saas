@@ -2349,12 +2349,12 @@
         el.style.color = 'inherit';
       });
       const container = document.createElement('div');
-      container.style.cssText = 'font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#1a1a1a;padding:30px 50px;max-width:800px;';
+      container.style.cssText = 'font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#1a1a1a;padding:0;width:170mm;';
       container.appendChild(corps);
 
       const ref = numContrat || document.querySelector('#contratCorps [data-champ="numContrat"]')?.textContent?.trim() || 'contrat';
       const opts = {
-        margin: [20, 25, 20, 25],
+        margin: [25, 30, 25, 30],
         filename: `Contrat_Cappolia_${ref}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
