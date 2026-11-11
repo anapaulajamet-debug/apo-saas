@@ -1902,11 +1902,11 @@
             <tr><td style="${tdL}">Raison sociale / Nom</td><td style="${tdR}">${champFige(nom)}</td></tr>
             <tr><td style="${tdL}">Forme juridique et capital</td><td style="${tdR}">${champ('clientForme', site.type_societe||'', 'Société par actions simplifiée, au capital de … €')}</td></tr>
             <tr><td style="${tdL}">SIREN / RCS</td><td style="${tdR}">${siret ? champFige(siret) : champ('clientSiren', site.siren||'', 'SIREN … — SIRET … — RCS …')}</td></tr>
-            <tr><td style="${tdL}">N° TVA intracommunautaire</td><td style="${tdR}">${champ('clientTVA', '', 'FR…')}</td></tr>
-            <tr><td style="${tdL}">Siège social</td><td style="${tdR}">${champFige(adr)}</td></tr>
-            <tr><td style="${tdL}">Adresse de facturation</td><td style="${tdR}">${champ('adrFactu', adr, 'Identique au siège social')}</td></tr>
-            <tr><td style="${tdL}">Représenté par (nom, fonction)</td><td style="${tdR}">${champ('clientRepresentant', contact)}, ${champ('clientQualite', '', 'Fonction')}</td></tr>
-            <tr><td style="${tdL}">Email et téléphone</td><td style="${tdR}">${champFige(email !== '—' ? email : '')} — ${champFige(tel !== '—' ? tel : '')}</td></tr>
+            <tr><td style="${tdL}">N° de TVA intracommunautaire</td><td style="${tdR}">${champ('clientTVA', '', 'FR…')}</td></tr>
+            <tr><td style="${tdL}">Adresse de facturation</td><td style="${tdR}">${champ('adrFactu', adr, 'Identique au siège social si non renseigné')}</td></tr>
+            <tr><td style="${tdL}">Représenté par (nom, fonction)</td><td style="${tdR}">${champ('clientRepresentant', contact)}, ${champ('clientQualite', '', 'Président / Gérant / Directeur…')}</td></tr>
+            <tr><td style="${tdL}">Email et téléphone</td><td style="${tdR}">${champ('clientEmail', email !== '—' ? email : '', 'email@société.fr')} — ${champ('clientTel', tel !== '—' ? tel : '', '0X XX XX XX XX')}</td></tr>
+            <tr><td style="${tdL}">Responsable des réclamations</td><td style="${tdR}">${champ('clientReclamations', contact, 'Nom, email, téléphone du responsable sur site')}</td></tr>
             <tr><td colspan="2" style="padding:4px 10px;border:0.5px solid #bbb;font-style:italic;font-size:12px;">ci-après le « Client ».</td></tr>
           </table>
           <p style="font-size:12.5px;margin-bottom:16px;">Le Prestataire et le Client sont ci-après désignés ensemble les « Parties » et individuellement une « Partie ».</p>
@@ -2131,14 +2131,92 @@
         </div>
 
         <!-- ANNEXE 3 -->
-        <div style="page-break-before:always;margin-top:48px;padding-top:32px;border-top:3px double #1a1a1a;">
-          <div style="text-align:center;margin-bottom:28px;">
-            <div style="font-size:11px;color:#666;margin-bottom:4px;">CAPPOLIA PROPRETÉ — Contrat de prestations de propreté</div>
+        <div style="page-break-before:always;padding-top:16px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:9px;color:#888;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:16px;display:flex;justify-content:space-between;text-align:left;"><span>CAPPOLIA PROPRETÉ — Contrat de prestations de propreté</span><span>Cappolia Propreté — EURL au capital de 1 000 € — SIREN 108 464 652</span></div>
             <div style="font-size:16px;font-weight:900;letter-spacing:2px;text-transform:uppercase;">ANNEXE 3</div>
-            <div style="font-size:14px;font-weight:700;margin-top:4px;">CAHIER DES CHARGES DES PRESTATIONS</div>
-            <div style="font-size:12px;color:#555;margin-top:2px;">Site : ${champFige(nom)}</div>
+            <div style="font-size:14px;font-weight:700;margin-top:4px;text-transform:uppercase;">CAHIER DES CHARGES DES PRESTATIONS</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;">Site : <strong>${champFige(nom)}</strong></div>
           </div>
-          <p style="font-size:12px;line-height:1.75;color:#555;font-style:italic;text-align:center;margin-top:40px;">Le détail des prestations est défini aux Conditions particulières, article 2 du présent contrat.<br>Un planning d'intervention spécifique pourra être établi d'un commun accord entre les Parties.</p>
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">
+            <tr><td colspan="2" style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;">Identification du site</td></tr>
+            <tr><td style="${tdL}">Adresse du site</td><td style="${tdR}">${champFige(adr)}</td></tr>
+            <tr><td style="${tdL}">Nature des locaux</td><td style="${tdR}">${champ('cdc_nature', typeSite, 'Bureaux / Locaux commerciaux / Entrepôt…')}</td></tr>
+            <tr><td style="${tdL}">Surface totale (m²)</td><td style="${tdR}">${champ('cdc_surface', surface, 'ex : 250 m²')}</td></tr>
+            <tr><td style="${tdL}">Nombre d'étages / niveaux</td><td style="${tdR}">${champ('cdc_niveaux', '', 'ex : RDC + 1 étage')}</td></tr>
+            <tr><td style="${tdL}">Nombre de postes de travail</td><td style="${tdR}">${champ('cdc_postes', '', 'ex : 12 postes')}</td></tr>
+            <tr><td style="${tdL}">Accès et remise des clés</td><td style="${tdR}">${champ('cdc_acces', '', 'Clés remises le … / Badge fourni / Digicode : …')}</td></tr>
+            <tr><td style="${tdL}">Local technique mis à disposition</td><td style="${tdR}">${champ('cdc_local', '', 'Oui — emplacement : …')}</td></tr>
+          </table>
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">
+            <tr><td colspan="3" style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;">Planning d'intervention</td></tr>
+            <tr>
+              <td style="padding:6px 10px;border:0.5px solid #bbb;font-weight:600;width:30%;background:#fafafa;">Fréquence</td>
+              <td style="padding:6px 10px;border:0.5px solid #bbb;font-weight:600;width:35%;background:#fafafa;">Jours d'intervention</td>
+              <td style="padding:6px 10px;border:0.5px solid #bbb;font-weight:600;background:#fafafa;">Horaires</td>
+            </tr>
+            <tr>
+              <td style="${tdR}">${champ('cdc_freq', freq, 'ex : 3 fois par semaine')}</td>
+              <td style="${tdR}">${champ('cdc_jours', jours, 'ex : Lundi, Mercredi, Vendredi')}</td>
+              <td style="${tdR}">${champ('cdc_horaires', hDeb && hFin ? hDeb + ' – ' + hFin : '', 'ex : 18h00 – 20h00')}</td>
+            </tr>
+            <tr><td style="${tdL}">Durée estimée par passage</td><td colspan="2" style="${tdR}">${champ('cdc_dureePassage', duree||'', 'ex : 2 h 00 par passage')}</td></tr>
+          </table>
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">
+            <tr>
+              <td style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;width:25%;">Zone / Local</td>
+              <td style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;">Tâches à réaliser</td>
+              <td style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;width:20%;">Fréquence</td>
+            </tr>
+            <tr>
+              <td style="${tdR}">${champ('cdc_zone1', 'Bureaux et open-space', 'Zone 1')}</td>
+              <td style="${tdR}">${champ('cdc_taches1', 'Dépoussiérage des surfaces, vidage corbeilles, aspiration / lavage des sols', 'Tâches zone 1')}</td>
+              <td style="${tdR}">${champ('cdc_freq1', freq||'À chaque passage', 'fréquence')}</td>
+            </tr>
+            <tr>
+              <td style="${tdR}">${champ('cdc_zone2', 'Sanitaires', 'Zone 2')}</td>
+              <td style="${tdR}">${champ('cdc_taches2', 'Nettoyage et désinfection WC, lavabos, miroirs, réapprovisionnement consommables', 'Tâches zone 2')}</td>
+              <td style="${tdR}">${champ('cdc_freq2', freq||'À chaque passage', 'fréquence')}</td>
+            </tr>
+            <tr>
+              <td style="${tdR}">${champ('cdc_zone3', 'Parties communes / Couloirs', 'Zone 3')}</td>
+              <td style="${tdR}">${champ('cdc_taches3', 'Aspiration / lavage sols, dépoussiérage mobilier commun', 'Tâches zone 3')}</td>
+              <td style="${tdR}">${champ('cdc_freq3', freq||'À chaque passage', 'fréquence')}</td>
+            </tr>
+            <tr>
+              <td style="${tdR}">${champ('cdc_zone4', 'Cuisine / Salle de pause', 'Zone 4 (si applicable)')}</td>
+              <td style="${tdR}">${champ('cdc_taches4', 'Lavage sols, nettoyage plans de travail, évier, micro-ondes extérieur', 'Tâches zone 4')}</td>
+              <td style="${tdR}">${champ('cdc_freq4', freq||'À chaque passage', 'fréquence')}</td>
+            </tr>
+            <tr>
+              <td style="${tdR}">${champ('cdc_zone5', '', 'Autre zone (optionnel)')}</td>
+              <td style="${tdR}">${champ('cdc_taches5', '', 'Tâches zone 5')}</td>
+              <td style="${tdR}">${champ('cdc_freq5', '', 'fréquence')}</td>
+            </tr>
+          </table>
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">
+            <tr><td colspan="2" style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;">Prestations périodiques (hors forfait mensuel)</td></tr>
+            <tr><td style="${tdL}">Lavage vitres intérieures</td><td style="${tdR}">${champ('cdc_vitresInt', '', 'Fréquence — ex : 2 fois par an')}</td></tr>
+            <tr><td style="${tdL}">Lavage vitres extérieures</td><td style="${tdR}">${champ('cdc_vitresExt', '', 'Fréquence — ex : Sur devis préalable')}</td></tr>
+            <tr><td style="${tdL}">Remise en état / Grand nettoyage</td><td style="${tdR}">${champ('cdc_grandNettoyage', '', 'Fréquence — ex : 1 fois par an, sur devis')}</td></tr>
+            <tr><td style="${tdL}">Autres prestations spécifiques</td><td style="${tdR}">${champ('cdc_autresPrest', '', 'Décrivez ici toute prestation complémentaire')}</td></tr>
+          </table>
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">
+            <tr><td colspan="2" style="padding:6px 10px;border:0.5px solid #bbb;font-weight:700;background:#f5f5f5;text-transform:uppercase;font-size:11px;">Fournitures et consommables</td></tr>
+            <tr><td style="${tdL}">Produits de nettoyage</td><td style="${tdR}">Fournis et à la charge du Prestataire</td></tr>
+            <tr><td style="${tdL}">Matériel (aspirateur, laveur…)</td><td style="${tdR}">Fourni et à la charge du Prestataire</td></tr>
+            <tr><td style="${tdL}">Consommables hygiène (savon, papier…)</td><td style="${tdR}">${champ('cdc_consommables', '', 'Fournis par le Client / À la charge du Prestataire selon devis')}</td></tr>
+            <tr><td style="${tdL}">Sacs poubelle</td><td style="${tdR}">${champ('cdc_sacs', '', 'Fournis par le Client / À la charge du Prestataire')}</td></tr>
+          </table>
+
+          <p style="font-size:11px;color:#666;font-style:italic;margin-top:16px;border-top:1px solid #eee;padding-top:10px;">
+            Ce cahier des charges constitue le document de référence pour l'exécution des prestations. Toute modification doit faire l'objet d'un avenant écrit signé des deux Parties (article 2.2 des CGV).
+          </p>
         </div>
       `;
 
