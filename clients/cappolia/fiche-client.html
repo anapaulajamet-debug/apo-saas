@@ -1705,6 +1705,7 @@
               <div style="margin-left:12px;display:flex;gap:8px;align-items:center;">
                 ${d.type === 'contrat' ? `<button onclick="ouvrirGenerationContrat()" style="padding:6px 14px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">⬇️ Télécharger PDF</button>` : (d.url ? `<a href="${esc(d.url)}" target="_blank" style="padding:6px 14px;background:var(--teal);color:#fff;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">👁 Ouvrir</a>` : '')}
                 ${d.type === 'devis' && d.statut === 'signe' ? `<button onclick="ouvrirGenerationContrat()" style="padding:6px 14px;background:#1A3D28;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📑 Générer le contrat</button>` : ''}
+                <button onclick="supprimerDocument('${d.id}')" title="Supprimer" style="padding:5px 9px;background:transparent;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;color:#999;line-height:1;" onmouseover="this.style.borderColor='#e55';this.style.color='#c00'" onmouseout="this.style.borderColor='#ddd';this.style.color='#999'">🗑</button>
               </div>
             </div>
           </div>`;
@@ -1766,8 +1767,22 @@
       return `<strong>${valeur || fallback}</strong>`;
     }
 
+    async function supprimerDocument(docId) {
+      if (!confirm('Supprimer ce document définitivement ?')) return;
+      const { error } = await sb.from('site_documents').delete().eq('id', docId);
+      if (error) { alert('Erreur : ' + error.message); return; }
+      chargerDocuments();
+    }
+
     async function ouvrirGenerationContrat() {
       document.getElementById('modalPropositionContrat').style.display = 'none';
+
+      // Bloquer si un contrat existe déjà
+      const { data: contratExistant } = await sb.from('site_documents')
+        .select('id,nom').eq('site_id', siteId).eq('type', 'contrat').limit(1);
+      if (contratExistant?.length > 0) {
+        if (!confirm(`Un contrat existe déjà pour ce site (« ${contratExistant[0].nom} »).\n\nVoulez-vous quand même en générer un nouveau ?`)) return;
+      }
 
       // Récupérer données fraîches du site
       const { data: site } = await sb.from('sites').select('*').eq('id', siteId).single();
